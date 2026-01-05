@@ -17,7 +17,8 @@ export async function apiFetch<T>(url: string, method: string, body?: unknown): 
     throw new Error(`HTTP error! status: ${response.status}: ${msg}`);
   }
 
-  return (await response.json()) as T;
+  const text = await response.text();
+  return text ? JSON.parse(text) : (null as any);
 }
 
 // A safe variant that does not throw on HTTP errors and returns structured info

@@ -8,6 +8,7 @@ const collection = 'estudiantes'
 export default class EstudiantesService {
     static async fetchItemByDNI(dni: string): Promise<IEstudiante> {
         const data = await apiFetch<IEstudiante>(`${collection}/buscar/${dni}`, 'GET')
+        console.log(data)
         return data
     }
 
@@ -17,8 +18,8 @@ export default class EstudiantesService {
         const escuelaId = body.escuela ? +body.escuela : null
 
         const estudianteData = {
-            nombres: body.nombres,
-            apellidos: body.apellidos,
+            nombres: body.nombres.toUpperCase(),
+            apellidos: body.apellidos.toUpperCase(),
             tipoDocumento: body.tipo_documento,
             numeroDocumento: body.dni,
             celular: body.celular,
@@ -34,14 +35,14 @@ export default class EstudiantesService {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     static async newItem(body: any): Promise<IEstudiante> {
         const estudianteData = {
-            nombres: body.nombres,
-            apellidos: body.apellidos,
+            nombres: body.nombres.toUpperCase(),
+            apellidos: body.apellidos.toUpperCase(),
             tipoDocumento: body.tipo_documento,
             numeroDocumento: body.dni,
             celular: body.celular,
-            facultadId: +body.facultad,
-            escuelaId: +body.escuela,
-            codigo: body.codigo
+            facultadId: +body.facultad ? +body.facultad : null,
+            escuelaId: +body.escuela ? +body.escuela : null,
+            codigo: body.codigo ? body.codigo : null
         } as unknown as IEstudiante
 
         const data = await apiFetch<IEstudiante>(`${collection}`, 'POST', estudianteData)
