@@ -19,8 +19,6 @@ import { ExternalLink } from 'lucide-react'; // Asegúrate de importar el icono 
 import DetalleSolicitudCard from '@/components/detalle-solicitud-card'
 import Link from 'next/link'
 import ISolicitudBeca from '../interfaces/solicitudbeca.interface'
-import useFacultades from '@/hooks/useFacultades'
-import useEscuelas from '@/hooks/useEscuelas'
 
 type Props = {
     activeStep : number
@@ -30,8 +28,6 @@ type Props = {
 
 export default function Register({activeStep, setActiveStep, steps}:Props) 
 {
-    const facultades = useFacultades();
-    const escuelas = useEscuelas();
     const router = useRouter();
     const [loading, setLoading] = React.useState<boolean>(false)
     const [open, setOpen] = React.useState<boolean>(false)
@@ -57,14 +53,7 @@ export default function Register({activeStep, setActiveStep, steps}:Props)
             setState('SAVE')
             setOpen(true)
             //guarda la informacion en la base de datos
-            const newBeca = {
-                ...solicitud,
-                facultad: facultades?.find((f) => f.id === Number(solicitud.facultad))?.nombre,
-                facultadId: Number(solicitud.facultad),
-                escuela: escuelas?.find((f) => f.id === Number(solicitud?.escuela))?.nombre,
-                escuelaId: Number(solicitud?.escuela),
-            }
-            const response = await SolicitudesService.newBeca(newBeca as ISolicitudBeca)
+            const response = await SolicitudesService.newBeca(solicitud as ISolicitudBeca)
             if(!response){
                 setState('ERROR')
                 setMessage('Error al guardar la solicitud')

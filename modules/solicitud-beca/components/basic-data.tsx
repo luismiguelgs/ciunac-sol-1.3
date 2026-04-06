@@ -34,8 +34,8 @@ export default function BasicData({activeStep, handleNext, steps, setActiveStep}
         defaultValues: {
             apellidos: solicitud?.apellidos ?? initialValues.apellidos,
             nombres: solicitud?.nombres ?? initialValues.nombres,
-            facultad: solicitud?.facultad ?? initialValues.facultad,
-            escuela: solicitud?.escuela ?? initialValues.escuela,
+            facultad: solicitud?.facultadId ?? initialValues.facultad,
+            escuela: solicitud?.escuelaId ?? initialValues.escuela,
             codigo: solicitud?.codigo ?? initialValues.codigo,
             tipo_documento: solicitud?.tipo_documento ? solicitud.tipo_documento : initialValues.tipo_documento,
             direccion: solicitud?.direccion ?? initialValues.direccion,
@@ -59,10 +59,10 @@ export default function BasicData({activeStep, handleNext, steps, setActiveStep}
     // 3. Opcional: Resetea el campo 'escuela' cuando cambia la facultad
     React.useEffect(() => {
         // Solo resetea si la facultad cambia y no es la carga inicial
-        if (selectedFacultad !== (solicitud?.facultad ?? initialValues.facultad)) {
+        if (selectedFacultad !== (solicitud?.facultadId ?? initialValues.facultad)) {
              form.resetField("escuela"); // O form.setValue("escuela", '') si prefieres
         }
-    }, [selectedFacultad, form, solicitud?.facultad]);
+    }, [selectedFacultad, form, solicitud?.facultadId]);
 
 
     const onSubmit = (data:IBasicInfoSchema) => {
