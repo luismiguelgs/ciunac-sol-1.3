@@ -4,13 +4,13 @@ import logoUnac from '@/assets/unac-logo.png'
 import firmaDirector from '@/assets/firma_director.jpg'
 import { IDetalleExamenUbicacion } from '../interfaces/examen.interface';
 
-Font.register({family:'Roboto', src:'https://fonts.gstatic.com/s/roboto/v16/zN7GBFwfMP4uA6AR0HCoLQ.ttf'})
+Font.register({ family: 'Roboto', src: 'https://fonts.gstatic.com/s/roboto/v16/zN7GBFwfMP4uA6AR0HCoLQ.ttf' })
 
 const styles = StyleSheet.create({
     page: {
         paddingTop: 35,
-    	paddingBottom: 65,
-    	paddingHorizontal: 30,
+        paddingBottom: 65,
+        paddingHorizontal: 30,
     },
     header: {
         flexDirection: 'row',
@@ -63,30 +63,28 @@ const styles = StyleSheet.create({
         marginTop: 10, // Espacio entre la imagen y el texto
     },
 });
-export default function ConstanciaFormat({data, fecha , ciclo}:{data:IDetalleExamenUbicacion | undefined, fecha:string, ciclo:string})
-{
+export default function ConstanciaFormat({ data, fecha, ciclo }: { data: IDetalleExamenUbicacion | undefined, fecha: string, ciclo: string }) {
     // Datos dinámicos (pueden venir de los props)
     const nombreCompleto = data?.estudiante?.nombres + " " + data?.estudiante?.apellidos || "_________________________";
     const dni = data?.estudiante?.numeroDocumento || "_____________";
-    const idioma = data?.idioma?.nombre === 'INGLES' ? 'INGLÉS' : data?.idioma?.nombre === 'PORTUGUES' ? 'PORTUGUÉS' : 'ITALIANO';
     const puntaje = data?.nota || "______";
-    
-    return(
+
+    return (
         <Document>
             <Page size="A4" style={styles.page}>
                 <View style={styles.header}>
                     {/* Logo izquierdo */}
-                    <Image src={logoUnac.src} style={{width: 90, height: 120}} />
+                    <Image src={logoUnac.src} style={{ width: 90, height: 120 }} />
 
                     {/* Textos en el medio */}
-                    <View style={{textAlign: 'center', fontFamily: 'Roboto', flex: 1, alignItems: 'center'}}>
-                        <Text style={{fontSize: 18, fontWeight: 'bold'}}>UNIVERSIDAD NACIONAL DEL CALLAO</Text>
-                        <Text style={styles.subtitle}>VICERRECTORADO ACADÉMICO</Text>
+                    <View style={{ textAlign: 'center', fontFamily: 'Roboto', flex: 1, alignItems: 'center' }}>
+                        <Text style={{ fontSize: 18, fontWeight: 'bold' }}>UNIVERSIDAD NACIONAL DEL CALLAO</Text>
+                        <Text style={styles.subtitle}>RECTORADO</Text>
                         <Text style={styles.subtitle}>CENTRO DE IDIOMAS</Text>
                     </View>
 
                     {/* Logo derecho */}
-                    <Image src={logoCiunac.src} style={{width: 120, height: 120}} />
+                    <Image src={logoCiunac.src} style={{ width: 120, height: 120 }} />
                 </View>
                 {/* Línea horizontal */}
                 <View style={styles.horizontalLine} />
@@ -99,7 +97,7 @@ export default function ConstanciaFormat({data, fecha , ciclo}:{data:IDetalleExa
                 <Text style={styles.bodyText}>
                     El director del Centro de Idiomas de la Universidad Nacional del Callao, hace constar:
                     {"\n\n"}
-                    Que, {nombreCompleto.toLocaleUpperCase()}, identificado con DNI {dni}, participó del examen de ubicación del idioma {idioma}, obteniendo un puntaje de {puntaje}/100, con lo cual se le ubica en el nivel {ciclo}.
+                    Que, {nombreCompleto.toLocaleUpperCase()}, identificado con DNI {dni}, participó del examen de ubicación del idioma {data?.idioma?.nombre}, obteniendo un puntaje de {puntaje}/100, con lo cual se le ubica en el nivel {ciclo}.
                     {"\n\n"}
                     Se expide el presente, a solicitud de la parte interesada para los fines pertinentes.
                 </Text>

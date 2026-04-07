@@ -13,12 +13,12 @@ type Props = {
     ciclo: string
 }
 
-export default function Download({item, fecha, ciclo}: Props) {
-    const descargarPDF = async() => {
-        const cargoPdfElement = <ConstanciaFormat data={item} fecha={fecha} ciclo={ciclo}/>
+export default function Download({ item, fecha, ciclo }: Props) {
+    const descargarPDF = async () => {
+        const cargoPdfElement = <ConstanciaFormat data={item} fecha={fecha} ciclo={ciclo} />
         const blobPdf = await pdf(cargoPdfElement).toBlob()
         const blobUrl = URL.createObjectURL(blobPdf)
-        
+
         const a = document.createElement('a')
         a.style.display = 'none'
         a.href = blobUrl
@@ -42,7 +42,7 @@ export default function Download({item, fecha, ciclo}: Props) {
                     className="cursor-pointer hover:opacity-80 transition-opacity"
                     onClick={descargarPDF}
                 />
-                <Button 
+                <Button
                     variant="default"
                     className="flex-1"
                     onClick={descargarPDF}
