@@ -4,24 +4,24 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { finalSchema, IFinalSchema, initialValues } from '@/schemas/final.schema'
+import { finalSchema, IFinalSchema, initialValues } from '@/modules/shared/schemas/final.schema'
 import { Form } from '@/components/ui/form'
 import SwithField from '@/components/forms/switch.field'
 import MyAlert from '@/components/forms/myAlert'
 import { toast } from "sonner"
 import SolicitudesService from '@/services/solicitudes.service'
-import Isolicitud from '@/interfaces/solicitud.interface'
+import Isolicitud from '@/modules/shared/interfaces/solicitud.interface'
 import EmailService from '@/services/email.service'
 import GeneralDialog from '@/components/dialogs/general-dialog'
 import { Button } from '@/components/ui/button'
 import { Loader2, ExternalLink } from "lucide-react"
 import { useRouter } from 'next/navigation'
-import DetalleSolicitudCard from '@/components/detalle-solicitud-card'
+import DetalleSolicitudCard from '@/modules/consulta-solicitud/components/detalle-solicitud-card'
 import useSolicitudStore from '@/stores/solicitud.store'
 import useStore from '@/hooks/useStore'
 import { useTextsStore } from '@/stores/types.stores'
-import EstudiantesService from '@/services/estudiantes.service'
-import IEstudiante from '@/interfaces/estudiante.interface'
+import EstudiantesService, { IEstudianteFormDTO } from '@/services/estudiantes.service'
+import IEstudiante from '@/modules/shared/interfaces/estudiante.interface'
 
 type Props = {
     activeStep : number
@@ -41,7 +41,7 @@ export default function Register({activeStep, setActiveStep, steps}:Props)
 
 	console.log(solicitud)
     
-    const textos = useStore(useTextsStore, (state) => state.textos)
+    const textos = useStore(useTextsStore, (state) => state.data)
 
     const form = useForm<IFinalSchema>({
         resolver: zodResolver(finalSchema),
@@ -61,9 +61,9 @@ export default function Register({activeStep, setActiveStep, steps}:Props)
             //guarda la informacion en la base de datos guardar o actualizar datos de estudiante
             if(solicitud.estudianteId){
                 //objeto estudiante
-                resEstudiante = await EstudiantesService.updateItem(solicitud.estudianteId, solicitud)
+                resEstudiante = await EstudiantesService.updateItem(solicitud.estudianteId, solicitud as unknown as IEstudianteFormDTO)
             }else{
-                resEstudiante = await EstudiantesService.newItem(solicitud)
+                resEstudiante = await EstudiantesService.newItem(solicitud as unknown as IEstudianteFormDTO)
             }
             if(!resEstudiante){
                 setState('ERROR')
@@ -178,3 +178,5 @@ export default function Register({activeStep, setActiveStep, steps}:Props)
         </div>
     )
 }
+
+

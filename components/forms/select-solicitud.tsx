@@ -17,15 +17,14 @@ import {
 } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton" // 1. Importa Skeleton
 import useSolicitudes from "@/hooks/useSolicitudes"
-import { Control } from "react-hook-form"
+import { Control, FieldValues, Path } from "react-hook-form"
 
-type Props = {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    control: Control<any>
-    name: string
+type Props<T extends FieldValues> = {
+    control: Control<T>
+    name: Path<T>
 }
 
-export default function SelectSolicitud({name, control}:Props) 
+export default function SelectSolicitud<T extends FieldValues>({name, control}:Props<T>) 
 {
     const data = useSolicitudes()
 

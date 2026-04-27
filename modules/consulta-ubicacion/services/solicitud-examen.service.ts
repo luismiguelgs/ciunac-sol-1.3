@@ -1,5 +1,5 @@
 import { apiFetch } from "@/lib/api.service";
-import { IExamenUbicacion, IDetalleExamenUbicacion } from "../interfaces/examen.interface";
+import { IExamenUbicacion, IDetalleExamenUbicacion } from "@/modules/consulta-ubicacion/interfaces/examen.interface";
 
 export default class SolicitudesExamenService
 {
@@ -39,3 +39,4 @@ export default class SolicitudesExamenService
         }
     }
 }
+

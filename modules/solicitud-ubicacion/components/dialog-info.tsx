@@ -1,4 +1,4 @@
-import { ITexto } from '@/interfaces/types.interface';
+import { ITexto } from '@/modules/shared/interfaces/types.interface';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { initialValues, IsolicitudUbicacionSchema, solicitudUbicacionSchema } from '../schemas/solicitud-ubicacion.schema';
@@ -59,3 +59,4 @@ export default function DialogInfoAdicional({ open, text, action }: Props) {
         </AlertDialog>
     )
 }
+

@@ -47,3 +47,11 @@ export const isPdf = (url: string | undefined | null): boolean => {
   }
   return false;
 }
+
+export function omit<T extends object, K extends keyof T>(obj: T, keys: K[]): Omit<T, K> {
+  const copy = { ...obj };
+  keys.forEach((key) => {
+    delete copy[key];
+  });
+  return copy;
+}

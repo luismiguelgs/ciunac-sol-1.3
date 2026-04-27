@@ -24,8 +24,7 @@ type GenericTableProps<T> = {
   footer?: React.ReactNode;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default function MyTable<T extends Record<string, any>>({
+export default function MyTable<T>({
   data,
   columns,
   caption,

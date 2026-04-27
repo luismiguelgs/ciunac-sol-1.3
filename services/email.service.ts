@@ -17,7 +17,7 @@ export default class EmailService
             email: email,
             user: codigo
         }
-        this.sendEmail(body)
+        await this.sendEmail(body)
     }
     public static async sendEmailCertificado(email:string, codigo:string) {
         const body:EmailBody = {
@@ -25,7 +25,7 @@ export default class EmailService
             email: email,
             user: codigo
         }
-        this.sendEmail(body)
+        await this.sendEmail(body)
     }
     public static async sendEmailBeca(email:string, codigo:string) {
         const body:EmailBody = {
@@ -33,7 +33,7 @@ export default class EmailService
             email: email,
             user: codigo
         }
-        this.sendEmail(body)
+        await this.sendEmail(body)
     }
     public static async sendEmailRandom(email:string, random:number) {
         const body:EmailBody = {
@@ -41,7 +41,7 @@ export default class EmailService
             email: email,
             number: random
         }
-        this.sendEmail(body)
+        await this.sendEmail(body)
     }
     public static async sendEmailRegister(student:IStudent) {
         const body:EmailBody = { 
@@ -49,7 +49,7 @@ export default class EmailService
             email: student.Email, 
             user: student.Numero_identificacion 
         }
-        this.sendEmail(body)
+        await this.sendEmail(body)
         
     }
      /**
@@ -58,7 +58,7 @@ export default class EmailService
      * @returns {string} The verification number if it exists and has not expired, otherwise an empty string.
      */
     public static getVerificationNumber():string {
-        const storedData = localStorage.getItem('verificationNumber');
+        const storedData = sessionStorage.getItem('verificationNumber');
         if (storedData) {
             const { randomNumber, expirationTime } = JSON.parse(storedData);
             const currentTime = new Date().getTime();
@@ -67,7 +67,7 @@ export default class EmailService
             if (currentTime < expirationTime) {
                 return randomNumber; // valid number
             } else {
-                localStorage.removeItem('verificationNumber'); // Borrar el dato si ha expirado
+                sessionStorage.removeItem('verificationNumber'); // Borrar el dato si ha expirado
             }
         }
         return ''; // if it does not exist or has expired
@@ -76,9 +76,7 @@ export default class EmailService
     {
         try{
             const response = await apiFetch<EmailBody>('mailer', 'POST', body)
-            if(response){
-                console.log(response,'Email sent successfully');
-            }
+            void response;
         }catch(error){
             console.error('An error occurred while sending the email:', error);
         }

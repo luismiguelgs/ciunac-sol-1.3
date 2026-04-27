@@ -8,17 +8,16 @@ import {
   FormLabel,
 } from "@/components/ui/form"
 import { Switch } from "@/components/ui/switch"
-import { Control } from "react-hook-form"
+import { Control, FieldValues, Path } from "react-hook-form"
 
-type Props = {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    control: Control<any>
-    name: string
+type Props<T extends FieldValues> = {
+    control: Control<T>
+    name: Path<T>
     label: string
     description?: string 
 }
 
-export default function SwithField({control, name, label, description}:Props) 
+export default function SwithField<T extends FieldValues>({control, name, label, description}:Props<T>) 
 {
     return (
         <FormField

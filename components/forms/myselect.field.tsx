@@ -15,26 +15,22 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
-import { Control } from "react-hook-form"
+import { Control, FieldValues, Path } from "react-hook-form"
 
-type Props = {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    control: Control<any>
-    name: string
+type Props<T extends FieldValues, OptionType = unknown> = {
+    control: Control<T>
+    name: Path<T>
     label: string
     description?: string
     placeholder?: string
     disabled?: boolean
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    options?: any[]
+    options?: OptionType[]
     // Permite definir cómo obtener value/label según el tipo del item
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    getOptionValue?: (item: any) => string
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    getOptionLabel?: (item: any) => string
+    getOptionValue?: (item: OptionType) => string
+    getOptionLabel?: (item: OptionType) => string
 }
 
-export function MySelect({ name, label, control, options, placeholder, disabled, description, getOptionValue, getOptionLabel }: Props) {
+export function MySelect<T extends FieldValues, OptionType = unknown>({ name, label, control, options, placeholder, disabled, description, getOptionValue, getOptionLabel }: Props<T, OptionType>) {
     return (
         <FormField
             control={control}
@@ -51,8 +47,9 @@ export function MySelect({ name, label, control, options, placeholder, disabled,
                         <SelectContent className="w-full min-w-[300px]">
                             {
                                 options?.map((item, index) => {
-                                    const value = getOptionValue ? getOptionValue(item) : (item?.value ?? item?.id ?? String(index))
-                                    const label = getOptionLabel ? getOptionLabel(item) : (item?.label ?? item?.nombre ?? String(item))
+                                    const record = item as Record<string, unknown>;
+                                    const value = getOptionValue ? getOptionValue(item) : (String(record?.value ?? record?.id ?? index))
+                                    const label = getOptionLabel ? getOptionLabel(item) : (String(record?.label ?? record?.nombre ?? item))
                                     return (
                                         <SelectItem key={index} value={value} className="py-2">
                                             {label}

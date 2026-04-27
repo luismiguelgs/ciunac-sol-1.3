@@ -2,10 +2,10 @@
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
 import pdfImage from '@/assets/pdf.png'
-import { ISolicitudRes } from '@/interfaces/solicitud.interface'
+import { ISolicitudRes } from '@/modules/shared/interfaces/solicitud.interface'
 import CargoPdf from '@/modules/consulta-solicitud/components/cargo-pdf'
 import { pdf } from '@react-pdf/renderer'
-import { ITexto } from '@/interfaces/types.interface'
+import { ITexto } from '@/modules/shared/interfaces/types.interface'
 
 type Props = {
     item: ISolicitudRes

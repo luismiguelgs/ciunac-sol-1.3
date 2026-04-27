@@ -1,4 +1,4 @@
-import IcronogramaExam from '../interfaces/cronograma-exam.interface';
+import IcronogramaExam from '@/modules/solicitud-ubicacion/interfaces/cronograma-exam.interface';
 import { apiFetch } from '@/lib/api.service'
 
 enum CRUD {
@@ -45,3 +45,5 @@ export default class CronogramaExamService
         throw err
     }
 }
+
+

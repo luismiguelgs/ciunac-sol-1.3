@@ -14,12 +14,11 @@ import {
 } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { Control } from "react-hook-form"
+import { Control, FieldValues, Path } from "react-hook-form"
 
-interface DatePickerProps {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    control: Control<any>
-    name: string
+interface DatePickerProps<T extends FieldValues> {
+    control: Control<T>
+    name: Path<T>
     label: string
     description?: string
     startYear?: number
@@ -27,7 +26,7 @@ interface DatePickerProps {
     disabled?: boolean
 }
 
-export function DatePicker({
+export function DatePicker<T extends FieldValues>({
 	control,
 	name,
   disabled = false,
@@ -35,7 +34,7 @@ export function DatePicker({
 	description,
 	startYear = getYear(new Date()) - 80,
 	endYear = getYear(new Date()) + 0,
-}: DatePickerProps) {
+}: DatePickerProps<T>) {
   const months = [
     "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
     "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"

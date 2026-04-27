@@ -1,4 +1,4 @@
-import VerificacionEmail from "@/components/verificacion-email";
+import VerificacionEmail from "@/modules/shared/components/verificacion-email-view";
 import FormEmail from "@/modules/solicitud-beca/components/form-email";
 
 export default function BecaPage() {
@@ -16,3 +16,4 @@ export default function BecaPage() {
         </div>
     )
 }
+

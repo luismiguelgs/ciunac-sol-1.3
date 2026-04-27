@@ -21,7 +21,7 @@ import { useTextsStore } from "@/stores/types.stores"
 import { Button } from "@/components/ui/button"
 import { Search, Loader2 } from "lucide-react"
 import EstudiantesService from "@/services/estudiantes.service"
-import { IEscuela } from "@/interfaces/types.interface"
+import { IEscuela } from "@/modules/shared/interfaces/types.interface"
 import useEscuelas from "@/hooks/useEscuelas"
 
 type Props = {
@@ -33,7 +33,7 @@ type Props = {
 
 export default function BasicData({activeStep, handleNext, steps, setActiveStep}:Props)
 {
-    const textos = useStore(useTextsStore, (state) => state.textos);
+    const textos = useStore(useTextsStore, (state) => state.data);
 
     const { solicitud } = useSolicitudStore()
     const escuelas = useEscuelas()

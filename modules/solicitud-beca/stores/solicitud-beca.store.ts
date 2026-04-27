@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import ISolicitudBeca from '../interfaces/solicitudbeca.interface';
+import ISolicitudBeca from '@/modules/solicitud-beca/interfaces/solicitudbeca.interface';
 
 interface StoreState {
     solicitud: Partial<ISolicitudBeca>; // Use Partial if not all fields are initialized
@@ -41,3 +41,4 @@ const useSolicitudBecaStore = create<StoreState>((set) => ({
 }));
 
 export default useSolicitudBecaStore; // Assuming a default export
+

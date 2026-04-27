@@ -10,7 +10,7 @@ import { Form } from "@/components/ui/form"
 import { StepperControl } from "@/components/stepper"
 import SwithField from "@/components/forms/switch.field"
 import GeneralDialog from "@/components/dialogs/general-dialog"
-import IStudent from "../interfaces/student.interface"
+import IStudent from "@/modules/solicitud-nuevo/interfaces/student.interface"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import EmailService from "@/services/email.service"
@@ -153,3 +153,5 @@ export function FinishForm({activeStep, setActiveStep, steps, student, saveNewSt
 		</React.Fragment>
   	)
 }
+
+

@@ -2,7 +2,7 @@ import { StyleSheet, Document, Page, View, Text, Font, Image } from '@react-pdf/
 import logoCiunac from '@/assets/logo-ciunac-trans.png'
 import logoUnac from '@/assets/unac-logo.png'
 import firmaDirector from '@/assets/firma_director.jpg'
-import { IDetalleExamenUbicacion } from '../interfaces/examen.interface';
+import { IDetalleExamenUbicacion } from '@/modules/consulta-ubicacion/interfaces/examen.interface';
 
 Font.register({ family: 'Roboto', src: 'https://fonts.gstatic.com/s/roboto/v16/zN7GBFwfMP4uA6AR0HCoLQ.ttf' })
 
@@ -114,3 +114,4 @@ export default function ConstanciaFormat({ data, fecha, ciclo }: { data: IDetall
         </Document>
     )
 }
+

@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { User } from "lucide-react"
-import Copyright from "@/components/copyright"
+import Copyright from "@/modules/shared/components/copyright"
 import UbicacionDetalle from "@/modules/consulta-ubicacion/components/ubicacion-detalle"
 import { GraduationCap } from "lucide-react"
 

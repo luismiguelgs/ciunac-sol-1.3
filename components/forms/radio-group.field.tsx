@@ -8,23 +8,22 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Control } from "react-hook-form"
+import { Control, FieldValues, Path } from "react-hook-form"
 
-type Props = {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    control: Control<any>
+type Props<T extends FieldValues> = {
+    control: Control<T>
     options: { value: string; label: string }[]
     label: string
-    name: string
+    name: Path<T>
 }
 
-export function RadioGroupField({ control, label, name, options }:Props) 
+export function RadioGroupField<T extends FieldValues>({ control, label, name, options }:Props<T>) 
 {
     return (
         <FormField
             control={control}
             name={name}
-            defaultValue={options[0].value}
+            defaultValue={options[0].value as import("react-hook-form").PathValue<T, import("react-hook-form").Path<T>>}
             render={({ field }) => (
             <FormItem className="space-y-3">
                 <FormLabel>{label}</FormLabel>

@@ -2,8 +2,8 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import FormEmail from '@/components/form-email';
-import { IVerificationSchema } from '@/schemas/verification.schema';
+import FormEmail from '@/modules/shared/components/email-verification-form';
+import { IVerificationSchema } from '@/modules/shared/schemas/verification.schema';
 import DialogInfoAdicional from './dialog-info';
 import useStore from '@/hooks/useStore';
 import { useTextsStore } from '@/stores/types.stores';
@@ -11,13 +11,13 @@ import TextosService from '@/services/text.service';
 
 export default function FormEmailSolicitud()
 {
-    let textos = useStore(useTextsStore, (state) => state.textos)
+    let textos = useStore(useTextsStore, (state) => state.data)
     const router = useRouter();
 
     React.useEffect(()=>{
         const texts = async () => {
             textos = await TextosService.fetchItems();
-            useTextsStore.setState({ textos: textos })
+            useTextsStore.setState({ data: textos })
         }
         if(!textos) texts()
     },[])

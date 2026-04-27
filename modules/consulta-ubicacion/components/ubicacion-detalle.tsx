@@ -1,6 +1,6 @@
 'use client'
 import React from 'react'
-import { IExamenUbicacion, IDetalleExamenUbicacion } from '../interfaces/examen.interface'
+import { IExamenUbicacion, IDetalleExamenUbicacion } from '@/modules/consulta-ubicacion/interfaces/examen.interface'
 import SolicitudesExamenService from '../services/solicitud-examen.service'
 import Download from './download'
 import { Separator } from "@/components/ui/separator"
@@ -112,3 +112,4 @@ function Loading() {
         </div>
     )
 }
+

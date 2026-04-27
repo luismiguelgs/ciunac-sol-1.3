@@ -2,7 +2,7 @@
 import { Document, Page, StyleSheet, Image, Text } from "@react-pdf/renderer"
 import logoCiunac from '@/assets/logo-ciunac.jpg'
 import React from "react"
-import { ITexto } from '@/interfaces/types.interface'
+import { ITexto } from '@/modules/shared/interfaces/types.interface'
 
 const styles = StyleSheet.create({
     page:{

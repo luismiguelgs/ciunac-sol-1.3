@@ -4,7 +4,7 @@ import useStore from "../stores/solicitud-beca.store"
 import Image from 'next/image'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { finalSchema, IFinalSchema, initialValues } from '@/schemas/final.schema'
+import { finalSchema, IFinalSchema, initialValues } from '@/modules/shared/schemas/final.schema'
 import { Form } from '@/components/ui/form'
 import SwithField from '@/components/forms/switch.field'
 import MyAlert from '@/components/forms/myAlert'
@@ -16,9 +16,9 @@ import { Button } from '@/components/ui/button'
 import { Loader2 } from "lucide-react"
 import { useRouter } from 'next/navigation'
 import { ExternalLink } from 'lucide-react'; // Asegúrate de importar el icono que deseas usar
-import DetalleSolicitudCard from '@/components/detalle-solicitud-card'
+import DetalleSolicitudCard from '@/modules/consulta-solicitud/components/detalle-solicitud-card'
 import Link from 'next/link'
-import ISolicitudBeca from '../interfaces/solicitudbeca.interface'
+import ISolicitudBeca from '@/modules/solicitud-beca/interfaces/solicitudbeca.interface'
 
 type Props = {
     activeStep : number
@@ -151,3 +151,6 @@ export default function Register({activeStep, setActiveStep, steps}:Props)
         </div>
     )
 }
+
+
+

@@ -17,16 +17,15 @@ import {
 } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton" // 1. Importa Skeleton
 import useFacultades from "@/hooks/useFacultades"
-import { Control } from "react-hook-form"
+import { Control, FieldValues, Path } from "react-hook-form"
 
-type Props = {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    control: Control<any>
-    name: string
+type Props<T extends FieldValues> = {
+    control: Control<T>
+    name: Path<T>
     disabled?: boolean
 }
 
-export default function SelectFacultad({name, control, disabled=false}:Props) 
+export default function SelectFacultad<T extends FieldValues>({name, control, disabled=false}:Props<T>) 
 {
     const data = useFacultades()
 

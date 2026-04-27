@@ -1,6 +1,6 @@
 import React from 'react'
-import IStudent from '../interfaces/student.interface'
-import IProgram from '../interfaces/programs.interface'
+import IStudent from '@/modules/solicitud-nuevo/interfaces/student.interface'
+import IProgram from '@/modules/solicitud-nuevo/interfaces/programs.interface'
 import { DocumentTypeMap, GenderTypeMap } from '@/lib/constants';
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -67,3 +67,5 @@ export default function DataDetail({student, programs}:{student: IStudent, progr
 </div>
   )
 }
+
+

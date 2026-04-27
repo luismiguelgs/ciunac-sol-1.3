@@ -1,5 +1,5 @@
 import { apiFetch } from "@/lib/api.service";
-import { ITexto } from "../interfaces/types.interface";
+import { ITexto } from "@/modules/shared/interfaces/types.interface";
 
 const collection = 'textos'
 
@@ -9,3 +9,4 @@ export default class TextosService {
         return data
     }
 }
+

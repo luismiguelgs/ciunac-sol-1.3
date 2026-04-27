@@ -1,8 +1,8 @@
 'use client'
-import FinData from "@/components/fin-data/fin-data";
+import FinData from "@/modules/shared/components/fin-data";
 import { Stepper } from "@/components/stepper";
 import BasicData from "@/modules/solicitud-certificado/components/basic-data";
-import Documentos from "@/components/documentos";
+import Documentos from "@/modules/shared/components/documentos-step";
 import Register from "@/modules/solicitud-certificado/components/register";
 import useSolicitudStore from "@/stores/solicitud.store";
 import { useDocumentsStore } from "@/stores/types.stores";
@@ -12,7 +12,7 @@ import React from "react";
 function SolicitudCertificadoProceso()
 {
     const { setSolicitudField } = useSolicitudStore()
-    const certificados  = useDocumentsStore((state) => state.documents)
+    const certificados  = useDocumentsStore((state) => state.data)
     const searchParams = useSearchParams()
     const email = searchParams.get('email')
     const trabajador = searchParams.get('trabajador')
@@ -130,3 +130,5 @@ export default function SolicitudCertificadosPage()
         <SolicitudCertificadoProceso />
     </React.Suspense>)
 }
+
+

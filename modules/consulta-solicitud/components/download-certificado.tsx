@@ -1,6 +1,6 @@
 'use client'
 import React from "react"
-import { ICertificado } from "@/interfaces/certificado.interface"
+import { ICertificado } from "@/modules/shared/interfaces/certificado.interface"
 import CertificadosService from "@/services/certificados.service"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"

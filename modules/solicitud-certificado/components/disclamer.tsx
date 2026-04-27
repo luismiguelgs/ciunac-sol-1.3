@@ -7,7 +7,7 @@ import React from "react"
 
 export default function Disclamer() 
 {
-    const textos = useStore(useTextsStore, (state) => state.textos)
+    const textos = useStore(useTextsStore, (state) => state.data)
     return (
         <React.Fragment>
             <div className="grid grid-cols-1 gap-1">

@@ -3,8 +3,8 @@ import React from 'react'
 import { Stepper } from "@/components/stepper";
 import { useSearchParams } from 'next/navigation';
 import BasicData from '@/modules/solicitud-ubicacion/components/basic-data';
-import FinData from '@/components/fin-data/fin-data';
-import Documentos from '@/components/documentos';
+import FinData from '@/modules/shared/components/fin-data';
+import Documentos from '@/modules/shared/components/documentos-step';
 import Register from '@/modules/solicitud-ubicacion/components/register';
 import useSolicitudStore from '@/stores/solicitud.store';
 import SolicitudesService from '@/services/solicitudes.service';
@@ -167,3 +167,4 @@ function BlockDialog() {
         </>
     )
 }
+

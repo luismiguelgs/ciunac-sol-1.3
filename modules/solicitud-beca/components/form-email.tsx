@@ -1,8 +1,8 @@
 'use client'
 
 import { useRouter } from 'next/navigation'; // 1. Importa useRouter
-import FormEmail from '@/components/form-email';
-import { IVerificationSchema } from '@/schemas/verification.schema';
+import FormEmail from '@/modules/shared/components/email-verification-form';
+import { IVerificationSchema } from '@/modules/shared/schemas/verification.schema';
 
 export default function FormEmailBecas()
 {

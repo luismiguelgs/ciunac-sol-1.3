@@ -2,23 +2,23 @@
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "../ui/input";
 import React from "react";
-import { Control } from "react-hook-form";
+import { Control, FieldValues, Path } from "react-hook-form";
 import { Mail, Phone } from "lucide-react"
 
+interface OmitInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'name'> {}
 
-interface Props extends React.InputHTMLAttributes<HTMLInputElement>{
-    name: string;
+interface Props<T extends FieldValues> extends OmitInputProps {
+    name: Path<T>;
 	placeholder?: string;
 	type?: 'text' | 'email' | 'password' | 'number ' | 'tel' ;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-	control: Control<any>;
+	control: Control<T>;
 	disabled?: boolean;
 	inputRef?: React.RefObject<HTMLInputElement>;
 	label?: string;
 	description?: string;	
 }
 
-export default function InputField({ control, type='text', disabled=false, inputRef, label, description, name, placeholder }: Props)
+export default function InputField<T extends FieldValues>({ control, type='text', disabled=false, inputRef, label, description, name, placeholder }: Props<T>)
 {
     let info:{label:string, placeholder:string, icon:React.ReactNode};
 

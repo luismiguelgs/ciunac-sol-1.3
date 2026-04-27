@@ -1,5 +1,5 @@
-import ConsultaPage from "@/components/consulta-page"
-import ConsultaForm from "@/components/consulta-form"
+import ConsultaPage from "@/modules/shared/components/consulta-wrapper"
+import ConsultaForm from "@/modules/consulta-solicitud/components/consulta-form"
 
 export default function ConsultaUbicacionPage() {
 	return (
@@ -8,3 +8,4 @@ export default function ConsultaUbicacionPage() {
 		</ConsultaPage>
 	)
 }
+

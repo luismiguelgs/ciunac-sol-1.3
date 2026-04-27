@@ -1,8 +1,8 @@
 'use client'
 
-import IProgram from "../interfaces/programs.interface"
+import IProgram from "@/modules/solicitud-nuevo/interfaces/programs.interface"
 import useStore from "../stores/student.store"
-import IStudent from "../interfaces/student.interface"
+import IStudent from "@/modules/solicitud-nuevo/interfaces/student.interface"
 import MyAlert from "@/components/forms/myAlert"
 import { FinishForm } from "./finish-form"
 import DataDetail from "./data-detail"
@@ -67,3 +67,4 @@ export default function Finish({ programs, activeStep, setActiveStep, steps}:Pro
         return response
     }
 }
+

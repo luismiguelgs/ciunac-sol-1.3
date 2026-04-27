@@ -1,5 +1,5 @@
 import { useForm } from "react-hook-form"
-import IProgram from "../interfaces/programs.interface"
+import IProgram from "@/modules/solicitud-nuevo/interfaces/programs.interface"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { basicInfoSchema, IBasicInfoSchema, initialValues } from "../schemas/basic-info.schema"
 import { Form } from "@/components/ui/form"
@@ -135,3 +135,4 @@ export default function BasicData({activeStep, handleNext, programs, steps, setA
         </Form>
     )
 }
+

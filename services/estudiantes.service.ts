@@ -1,49 +1,54 @@
-import IEstudiante from "@/interfaces/estudiante.interface";
+import IEstudiante from "@/modules/shared/interfaces/estudiante.interface";
 import { apiFetch, apiFetchSafe } from "@/lib/api.service";
 import IEstudianteQ10 from "@/modules/solicitud-nuevo/interfaces/student.interface";
 
+/** DTO para crear/actualizar estudiantes desde formularios */
+export interface IEstudianteFormDTO {
+    nombres: string;
+    apellidos: string;
+    tipo_documento: string;
+    dni: string;
+    celular: string;
+    facultad?: string;
+    escuela?: string;
+    codigo?: string;
+}
 
 const collection = 'estudiantes'
 
 export default class EstudiantesService {
     static async fetchItemByDNI(dni: string): Promise<IEstudiante> {
         const data = await apiFetch<IEstudiante>(`${collection}/buscar/${dni}`, 'GET')
-        console.log(data)
         return data
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    static async updateItem(id: string, body: any): Promise<IEstudiante> {
-        const facultadId = body.facultad ? +body.facultad : null
-        const escuelaId = body.escuela ? +body.escuela : null
-
-        const estudianteData = {
+    static async updateItem(id: string, body: IEstudianteFormDTO): Promise<IEstudiante> {
+        const estudianteData: Partial<IEstudiante> = {
             nombres: body.nombres.toUpperCase(),
             apellidos: body.apellidos.toUpperCase(),
-            tipoDocumento: body.tipo_documento,
+            tipoDocumento: body.tipo_documento as IEstudiante['tipoDocumento'],
             numeroDocumento: body.dni,
             celular: body.celular,
-            facultadId: facultadId,
-            escuelaId: escuelaId,
+            facultadId: body.facultad ? +body.facultad : undefined,
+            escuelaId: body.escuela ?? undefined,
             codigo: body.codigo
-        } as unknown as IEstudiante
+        }
 
         const data = await apiFetch<IEstudiante>(`${collection}/${id}`, 'PATCH', estudianteData)
         return data
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    static async newItem(body: any): Promise<IEstudiante> {
-        const estudianteData = {
+    static async newItem(body: IEstudianteFormDTO): Promise<IEstudiante> {
+        const estudianteData: Partial<IEstudiante> = {
             nombres: body.nombres.toUpperCase(),
             apellidos: body.apellidos.toUpperCase(),
-            tipoDocumento: body.tipo_documento,
+            tipoDocumento: body.tipo_documento as IEstudiante['tipoDocumento'],
             numeroDocumento: body.dni,
             celular: body.celular,
-            facultadId: +body.facultad ? +body.facultad : null,
-            escuelaId: +body.escuela ? +body.escuela : null,
-            codigo: body.codigo ? body.codigo : null
-        } as unknown as IEstudiante
+            facultadId: body.facultad ? +body.facultad : undefined,
+            escuelaId: body.escuela ?? undefined,
+            codigo: body.codigo ?? undefined
+        }
 
         const data = await apiFetch<IEstudiante>(`${collection}`, 'POST', estudianteData)
         return data
@@ -54,3 +59,4 @@ export default class EstudiantesService {
         return result
     }
 }
+

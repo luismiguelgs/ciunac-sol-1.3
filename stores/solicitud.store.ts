@@ -1,4 +1,4 @@
-import Isolicitud from '@/interfaces/solicitud.interface'; // Assuming this import exists or is needed
+import Isolicitud from '@/modules/shared/interfaces/solicitud.interface'; // Assuming this import exists or is needed
 import { create } from 'zustand';
 
 interface StoreState {

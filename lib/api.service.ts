@@ -18,7 +18,7 @@ export async function apiFetch<T>(url: string, method: string, body?: unknown): 
   }
 
   const text = await response.text();
-  return text ? JSON.parse(text) : (null as any);
+  return text ? JSON.parse(text) : (null as unknown as T);
 }
 
 // A safe variant that does not throw on HTTP errors and returns structured info
@@ -60,10 +60,22 @@ export async function apiFetchSafe<T>(url: string, method: string, body?: unknow
   return { ok: false, status, error: errorText || 'Request failed', body: errBody };
 }
 
-export function omit<T extends object, K extends keyof T>(obj: T, keys: K[]): Omit<T, K> {
-  const copy = { ...obj };
-  keys.forEach((key) => {
-    delete copy[key];
+export async function apiUpload<T>(url: string, formData: FormData): Promise<T> {
+  const response = await fetch(`${API_URL}/${url}`, {
+    method: 'POST',
+    headers: {
+      'x-api-key': apiKey,
+    },
+    credentials: 'include',
+    body: formData,
   });
-  return copy;
+
+  if (!response.ok) {
+    const msg = await response.text();
+    throw new Error(`HTTP error! status: ${response.status}: ${msg}`);
+  }
+
+  const text = await response.text();
+  return text ? JSON.parse(text) : (null as unknown as T);
 }
+

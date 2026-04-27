@@ -1,4 +1,4 @@
-import ConsultaPage from "@/components/consulta-page"
+import ConsultaPage from "@/modules/shared/components/consulta-wrapper"
 
 export default function ConsultaCertificadoPage() {
 	return (
@@ -7,3 +7,4 @@ export default function ConsultaCertificadoPage() {
 		</ConsultaPage>
 	)
 }
+

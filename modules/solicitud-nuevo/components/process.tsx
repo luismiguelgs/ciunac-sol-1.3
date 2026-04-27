@@ -1,10 +1,10 @@
 "use client"
 import {Stepper} from "@/components/stepper";
 import React from 'react'
-import IProgram from '../interfaces/programs.interface'
+import IProgram from '@/modules/solicitud-nuevo/interfaces/programs.interface'
 import Verification from './verification'
 import useStore from '../stores/student.store'
-import Iverfication from "../interfaces/verification.interface";
+import Iverfication from "@/modules/solicitud-nuevo/interfaces/verification.interface";
 import BasicData from "./basic-data";
 import { IBasicInfoSchema } from "../schemas/basic-info.schema";
 import Finish from "./finish";
@@ -72,3 +72,4 @@ export default function Process({programs}:Props)
         </div>
     )
 }
+

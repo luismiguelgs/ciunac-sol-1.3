@@ -1,4 +1,4 @@
-import Student from '../interfaces/student.interface';
+import Student from '@/modules/solicitud-nuevo/interfaces/student.interface';
 import { DocumentType, Gender } from '@/lib/constants';
 import { create } from 'zustand';
 
@@ -36,3 +36,4 @@ const useStore = create<StoreState>((set) => ({
     }
 }));
 export default useStore;
+

@@ -1,4 +1,4 @@
-import { ICertificado } from '@/interfaces/certificado.interface';
+import { ICertificado } from '@/modules/shared/interfaces/certificado.interface';
 import { apiFetch } from '@/lib/api.service';
 
 export default class CertificadosService

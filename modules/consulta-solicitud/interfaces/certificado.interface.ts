@@ -17,12 +17,9 @@ export interface Icertificado{
     dni?: string,
     url?: string,
     aceptacion?: boolean
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    fecha_aceptacion?: any
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    creado?: any,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    modificado?: any
+    fecha_aceptacion?: string | Date,
+    creado?: string | Date,
+    modificado?: string | Date
     
 }
 export interface IcertificadoDetalle{

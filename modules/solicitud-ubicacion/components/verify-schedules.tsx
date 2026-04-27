@@ -1,6 +1,6 @@
 'use client'
 import React from 'react';
-import IcronogramaExam from '../interfaces/cronograma-exam.interface';
+import IcronogramaExam from '@/modules/solicitud-ubicacion/interfaces/cronograma-exam.interface';
 import CronogramaExamService from '../services/cronogramaExam.service';
 import MyAlert from '@/components/forms/myAlert';
 import { Skeleton } from "@/components/ui/skeleton";
@@ -120,3 +120,5 @@ function Loading() {
         </div>
     )
 }
+
+

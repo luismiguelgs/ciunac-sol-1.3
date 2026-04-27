@@ -38,7 +38,7 @@ export default function Verification({activeStep, steps, setActiveStep, handleNe
             toast.warning('Advertencia',{description: 'Por favor, confirme que no eres un robot'})
            
         }else{
-            const verificationNumber = String(getVerificationNumber()).trim();
+            const verificationNumber = String(EmailService.getVerificationNumber()).trim();
             
             if(verificationNumber === data.code){
                 handleNext(data)
@@ -169,8 +169,8 @@ export default function Verification({activeStep, steps, setActiveStep, handleNe
         // set expiration time to 5 minutes from now
         const expirationTime = new Date().getTime() + 5 * 60 * 1000;
 
-        // save number and expiration time in localStorage
-        localStorage.setItem('verificationNumber', JSON.stringify({ randomNumber, expirationTime }));
+        // save number and expiration time in sessionStorage
+        sessionStorage.setItem('verificationNumber', JSON.stringify({ randomNumber, expirationTime }));
 
         // send email verification
         await EmailService.sendEmailRandom(email, randomNumber);
@@ -179,25 +179,5 @@ export default function Verification({activeStep, steps, setActiveStep, handleNe
         setTimeout(() => {
             setDisabled(false);
         }, 5 * 60 * 1000);
-    }
-    /**
-     * Returns the verification number stored in localStorage if it exists and has not expired.
-     * If the number has expired, it is removed from localStorage.
-     * @returns {string} The verification number if it exists and has not expired, otherwise an empty string.
-     */
-    function getVerificationNumber():string {
-        const storedData = localStorage.getItem('verificationNumber');
-        if (storedData) {
-            const { randomNumber, expirationTime } = JSON.parse(storedData);
-            const currentTime = new Date().getTime();
-            
-            // verify if number has expired
-            if (currentTime < expirationTime) {
-                return randomNumber; // valid number
-            } else {
-                localStorage.removeItem('verificationNumber'); // Borrar el dato si ha expirado
-            }
-        }
-        return ''; // if it does not exist or has expired
     }
 }

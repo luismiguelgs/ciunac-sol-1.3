@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button"
 import { FileDown } from "lucide-react"
 import { pdf } from '@react-pdf/renderer'
-import { IDetalleExamenUbicacion } from '../interfaces/examen.interface'
+import { IDetalleExamenUbicacion } from '@/modules/consulta-ubicacion/interfaces/examen.interface'
 import ConstanciaFormat from '../components/ConstanciaFormat'
 import Image from "next/image"
 import pdfImage from '@/assets/pdf.png'
@@ -57,3 +57,4 @@ export default function Download({ item, fecha, ciclo }: Props) {
         </div>
     )
 }
+

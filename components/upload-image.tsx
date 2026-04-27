@@ -1,22 +1,21 @@
 'use client'
 import React from 'react'
 import { Card, CardContent } from './ui/card'
-import { UseFormReturn } from 'react-hook-form'
+import { Path, FieldValues, UseFormReturn } from 'react-hook-form'
 import { isPdf } from '@/lib/utils'
 import Image from 'next/image'
 import { FileUploaderCard } from './forms/upload.field'
 import { CloudUpload } from 'lucide-react'
 
-type Props = {
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	form: UseFormReturn<any>;
-	field: string;
+type Props<T extends FieldValues = FieldValues> = {
+	form: UseFormReturn<T>;
+	field: Path<T>;
 	label: string;
 	dni: string;
 	folder: 'dnis' | 'vouchers' | 'becas';
 }
 
-export default function UploadImage({ form, field, label, dni, folder }: Props) {
+export default function UploadImage<T extends FieldValues>({ form, field, label, dni, folder }: Props<T>) {
 	const toDrivePreview = (url?: string) => {
 		if (!url) return url
 		try {

@@ -1,18 +1,17 @@
 import React from 'react'
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
-import { Control } from 'react-hook-form';
+import { Control, FieldValues, Path } from 'react-hook-form';
 
-type Props = {
-    name: string;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    control: Control<any>;
+type Props<T extends FieldValues> = {
+    name: Path<T>;
+    control: Control<T>;
     label: string;
     description?: string;
     disabled?: boolean;
 }
 
-export default function MyInputOpt({control, label, description, name,disabled}:Props) 
+export default function MyInputOpt<T extends FieldValues>({control, label, description, name,disabled}:Props<T>) 
 {
     return (
         <React.Fragment>

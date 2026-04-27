@@ -1,9 +1,9 @@
-import VerificacionEmail from '@/components/verificacion-email'
+import VerificacionEmail from '@/modules/shared/components/verificacion-email-view'
 import FormEmailSolicitud from '@/modules/solicitud-certificado/components/form-email-solicitud'
 import React from 'react'
 import TypesService from '@/services/types.service'
-import { ITipoSolicitud } from '@/interfaces/types.interface'
-import CertificadosTable from '@/components/certificados-table'
+import { ITipoSolicitud } from '@/modules/shared/interfaces/types.interface'
+import CertificadosTable from '@/modules/consulta-certificado/components/certificados-table'
 import { Collection } from '@/services/types.service'
 
 const getCertificates = async (): Promise<ITipoSolicitud[]> => {
@@ -34,3 +34,5 @@ export default async function SolicitudCertificadoPage()
 		</div>
 	)
 }
+
+

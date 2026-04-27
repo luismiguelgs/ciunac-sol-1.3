@@ -1,6 +1,6 @@
 'use client'
 import useStore from '@/hooks/useStore'
-import { ITexto } from '@/interfaces/types.interface'
+import { ITexto } from '@/modules/shared/interfaces/types.interface'
 import CargoPdf from '@/modules/solicitud-ubicacion/components/cargo-pdf'
 import SolicitudesService from '@/services/solicitudes.service'
 import { useTextsStore } from '@/stores/types.stores'
@@ -16,7 +16,7 @@ function Finish()
 {
     const searchParams = useSearchParams()
     const id = searchParams.get('id')
-    const textos = useStore(useTextsStore, (state) => state.textos)
+    const textos = useStore(useTextsStore, (state) => state.data)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [data, setData] = React.useState<any>({})
 
@@ -69,3 +69,4 @@ export default function DescargaCargo() {
         </React.Suspense>
     )
 }
+

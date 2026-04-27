@@ -35,7 +35,7 @@ export default function BasicData({ activeStep, setActiveStep, steps, handleNext
     const searchParams = useSearchParams();
     const alumno = searchParams.get('alumno_ciunac')
 
-    const textos = useStore(useTextsStore, (state) => state.textos);
+    const textos = useStore(useTextsStore, (state) => state.data);
     const { solicitud } = useSolicitudStore()
     const [imageVal, setImageVal] = React.useState<boolean>(false)
     const [searching, setSearching] = React.useState(false)
