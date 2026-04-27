@@ -121,8 +121,8 @@ export default function BasicData({ activeStep, setActiveStep, steps, handleNext
                     type="warning"
                 />
                 <input type="hidden" {...form.register('estudianteId')} />
-                <div className="flex flex-col md:flex-row gap-6 w-full items-start">
-                    <div className="w-full md:w-2/3">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-6 w-full items-start">
+                    <div className="min-w-0 md:col-span-3">
                         <Card className="w-full shadow-md hover:shadow-lg transition-shadow duration-300">
                             <CardHeader>
                                 <CardTitle className="text-lg font-bold text-primary">Información Personal</CardTitle>
@@ -230,7 +230,7 @@ export default function BasicData({ activeStep, setActiveStep, steps, handleNext
                             </CardContent>
                         </Card>
                     </div>
-                    <div className="w-full md:w-1/3">
+                    <div className="min-w-0 md:col-span-2">
 
                         <UploadImage
                             form={form}

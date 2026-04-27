@@ -30,8 +30,8 @@ export default class EstudiantesService {
             numeroDocumento: body.dni,
             celular: body.celular,
             facultadId: body.facultad ? +body.facultad : undefined,
-            escuelaId: body.escuela ?? undefined,
-            codigo: body.codigo
+            escuelaId: body.escuela ? +body.escuela : undefined,
+            codigo: body.codigo || undefined
         }
 
         const data = await apiFetch<IEstudiante>(`${collection}/${id}`, 'PATCH', estudianteData)
@@ -46,8 +46,8 @@ export default class EstudiantesService {
             numeroDocumento: body.dni,
             celular: body.celular,
             facultadId: body.facultad ? +body.facultad : undefined,
-            escuelaId: body.escuela ?? undefined,
-            codigo: body.codigo ?? undefined
+            escuelaId: body.escuela ? +body.escuela : undefined,
+            codigo: body.codigo || undefined
         }
 
         const data = await apiFetch<IEstudiante>(`${collection}`, 'POST', estudianteData)

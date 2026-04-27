@@ -56,7 +56,7 @@ const CargoPdf: React.FC<Props> = ({ textos, obj }) => (
             <Text style={styles.data}>{`Pago: S/${obj.pago}`}</Text>
             <Text style={styles.data}>{`Número de Voucher: ${obj.numeroVoucher}`}</Text>
             <Text style={styles.data}>{`Fecha de Pago: ${obj.fechaPago}`}</Text>
-            <Text style={styles.text}>Plazo de entrega: 10 dias hábiles</Text>
+            <Text style={styles.text}>Plazo de entrega: 07 dias hábiles</Text>
             <Text style={styles.text}>
                 {message('TEXTO_1_DISCLAMER', textos)}
             </Text>

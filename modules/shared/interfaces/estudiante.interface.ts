@@ -9,7 +9,7 @@ export default interface IEstudiante {
     celular:string,
     imgDoc?:string,
     facultadId?:number,
-    escuelaId?:string,
+    escuelaId?:number,
     direccion?:string,
     codigo?:string,
     creado_en?:Date,

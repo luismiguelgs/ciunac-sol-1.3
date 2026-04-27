@@ -14,7 +14,6 @@ import { CloudUpload } from 'lucide-react';
 import { MySelect } from '@/components/forms/myselect.field';
 import InputField from '@/components/forms/input.field';
 import { DatePicker } from '@/components/forms/date-picker.new';
-import Image from 'next/image';
 import MyAlert from '@/components/forms/myAlert';
 import UploadImage from '@/components/upload-image';
 
@@ -75,14 +74,17 @@ export default function FinData({ activeStep, setActiveStep, steps, handleNext, 
 
 	return (
 		<Form {...form}>
-			<div className="relative min-h-screen">
-				{/* Fondo inferior izquierdo */}
-				<Image
-					src={'/images/pago.png'}
-					alt="Icono de pago"
-					width={380}
-					height={380}
-					className="absolute left-0 bottom-[100px] opacity-10 pointer-events-none select-none -z-10"
+			<div className="relative overflow-hidden">
+				{/* Fondo inferior izquierdo - solo en el overlay con baja opacidad */}
+				<div
+					className="absolute inset-0 pointer-events-none select-none"
+					style={{
+						backgroundImage: 'url(/images/pago.png)',
+						backgroundRepeat: 'no-repeat',
+						backgroundPosition: 'bottom left',
+						backgroundSize: '380px 380px',
+						opacity: 0.1,
+					}}
 				/>
 				<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 p-4 relative z-10">
 					<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
