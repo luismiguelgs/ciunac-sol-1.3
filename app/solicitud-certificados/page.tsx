@@ -1,6 +1,5 @@
 import VerificacionEmail from '@/modules/shared/components/verificacion-email-view'
 import FormEmailSolicitud from '@/modules/solicitud-certificado/components/form-email-solicitud'
-import React from 'react'
 import TypesService from '@/services/types.service'
 import { ITipoSolicitud } from '@/modules/shared/interfaces/types.interface'
 import CertificadosTable from '@/modules/consulta-certificado/components/certificados-table'

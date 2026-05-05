@@ -37,8 +37,12 @@ presentation -> application -> domain -> infrastructure
 La primera implementacion de este patron se encuentra en `modules/solicitud-certificado`.
 
 ## Documentacion
+- [Arquitectura completa](./docs/architecture/complete-architecture.md)
 - [Overview](./docs/architecture/overview.md)
 - [SDD v1](./docs/architecture/sdd.md)
+- [Analisis de requisitos](./docs/requirements/srs.md)
+- [Casos de uso](./docs/requirements/use-cases)
+- [Matriz de trazabilidad](./docs/requirements/traceability-matrix.md)
 - [Convenciones](./docs/architecture/conventions.md)
 - [ADRs](./docs/architecture/adr)
 - [Checklist de revision](./docs/architecture/review-checklist.md)

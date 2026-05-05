@@ -78,7 +78,7 @@ export default function Register({activeStep, setActiveStep, steps}:Props)
                     <div className='mt-4'>
                         <SwithField 
                         name='terminos'
-                        label="Acepto los tÃ©rminos y condiciones"
+                        label="Acepto los términos y condiciones"
                         control={form.control}
                         description='Declaro que conozco el reglamento respecto a certificados CIUNAC' 
                         />
@@ -101,8 +101,8 @@ export default function Register({activeStep, setActiveStep, steps}:Props)
             <GeneralDialog 
 				open={open} 
 				setOpen={setOpen}
-				title="Espere, procesando informaciÃ³n..." 
-				description={state === 'EMAIL'? "Enviando correo electrÃ³nico" : state === 'SAVE'? "Guardando informaciÃ³n" : "Error al procesar la solicitud"}
+				title="Espere, procesando información..." 
+				description={state === 'EMAIL'? "Enviando correo electrónico" : state === 'SAVE'? "Guardando informaciÃ³n" : "Error al procesar la solicitud"}
 			>
 				<div className="flex items-center justify-between gap-6 p-4">
 					<Image 

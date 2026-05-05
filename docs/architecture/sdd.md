@@ -15,6 +15,8 @@ flowchart LR
 ## 2. Alcance
 Este SDD describe la arquitectura del frontend Next.js. El backend, la base de datos y servicios externos se tratan como sistemas integrados mediante contratos HTTP.
 
+La vista completa de arquitectura, con diagramas de contexto, contenedores, capas, datos, estado, integracion y despliegue, se mantiene en `docs/architecture/complete-architecture.md`.
+
 Quedan dentro del alcance:
 - flujos de solicitud de certificados;
 - solicitud de beca;

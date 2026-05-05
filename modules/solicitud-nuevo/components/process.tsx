@@ -17,7 +17,7 @@ export default function Process({programs}:Props)
 {
     const [activeStep, setActiveStep] = React.useState(0);
     const { setStudentField, resetStudent } = useStore()
-    const steps = React.useMemo(() => ["VerificaciÃ³n", "Datos BÃ¡sicos", "Registro"], [])
+    const steps = React.useMemo(() => ["Verificación", "Datos Básicos", "Registro"], [])
 
     React.useEffect(() => {
         resetStudent()

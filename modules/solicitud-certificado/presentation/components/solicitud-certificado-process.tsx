@@ -22,8 +22,8 @@ type DocumentStepPayload = Extract<SolicitudCertificadoStepPayload, { img_cert_t
 
 function buildSteps(trabajador: boolean): SolicitudCertificadoStep[] {
   return trabajador
-    ? ['Datos bÃ¡sicos', 'Datos de Pago', 'Documentos', 'Finalizar']
-    : ['Datos bÃ¡sicos', 'Datos de Pago', 'Finalizar'];
+    ? ['Datos básicos', 'Datos de Pago', 'Documentos', 'Finalizar']
+    : ['Datos básicos', 'Datos de Pago', 'Finalizar'];
 }
 
 export default function SolicitudCertificadoProcess() {
@@ -48,7 +48,7 @@ export default function SolicitudCertificadoProcess() {
   const handleNext = React.useCallback(
     (values: SolicitudCertificadoStepPayload) => {
       switch (steps[activeStep]) {
-        case 'Datos bÃ¡sicos': {
+        case 'Datos básicos': {
           const basicValues = values as BasicStepPayload;
           setSolicitudField('email', email);
           setSolicitudField('trabajador', trabajador);
@@ -100,7 +100,7 @@ export default function SolicitudCertificadoProcess() {
       <Stepper steps={steps} activeStep={activeStep}>
         {steps.map((step, index) => {
           switch (step) {
-            case 'Datos bÃ¡sicos':
+            case 'Datos básicos':
               return (
                 <BasicData
                   key={index}

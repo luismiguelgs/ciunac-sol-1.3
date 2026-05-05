@@ -68,7 +68,7 @@ export default function Register({activeStep, setActiveStep, steps}:Props)
                         name='info'
                         label="Confirmo que los datos son correctos"
                         control={form.control}
-                        description='Los datos consignados estan correctos y los documentos adjuntos son los verÃ­dicos.'
+                        description='Los datos consignados estan correctos y los documentos adjuntos son los verídicos.'
                     />
                     <div className='mt-4'>
                         <SwithField 

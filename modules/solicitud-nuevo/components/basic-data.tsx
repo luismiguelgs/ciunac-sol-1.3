@@ -19,6 +19,8 @@ type Props = {
     handleNext: (values:IBasicInfoSchema) => void
 }
 
+const HIDDEN_PROGRAM_NAME_PATTERNS = ["2026", "kids", "juniors"]
+
 export default function BasicData({activeStep, handleNext, programs, steps, setActiveStep}:Props) 
 {
     const { student } = useStore();  // Add this line
@@ -26,6 +28,11 @@ export default function BasicData({activeStep, handleNext, programs, steps, setA
     const dniRef = useMask({ mask: '_________', replacement: { _: /\d/ } });
     const lastNamesRef = useMask({ mask: '______________________________', replacement: { _: /^[a-zA-Z \u00C0-\u00FF]*$/ } })
     const namesRef = useMask({ mask: '_______________________________', replacement: { _: /^[a-zA-Z \u00C0-\u00FF]*$/ } })
+    const visiblePrograms = programs.filter((program) =>
+        !HIDDEN_PROGRAM_NAME_PATTERNS.some((pattern) =>
+            program.Nombre.toLowerCase().includes(pattern.toLowerCase())
+        )
+    )
 
     const form = useForm({
         resolver: zodResolver(basicInfoSchema),
@@ -95,7 +102,7 @@ export default function BasicData({activeStep, handleNext, programs, steps, setA
                     <SelectLanguage
                         control={form.control}
                         name="code_program"
-                        programs={programs}
+                        programs={visiblePrograms}
                     />
                     <RadioGroupField
                         label="Tipo de Documento"
