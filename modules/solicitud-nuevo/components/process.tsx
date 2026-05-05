@@ -16,7 +16,13 @@ type Props = {
 export default function Process({programs}:Props) 
 {
     const [activeStep, setActiveStep] = React.useState(0);
-    const { setStudentField } = useStore()
+    const { setStudentField, resetStudent } = useStore()
+    const steps = React.useMemo(() => ["VerificaciÃ³n", "Datos BÃ¡sicos", "Registro"], [])
+
+    React.useEffect(() => {
+        resetStudent()
+        setActiveStep(0)
+    }, [resetStudent])
 
     const handleNext = (data:IBasicInfoSchema | Iverfication) => {
         switch (activeStep) {
@@ -44,12 +50,9 @@ export default function Process({programs}:Props)
         }
     }
 
-    const steps = ["Verificación", "Datos Básicos", "Registro"];
-
     return (
         <div className="flex items-center justify-center">
             <Stepper steps={steps} activeStep={activeStep}>
-                {/* Contenido de cada paso */}
                 <Verification 
                     handleNext={handleNext}
                     activeStep={activeStep} 
@@ -72,4 +75,3 @@ export default function Process({programs}:Props)
         </div>
     )
 }
-

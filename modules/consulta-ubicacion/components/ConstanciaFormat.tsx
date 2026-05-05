@@ -1,4 +1,4 @@
-import { StyleSheet, Document, Page, View, Text, Font, Image } from '@react-pdf/renderer'
+import { StyleSheet, Document, Page, View, Text, Font, Image as PdfImage } from '@react-pdf/renderer'
 import logoCiunac from '@/assets/logo-ciunac-trans.png'
 import logoUnac from '@/assets/unac-logo.png'
 import firmaDirector from '@/assets/firma_director.jpg'
@@ -74,7 +74,7 @@ export default function ConstanciaFormat({ data, fecha, ciclo }: { data: IDetall
             <Page size="A4" style={styles.page}>
                 <View style={styles.header}>
                     {/* Logo izquierdo */}
-                    <Image src={logoUnac.src} style={{ width: 90, height: 120 }} />
+                    <PdfImage src={logoUnac.src} style={{ width: 90, height: 120 }} />
 
                     {/* Textos en el medio */}
                     <View style={{ textAlign: 'center', fontFamily: 'Roboto', flex: 1, alignItems: 'center' }}>
@@ -84,7 +84,7 @@ export default function ConstanciaFormat({ data, fecha, ciclo }: { data: IDetall
                     </View>
 
                     {/* Logo derecho */}
-                    <Image src={logoCiunac.src} style={{ width: 120, height: 120 }} />
+                    <PdfImage src={logoCiunac.src} style={{ width: 120, height: 120 }} />
                 </View>
                 {/* Línea horizontal */}
                 <View style={styles.horizontalLine} />
@@ -103,7 +103,7 @@ export default function ConstanciaFormat({ data, fecha, ciclo }: { data: IDetall
                 </Text>
                 {/* Firma del director */}
                 <View style={styles.firmaContainer}>
-                    <Image src={firmaDirector.src} style={styles.firmaImage} />
+                    <PdfImage src={firmaDirector.src} style={styles.firmaImage} />
                     <Text style={styles.firmaText}>Firma del Director</Text>
                     <Text style={styles.firmaText}>{fecha}**</Text>
                 </View>

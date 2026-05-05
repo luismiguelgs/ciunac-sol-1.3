@@ -1,5 +1,5 @@
 import IcronogramaExam from '@/modules/solicitud-ubicacion/interfaces/cronograma-exam.interface';
-import { apiFetch } from '@/lib/api.service'
+import { resourceApiRepository } from '@/modules/shared/infrastructure/api/resource-api.repository'
 
 enum CRUD {
     CREATE = 'create',
@@ -15,7 +15,7 @@ export default class CronogramaExamService
     public static async getAll(): Promise<IcronogramaExam[] | undefined> 
     {
         try{
-            const res = await apiFetch<IcronogramaExam[]>(this.dataCollection, 'GET')
+            const res = await resourceApiRepository.list<IcronogramaExam>(this.dataCollection)
             return res
         }
         catch(err){

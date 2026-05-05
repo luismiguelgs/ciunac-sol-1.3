@@ -1,8 +1,15 @@
+import { AppError, normalizeAppError } from '@/modules/shared/application/errors/app-error';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 const apiKey: string = process.env.NEXT_PUBLIC_API_KEY!;
+const REQUEST_TIMEOUT_MS = 15000;
 
-export async function apiFetch<T>(url: string, method: string, body?: unknown): Promise<T> {
-  const response = await fetch(`${API_URL}/${url}`, {
+function buildUrl(url: string) {
+  return `${API_URL}/${url}`;
+}
+
+function createRequestOptions(method: string, body?: unknown, signal?: AbortSignal): RequestInit {
+  return {
     method,
     headers: {
       'Content-Type': 'application/json',
@@ -10,11 +17,45 @@ export async function apiFetch<T>(url: string, method: string, body?: unknown): 
     },
     credentials: 'include',
     body: body ? JSON.stringify(body) : undefined,
-  });
+    signal,
+  };
+}
+
+async function executeRequest(url: string, options: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  try {
+    return await fetch(url, {
+      ...options,
+      signal: options.signal ?? controller.signal,
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new AppError({
+        code: 'NETWORK',
+        message: 'La solicitud excedio el tiempo maximo de espera',
+        cause: error,
+      });
+    }
+
+    throw normalizeAppError(error, 'No se pudo completar la solicitud HTTP');
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+export async function apiFetch<T>(url: string, method: string, body?: unknown): Promise<T> {
+  const response = await executeRequest(buildUrl(url), createRequestOptions(method, body));
 
   if (!response.ok) {
     const msg = await response.text();
-    throw new Error(`HTTP error! status: ${response.status}: ${msg}`);
+    throw new AppError({
+      code: 'INTEGRATION',
+      message: `HTTP error! status: ${response.status}: ${msg}`,
+      status: response.status,
+      details: msg,
+    });
   }
 
   const text = await response.text();
@@ -26,15 +67,7 @@ export async function apiFetchSafe<T>(url: string, method: string, body?: unknow
   | { ok: true; status: number; data: T }
   | { ok: false; status: number; error: string; body?: unknown }
 > {
-  const response = await fetch(`${API_URL}/${url}`, {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-    },
-    credentials: 'include',
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  const response = await executeRequest(buildUrl(url), createRequestOptions(method, body));
 
   const status = response.status;
   const contentType = response.headers.get('content-type') || '';
@@ -61,7 +94,7 @@ export async function apiFetchSafe<T>(url: string, method: string, body?: unknow
 }
 
 export async function apiUpload<T>(url: string, formData: FormData): Promise<T> {
-  const response = await fetch(`${API_URL}/${url}`, {
+  const response = await executeRequest(buildUrl(url), {
     method: 'POST',
     headers: {
       'x-api-key': apiKey,
@@ -72,7 +105,12 @@ export async function apiUpload<T>(url: string, formData: FormData): Promise<T> 
 
   if (!response.ok) {
     const msg = await response.text();
-    throw new Error(`HTTP error! status: ${response.status}: ${msg}`);
+    throw new AppError({
+      code: 'INTEGRATION',
+      message: `HTTP error! status: ${response.status}: ${msg}`,
+      status: response.status,
+      details: msg,
+    });
   }
 
   const text = await response.text();

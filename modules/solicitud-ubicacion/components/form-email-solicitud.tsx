@@ -5,22 +5,12 @@ import { useRouter } from 'next/navigation';
 import FormEmail from '@/modules/shared/components/email-verification-form';
 import { IVerificationSchema } from '@/modules/shared/schemas/verification.schema';
 import DialogInfoAdicional from './dialog-info';
-import useStore from '@/hooks/useStore';
-import { useTextsStore } from '@/stores/types.stores';
-import TextosService from '@/services/text.service';
+import useTexts from '@/hooks/useTexts';
 
 export default function FormEmailSolicitud()
 {
-    let textos = useStore(useTextsStore, (state) => state.data)
+    const textos = useTexts()
     const router = useRouter();
-
-    React.useEffect(()=>{
-        const texts = async () => {
-            textos = await TextosService.fetchItems();
-            useTextsStore.setState({ data: textos })
-        }
-        if(!textos) texts()
-    },[])
 
     const [open, setOpen] = React.useState(false);
     const [email, setEmail] = React.useState('');

@@ -1,4 +1,4 @@
-import useStore from '@/hooks/useStore'
+import { useCatalogStore } from '@/hooks/useCatalogStore'
 import { useTextsStore } from '@/stores/types.stores'
 import React from 'react'
 import useSolicitudStore from '@/stores/solicitud.store'
@@ -19,7 +19,7 @@ type Props = {
 }
 
 export default function Documentos({ activeStep, handleNext, steps, setActiveStep }: Props) {
-    const textos = useStore(useTextsStore, (state) => state.data);
+    const { data: textos } = useCatalogStore(useTextsStore);
     const { solicitud } = useSolicitudStore()
 
     const [validation, setValidation] = React.useState({

@@ -1,4 +1,4 @@
-import { useForm } from "react-hook-form"
+import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { basicInfoSchema, IBasicInfoSchema, initialValues } from "../schemas/basic-data.schema"
 import { Form } from "@/components/ui/form"
@@ -16,7 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import SwithField from "@/components/forms/switch.field"
 import useSolicitudStore from "@/stores/solicitud.store"
 import MyAlert from "@/components/forms/myAlert"
-import useStore from "@/hooks/useStore"
+import { useCatalogStore } from '@/hooks/useCatalogStore'
 import { useTextsStore } from "@/stores/types.stores"
 import { Button } from "@/components/ui/button"
 import { Search, Loader2 } from "lucide-react"
@@ -33,7 +33,7 @@ type Props = {
 
 export default function BasicData({activeStep, handleNext, steps, setActiveStep}:Props)
 {
-    const textos = useStore(useTextsStore, (state) => state.data);
+    const { data: textos } = useCatalogStore(useTextsStore);
 
     const { solicitud } = useSolicitudStore()
     const escuelas = useEscuelas()
@@ -61,7 +61,8 @@ export default function BasicData({activeStep, handleNext, steps, setActiveStep}
     })
 
     // 1. Observa el valor del campo 'facultad'
-    const selectedFacultad = form.watch("facultad");
+    const selectedFacultad = useWatch({ control: form.control, name: "facultad" });
+    const isStudent = useWatch({ control: form.control, name: "estudiante" });
 
     // 2. Filtra las escuelas basadas en la facultad seleccionada
     const filteredEscuelas = React.useMemo(() => {
@@ -70,7 +71,7 @@ export default function BasicData({activeStep, handleNext, steps, setActiveStep}
         }
         // Asume que cada escuela en ESCUELAS tiene una propiedad 'facultad' que coincide con el 'value' de la facultad
         return escuelas?.filter((escuela:IEscuela) => escuela.facultadId === Number(selectedFacultad));
-    }, [selectedFacultad]);
+    }, [escuelas, selectedFacultad]);
 
     // 3. Opcional: Resetea el campo 'escuela' cuando cambia la facultad
     React.useEffect(() => {
@@ -243,7 +244,7 @@ export default function BasicData({activeStep, handleNext, steps, setActiveStep}
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 <SelectFacultad 
                                     name="facultad"
-                                    disabled={!form.watch("estudiante")}
+                                    disabled={!isStudent}
                                     control={form.control}
                                 />
                                 <MySelect
@@ -259,7 +260,7 @@ export default function BasicData({activeStep, handleNext, steps, setActiveStep}
                                 <InputField
                                     label="Código"
                                     name="codigo"
-                                    disabled={!form.watch("estudiante")}
+                                    disabled={!isStudent}
                                     inputRef={codeRef}
                                     placeholder="Ingresar código..."
                                     control={form.control}

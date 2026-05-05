@@ -1,13 +1,13 @@
 'use client'
 
 import MyAlert from "@/components/forms/myAlert"
-import useStore from "@/hooks/useStore"
+import { useCatalogStore } from '@/hooks/useCatalogStore'
 import { useTextsStore } from "@/stores/types.stores"
 import React from "react"
 
 export default function Disclamer() 
 {
-    const textos = useStore(useTextsStore, (state) => state.data)
+    const { data: textos } = useCatalogStore(useTextsStore)
     return (
         <React.Fragment>
             <div className="grid grid-cols-1 gap-1">

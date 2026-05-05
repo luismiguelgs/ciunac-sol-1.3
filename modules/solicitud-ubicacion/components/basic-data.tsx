@@ -1,6 +1,6 @@
 import React from 'react'
 import { useTextsStore } from '@/stores/types.stores';
-import useStore from '@/hooks/useStore';
+import { useCatalogStore } from '@/hooks/useCatalogStore';
 import { useMask } from '@react-input/mask'
 import { basicInfoSchema, IBasicInfoSchema, initialValues } from '../schemas/basic-data.schema';
 import { useForm } from 'react-hook-form';
@@ -35,7 +35,7 @@ export default function BasicData({ activeStep, setActiveStep, steps, handleNext
     const searchParams = useSearchParams();
     const alumno = searchParams.get('alumno_ciunac')
 
-    const textos = useStore(useTextsStore, (state) => state.data);
+    const { data: textos } = useCatalogStore(useTextsStore);
     const { solicitud } = useSolicitudStore()
     const [imageVal, setImageVal] = React.useState<boolean>(false)
     const [searching, setSearching] = React.useState(false)

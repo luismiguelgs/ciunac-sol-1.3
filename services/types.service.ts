@@ -1,4 +1,4 @@
-import { apiFetch } from '@/lib/api.service'
+import { resourceApiRepository } from '@/modules/shared/infrastructure/api/resource-api.repository'
 
 export enum Collection {
     Tiposolicitud = 'tipossolicitud',
@@ -11,7 +11,7 @@ export enum Collection {
 export default class TypesService
 {
     static async fetchItems<T>(collection:Collection):Promise<T[]>{
-        const data = await apiFetch<T[]>(collection, 'GET')
+        const data = await resourceApiRepository.list<T>(collection)
         return data
     }
 }

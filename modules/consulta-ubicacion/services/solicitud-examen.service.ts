@@ -1,5 +1,5 @@
-import { apiFetch } from "@/lib/api.service";
 import { IExamenUbicacion, IDetalleExamenUbicacion } from "@/modules/consulta-ubicacion/interfaces/examen.interface";
+import { resourceApiRepository } from '@/modules/shared/infrastructure/api/resource-api.repository';
 
 export default class SolicitudesExamenService
 {
@@ -9,7 +9,7 @@ export default class SolicitudesExamenService
     //Examenes - funciones ****************************************
     public static async fetchItems():Promise<IExamenUbicacion[]>{
         try{
-            const data = await apiFetch<IExamenUbicacion[]>(this.dbExamenesUbicacion, 'GET')
+            const data = await resourceApiRepository.list<IExamenUbicacion>(this.dbExamenesUbicacion)
             return data
         }
         catch(err){
@@ -26,7 +26,7 @@ export default class SolicitudesExamenService
     {
         console.info('fetchItemsDetail', dni)
         try{
-            const data = await apiFetch<IDetalleExamenUbicacion[]>(`${this.dbDetalleExamenesUbicacion}/estudiante/documento/${dni}`, 'GET')
+            const data = await resourceApiRepository.get<IDetalleExamenUbicacion[]>(`${this.dbDetalleExamenesUbicacion}/estudiante/documento/${dni}`)
             return data
         }
         catch(err){

@@ -1,5 +1,5 @@
 import { ICertificado } from '@/modules/shared/interfaces/certificado.interface';
-import { apiFetch } from '@/lib/api.service';
+import { resourceApiRepository } from '@/modules/shared/infrastructure/api/resource-api.repository';
 
 export default class CertificadosService
 {
@@ -7,13 +7,13 @@ export default class CertificadosService
     
     public static async selectItem(id:string):Promise<ICertificado | undefined>
     {
-       const response = await apiFetch<ICertificado>(`${this.collection}/${id}`, 'GET')
+       const response = await resourceApiRepository.get<ICertificado>(`${this.collection}/${id}`)
        return response
     }
 
     public static async selectItemBySolicitud(solicitudId: number): Promise<ICertificado | null> {
         try {
-            const response = await apiFetch<ICertificado>(`${this.collection}/solicitud/${solicitudId}`, 'GET')
+            const response = await resourceApiRepository.get<ICertificado>(`${this.collection}/solicitud/${solicitudId}`)
             return response
         } catch (err) {
             if (err instanceof Error) {
@@ -31,7 +31,7 @@ export default class CertificadosService
             aceptado : status,
             fechaAceptacion : new Date()
         }
-        const response = await apiFetch<ICertificado>(`${this.collection}/${id}`, 'PATCH', data)
+        const response = await resourceApiRepository.update<ICertificado, typeof data>(`${this.collection}/${id}`, data)
         return response 
     }
 }

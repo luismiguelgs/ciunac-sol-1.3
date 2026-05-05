@@ -1,7 +1,7 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
+import { useForm, useWatch } from "react-hook-form"
 import { z } from "zod"
 import React from "react"
 import Image from "next/image"
@@ -34,7 +34,7 @@ export function FinishForm({activeStep, setActiveStep, steps, student, saveNewSt
 	const router = useRouter()
     const [state, setState] = React.useState<'SAVE'|'EMAIL'|'ERROR'>('SAVE')
 	const [message, setMessage] = React.useState<React.ReactNode>('')
-    const [loading, setLoading] = React.useState<boolean>(true)
+    const [loading, setLoading] = React.useState<boolean>(false)
     const [open, setOpen] = React.useState<boolean>(false)
     
 	const form = useForm<z.infer<typeof FormSchema>>({
@@ -45,17 +45,9 @@ export function FinishForm({activeStep, setActiveStep, steps, student, saveNewSt
 		},
 	})
 
-    // Add this effect to watch for changes in form values
-    React.useEffect(() => {
-        const subscription = form.watch((value) => {
-            if (value.accept && value.data) {
-                setLoading(false);
-            }else{
-				setLoading(true);
-			}
-        });
-        return () => subscription.unsubscribe();
-    }, [form]);
+    const accept = useWatch({ control: form.control, name: 'accept' })
+    const dataAccepted = useWatch({ control: form.control, name: 'data' })
+    const canSubmit = Boolean(accept && dataAccepted)
 
   	async function onSubmit() {	
 		//console.log(data)
@@ -110,7 +102,7 @@ export function FinishForm({activeStep, setActiveStep, steps, student, saveNewSt
 						steps={steps} 
 						setActiveStep={setActiveStep}
 						type="submit"
-						disabled={loading}
+						disabled={loading || !canSubmit}
 					/>
         		</form>
     		</Form>

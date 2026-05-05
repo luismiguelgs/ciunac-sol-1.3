@@ -1,55 +1,29 @@
-import { apiFetch } from "@/lib/api.service";
 import IStudent from "@/modules/solicitud-nuevo/interfaces/student.interface";
-
-type EmailBody = {
-    type: string;
-    email: string;
-    user?: string;
-    number?: number;
-}
-
+import { mailApiRepository } from '@/modules/shared/infrastructure/api/mail-api.repository';
+import {
+    toBecaMailRequest,
+    toCertificadoMailRequest,
+    toRandomMailRequest,
+    toRegisterMailRequest,
+    toUbicacionMailRequest,
+} from '@/modules/shared/infrastructure/mappers/mail-api.mapper';
 
 export default class EmailService 
 {
     public static async sendEmailUbicacion(email:string, codigo:string) {
-        const body:EmailBody = {
-            type: 'UBICACION',
-            email: email,
-            user: codigo
-        }
-        await this.sendEmail(body)
+        await this.sendEmail(toUbicacionMailRequest(email, codigo))
     }
     public static async sendEmailCertificado(email:string, codigo:string) {
-        const body:EmailBody = {
-            type: 'CERTIFICADO',
-            email: email,
-            user: codigo
-        }
-        await this.sendEmail(body)
+        await this.sendEmail(toCertificadoMailRequest(email, codigo))
     }
     public static async sendEmailBeca(email:string, codigo:string) {
-        const body:EmailBody = {
-            type: 'BECA',
-            email: email,
-            user: codigo
-        }
-        await this.sendEmail(body)
+        await this.sendEmail(toBecaMailRequest(email, codigo))
     }
     public static async sendEmailRandom(email:string, random:number) {
-        const body:EmailBody = {
-            type: 'RANDOM',
-            email: email,
-            number: random
-        }
-        await this.sendEmail(body)
+        await this.sendEmail(toRandomMailRequest(email, random))
     }
     public static async sendEmailRegister(student:IStudent) {
-        const body:EmailBody = { 
-            type: 'REGISTER', 
-            email: student.Email, 
-            user: student.Numero_identificacion 
-        }
-        await this.sendEmail(body)
+        await this.sendEmail(toRegisterMailRequest(student))
         
     }
      /**
@@ -72,11 +46,10 @@ export default class EmailService
         }
         return ''; // if it does not exist or has expired
     }
-    private static async sendEmail(body:EmailBody) 
+    private static async sendEmail(body: Parameters<typeof mailApiRepository.send>[0]) 
     {
         try{
-            const response = await apiFetch<EmailBody>('mailer', 'POST', body)
-            void response;
+            await mailApiRepository.send(body)
         }catch(error){
             console.error('An error occurred while sending the email:', error);
         }

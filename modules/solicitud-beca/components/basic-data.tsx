@@ -1,4 +1,4 @@
-import { useForm } from "react-hook-form"
+import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { basicInfoSchema, IBasicInfoSchema, initialValues } from "../schemas/basic-data.schema"
 import { Form } from "@/components/ui/form"
@@ -45,7 +45,7 @@ export default function BasicData({activeStep, handleNext, steps, setActiveStep}
     })
 
     // 1. Observa el valor del campo 'facultad'
-    const selectedFacultad = form.watch("facultad");
+    const selectedFacultad = useWatch({ control: form.control, name: "facultad" });
 
     // 2. Filtra las escuelas basadas en la facultad seleccionada
     const filteredEscuelas = React.useMemo(() => {

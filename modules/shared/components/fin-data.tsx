@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { StepperControl } from '@/components/stepper';
 import { zodResolver } from '@hookform/resolvers/zod';
 import useSolicitudStore from '@/stores/solicitud.store';
-import useStore from '@/hooks/useStore';
+import { useCatalogStore } from '@/hooks/useCatalogStore';
 import { useTextsStore } from '@/stores/types.stores';
 import { useMask } from '@react-input/mask';
 import { useSearchParams } from 'next/navigation';
@@ -28,9 +28,21 @@ type Props = {
 export default function FinData({ activeStep, setActiveStep, steps, handleNext, precio }: Props) {
 	const searchParams = useSearchParams()
 
-	const textos = useStore(useTextsStore, (state) => state.data)
+	const { data: textos } = useCatalogStore(useTextsStore)
 	const [imageVal, setImageVal] = React.useState<boolean>(false)
-	const [pagos, setPagos] = React.useState<{ value: string, label: string }[]>([]);
+	const isTrabajador = searchParams.get('trabajador') === 'true'
+	const pagos = React.useMemo(() => {
+		if (isTrabajador) {
+			return [
+				{ value: String(Number(precio) - Number(precio) * 0.8), label: `S/${(Number(precio) - Number(precio) * 0.8).toFixed(2)} - presentar certificado de trabajo(docente)` },
+				{ value: String(Number(precio) * 0), label: `S/${(Number(precio) * 0).toFixed(2)} - presentar certificado de trabajo(CAS)` },
+			]
+		}
+
+		return [
+			{ value: String(precio), label: `S/${Number(precio).toFixed(2)} - precio normal` }
+		]
+	}, [isTrabajador, precio])
 
 	const voucherRef = useMask({ mask: '_______________', replacement: { _: /\d/ } });
 
@@ -58,19 +70,6 @@ export default function FinData({ activeStep, setActiveStep, steps, handleNext, 
 			}
 		}
 	};
-
-	React.useEffect(() => {
-		if (searchParams.get('trabajador') === 'true') {
-			setPagos([
-				{ value: String(Number(precio) - Number(precio) * 0.8), label: `S/${(Number(precio) - Number(precio) * 0.8).toFixed(2)} - presentar certificado de trabajo(docente)` },
-				{ value: String(Number(precio) * 0), label: `S/${(Number(precio) * 0).toFixed(2)} - presentar certificado de trabajo(CAS)` },
-			])
-		} else {
-			setPagos([
-				{ value: String(precio), label: `S/${Number(precio).toFixed(2)} - precio normal` }
-			])
-		}
-	}, [])
 
 	return (
 		<Form {...form}>

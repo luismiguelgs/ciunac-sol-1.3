@@ -1,0 +1,183 @@
+'use client'
+
+import React from 'react';
+import Image from 'next/image';
+import { useSearchParams } from 'next/navigation';
+import { Stepper } from '@/components/stepper';
+import BasicData from '@/modules/solicitud-ubicacion/components/basic-data';
+import FinData from '@/modules/shared/components/fin-data';
+import Documentos from '@/modules/shared/components/documentos-step';
+import Register from '@/modules/solicitud-ubicacion/components/register';
+import useSolicitudStore from '@/stores/solicitud.store';
+import GeneralDialog from '@/components/dialogs/general-dialog';
+import { createCheckDuplicateSolicitudUbicacionUseCase } from '@/modules/solicitud-ubicacion/application/factories/create-check-duplicate-solicitud-ubicacion-use-case';
+import { resolveSolicitudUbicacionPrice } from '@/modules/solicitud-ubicacion/domain/rules/resolve-solicitud-ubicacion-price';
+import {
+  SolicitudUbicacionStep,
+  SolicitudUbicacionStepPayload,
+} from '@/modules/solicitud-ubicacion/presentation/view-models/solicitud-ubicacion-process.view-model';
+
+type BasicStepPayload = Extract<SolicitudUbicacionStepPayload, { tipo_solicitud: string }>;
+type PaymentStepPayload = Extract<SolicitudUbicacionStepPayload, { pago: string }>;
+type DocumentStepPayload = Extract<SolicitudUbicacionStepPayload, { img_cert_estudio: string }>;
+
+function buildSteps(alumno: boolean): SolicitudUbicacionStep[] {
+  return alumno
+    ? ['Datos bÃ¡sicos', 'Datos de Pago', 'Documentos', 'Finalizar']
+    : ['Datos bÃ¡sicos', 'Datos de Pago', 'Finalizar'];
+}
+
+function BlockDialog() {
+  return (
+    <>
+      <Image
+        src={'/images/error.png'}
+        alt="Advertencia"
+        width={100}
+        height={100}
+        style={{
+          margin: '0 auto 20px',
+          display: 'block'
+        }}
+      />
+      <span>
+        Ya hay una solicitud en proceso. Por favor, espera a que termine
+        la operaciÃ³n actual antes de realizar una nueva solicitud. Si tiene
+        alguna duda, comunÃ­quese con nosotros a travÃ©s del telfono: <strong>014291931</strong>
+      </span>
+    </>
+  );
+}
+
+export default function SolicitudUbicacionProcess() {
+  const searchParams = useSearchParams();
+  const email = searchParams.get('email');
+  const alumno = searchParams.get('alumno_ciunac') === 'true';
+  const { setSolicitudField, resetSolicitud } = useSolicitudStore();
+  const [activeStep, setActiveStep] = React.useState(0);
+  const [precio, setPrecio] = React.useState('0');
+  const [bloqueoRep, setBloqueoRep] = React.useState(false);
+  const duplicateUseCase = React.useMemo(() => createCheckDuplicateSolicitudUbicacionUseCase(), []);
+
+  const steps = React.useMemo(() => buildSteps(alumno), [alumno]);
+
+  React.useEffect(() => {
+    resetSolicitud();
+    setActiveStep(0);
+    setPrecio('0');
+    setBloqueoRep(false);
+  }, [alumno, email, resetSolicitud]);
+
+  const handleNext = React.useCallback(
+    async (values: SolicitudUbicacionStepPayload) => {
+      switch (steps[activeStep]) {
+        case 'Datos bÃ¡sicos': {
+          const basicValues = values as BasicStepPayload;
+          setSolicitudField('email', email);
+          setSolicitudField('alumno_ciunac', alumno);
+          setSolicitudField('tipo_solicitud', basicValues.tipo_solicitud);
+          setSolicitudField('nombres', basicValues.nombres);
+          setSolicitudField('apellidos', basicValues.apellidos);
+          setSolicitudField('idioma', basicValues.idioma);
+          setSolicitudField('nivel', basicValues.nivel);
+          setSolicitudField('img_dni', basicValues.img_dni);
+          setSolicitudField('tipo_documento', basicValues.tipo_documento);
+          setSolicitudField('dni', basicValues.dni);
+          setSolicitudField('celular', basicValues.celular);
+          setSolicitudField('estudianteId', basicValues.estudianteId);
+          setPrecio(resolveSolicitudUbicacionPrice());
+
+          const duplicado = await duplicateUseCase.execute({
+            dni: basicValues.dni,
+            idioma: basicValues.idioma,
+            tipoSolicitud: basicValues.tipo_solicitud,
+          });
+
+          if (duplicado) {
+            setBloqueoRep(true);
+            return;
+          }
+          break;
+        }
+        case 'Datos de Pago': {
+          const paymentValues = values as PaymentStepPayload;
+          setSolicitudField('pago', paymentValues.pago);
+          setSolicitudField('numero_voucher', paymentValues.numero_voucher);
+          setSolicitudField('fecha_pago', (paymentValues.fecha_pago as Date).toISOString());
+          setSolicitudField('img_voucher', paymentValues.img_voucher);
+          break;
+        }
+        case 'Documentos': {
+          const documentValues = values as DocumentStepPayload;
+          if (alumno) {
+            setSolicitudField('img_cert_estudio', documentValues.img_cert_estudio);
+          }
+          break;
+        }
+        default:
+          break;
+      }
+
+      if (activeStep < steps.length - 1) {
+        setActiveStep((prevActiveStep) => prevActiveStep + 1);
+      }
+    },
+    [activeStep, alumno, duplicateUseCase, email, setSolicitudField, steps]
+  );
+
+  return (
+    <div className="flex items-center justify-center">
+      <Stepper steps={steps} activeStep={activeStep}>
+        {steps.map((step, index) => {
+          switch (step) {
+            case 'Datos bÃ¡sicos':
+              return (
+                <BasicData
+                  key={index}
+                  activeStep={activeStep}
+                  setActiveStep={setActiveStep}
+                  handleNext={handleNext}
+                  steps={steps}
+                />
+              );
+            case 'Datos de Pago':
+              return (
+                <FinData
+                  key={index}
+                  activeStep={activeStep}
+                  setActiveStep={setActiveStep}
+                  steps={steps}
+                  handleNext={handleNext}
+                  precio={precio}
+                />
+              );
+            case 'Documentos':
+              return (
+                <Documentos
+                  key={index}
+                  activeStep={activeStep}
+                  setActiveStep={setActiveStep}
+                  steps={steps}
+                  handleNext={handleNext}
+                />
+              );
+            case 'Finalizar':
+              return (
+                <Register
+                  key={index}
+                  activeStep={activeStep}
+                  setActiveStep={setActiveStep}
+                  steps={steps}
+                />
+              );
+            default:
+              return null;
+          }
+        })}
+      </Stepper>
+      <GeneralDialog open={bloqueoRep} setOpen={setBloqueoRep} title="Solicitud en proceso" >
+        <BlockDialog />
+      </GeneralDialog>
+    </div>
+  );
+}

@@ -2,23 +2,22 @@ import { StepperControl } from '@/components/stepper'
 import React from 'react'
 import useStore from "../stores/solicitud-beca.store"
 import Image from 'next/image'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { finalSchema, IFinalSchema, initialValues } from '@/modules/shared/schemas/final.schema'
 import { Form } from '@/components/ui/form'
 import SwithField from '@/components/forms/switch.field'
 import MyAlert from '@/components/forms/myAlert'
 import { toast } from "sonner"
-import SolicitudesService from '@/services/solicitudes.service'
-import EmailService from '@/services/email.service'
 import GeneralDialog from '@/components/dialogs/general-dialog'
 import { Button } from '@/components/ui/button'
 import { Loader2 } from "lucide-react"
 import { useRouter } from 'next/navigation'
-import { ExternalLink } from 'lucide-react'; // Asegúrate de importar el icono que deseas usar
+import { ExternalLink } from 'lucide-react';
 import DetalleSolicitudCard from '@/modules/consulta-solicitud/components/detalle-solicitud-card'
 import Link from 'next/link'
 import ISolicitudBeca from '@/modules/solicitud-beca/interfaces/solicitudbeca.interface'
+import { useRegisterSolicitudBeca } from '@/modules/solicitud-beca/presentation/hooks/use-register-solicitud-beca'
 
 type Props = {
     activeStep : number
@@ -29,46 +28,27 @@ type Props = {
 export default function Register({activeStep, setActiveStep, steps}:Props) 
 {
     const router = useRouter();
-    const [loading, setLoading] = React.useState<boolean>(false)
-    const [open, setOpen] = React.useState<boolean>(false)
-    const [state, setState] = React.useState<'SAVE'|'EMAIL'|'ERROR'>('SAVE')
-    const [message, setMessage] = React.useState<React.ReactNode>('')
-   
     const { solicitud } = useStore();
+    const { loading, open, setOpen, state, message, submit } = useRegisterSolicitudBeca({
+        onSuccess: () => {
+            router.push('/solicitud-beca/finalizar')
+        },
+    })
    
     const form = useForm<IFinalSchema>({
         resolver: zodResolver(finalSchema),
         defaultValues: initialValues,
     })
-    const info = form.watch('info')
-    const terminos = form.watch('terminos')
+    const info = useWatch({ control: form.control, name: 'info' })
+    const terminos = useWatch({ control: form.control, name: 'terminos' })
 
     const onSubmit = async (data: IFinalSchema) => {
         if(!data.info || !data.terminos){
-            toast.error('Verificar Información',{
-                description: 'Por favor, verifica que se confirma que todos los datos son correctos, y/o acepta los términos.'
+            toast.error('Verificar InformaciÃ³n',{
+                description: 'Por favor, verifica que se confirma que todos los datos son correctos, y/o acepta los tÃ©rminos.'
             })
         }else{
-            setLoading(true)
-            setState('SAVE')
-            setOpen(true)
-            //guarda la informacion en la base de datos
-            const response = await SolicitudesService.newBeca(solicitud as ISolicitudBeca)
-            if(!response){
-                setState('ERROR')
-                setMessage('Error al guardar la solicitud')
-                setOpen(true)
-                return
-            }else{
-                setState('EMAIL')
-                setMessage('Solicitud guardada correctamente')
-                //envia un correo electronico confirmando la recepcion de la solicitud
-                await EmailService.sendEmailBeca(solicitud.email as string, response as string )
-                setOpen(false)
-            }
-            
-            //redirecciona al usuario a la pagina final de la solicitud
-            router.push('/solicitud-beca/finalizar')
+            await submit(solicitud as ISolicitudBeca)
         }
     }
 
@@ -88,12 +68,12 @@ export default function Register({activeStep, setActiveStep, steps}:Props)
                         name='info'
                         label="Confirmo que los datos son correctos"
                         control={form.control}
-                        description='Los datos consignados estan correctos y los documentos adjuntos son los verídicos.'
+                        description='Los datos consignados estan correctos y los documentos adjuntos son los verÃ­dicos.'
                     />
                     <div className='mt-4'>
                         <SwithField 
                         name='terminos'
-                        label="Acepto los términos y condiciones"
+                        label="Acepto los tÃ©rminos y condiciones"
                         control={form.control}
                         description='Declaro que conozco el reglamento respecto a becas CIUNAC' 
                         />
@@ -115,8 +95,8 @@ export default function Register({activeStep, setActiveStep, steps}:Props)
             <GeneralDialog 
 				open={open} 
 				setOpen={setOpen}
-				title="Espere, procesando información..." 
-				description={state === 'EMAIL'? "Enviando correo electrónico" : state === 'SAVE'? "Guardando información" : "Error al procesar la solicitud"}
+				title="Espere, procesando informaciÃ³n..." 
+				description={state === 'EMAIL'? "Enviando correo electrÃ³nico" : state === 'SAVE'? "Guardando informaciÃ³n" : "Error al procesar la solicitud"}
 			>
 				<div className="flex items-center justify-between gap-6 p-4">
 					<Image 
@@ -151,6 +131,3 @@ export default function Register({activeStep, setActiveStep, steps}:Props)
         </div>
     )
 }
-
-
-

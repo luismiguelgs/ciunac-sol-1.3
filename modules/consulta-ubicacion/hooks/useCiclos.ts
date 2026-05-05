@@ -1,5 +1,5 @@
-import { apiFetch } from "@/lib/api.service";
 import React from "react";
+import { resourceApiRepository } from '@/modules/shared/infrastructure/api/resource-api.repository';
 
 interface ICiclo {
     id: number;
@@ -13,12 +13,12 @@ const useCiclos = () => {
     React.useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
-            const res = await apiFetch('ciclos', 'GET')
+            const res = await resourceApiRepository.list<ICiclo>('ciclos')
             setData(res as ICiclo[]);
             setLoading(false);
         };
         fetchData();
-    }, [data]);
+    }, []);
 
     return { data, loading, setData };
 };

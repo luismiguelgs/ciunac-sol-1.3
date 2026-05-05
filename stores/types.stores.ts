@@ -2,22 +2,31 @@ import { ITexto, IFacultad, IIdioma, IEscuela, ITipoSolicitud } from "@/modules/
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 
-export interface GenericState<T> {
+export interface CatalogState<T> {
   data: T[]
+  hasHydrated: boolean
+  setHasHydrated: (value: boolean) => void
   setData: (data: T[]) => void
+  clearData: () => void
 }
 
 function createGenericStore<T>(name: string) {
-  return create<GenericState<T>>()(
+  return create<CatalogState<T>>()(
     persist(
       (set) => ({
         data: [],
+        hasHydrated: false,
+        setHasHydrated: (value) => set({ hasHydrated: value }),
         setData: (data) => set({ data }),
+        clearData: () => set({ data: [] }),
       }),
       {
         name,
         storage: createJSONStorage(() => sessionStorage),
         partialize: (state) => ({ data: state.data }),
+        onRehydrateStorage: () => (state) => {
+          state?.setHasHydrated(true)
+        },
       },
     ),
   )

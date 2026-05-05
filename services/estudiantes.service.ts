@@ -1,61 +1,34 @@
 import IEstudiante from "@/modules/shared/interfaces/estudiante.interface";
-import { apiFetch, apiFetchSafe } from "@/lib/api.service";
 import IEstudianteQ10 from "@/modules/solicitud-nuevo/interfaces/student.interface";
+import { StudentFormDto } from '@/modules/shared/infrastructure/dto/student-form.dto';
+import { resourceApiRepository } from '@/modules/shared/infrastructure/api/resource-api.repository';
+import { toStudentRequestDto } from '@/modules/shared/infrastructure/mappers/student-api.mapper';
 
 /** DTO para crear/actualizar estudiantes desde formularios */
-export interface IEstudianteFormDTO {
-    nombres: string;
-    apellidos: string;
-    tipo_documento: string;
-    dni: string;
-    celular: string;
-    facultad?: string;
-    escuela?: string;
-    codigo?: string;
-}
+export type IEstudianteFormDTO = StudentFormDto;
 
 const collection = 'estudiantes'
 
 export default class EstudiantesService {
     static async fetchItemByDNI(dni: string): Promise<IEstudiante> {
-        const data = await apiFetch<IEstudiante>(`${collection}/buscar/${dni}`, 'GET')
+        const data = await resourceApiRepository.get<IEstudiante>(`${collection}/buscar/${dni}`)
         return data
     }
 
     static async updateItem(id: string, body: IEstudianteFormDTO): Promise<IEstudiante> {
-        const estudianteData: Partial<IEstudiante> = {
-            nombres: body.nombres.toUpperCase(),
-            apellidos: body.apellidos.toUpperCase(),
-            tipoDocumento: body.tipo_documento as IEstudiante['tipoDocumento'],
-            numeroDocumento: body.dni,
-            celular: body.celular,
-            facultadId: body.facultad ? +body.facultad : undefined,
-            escuelaId: body.escuela ? +body.escuela : undefined,
-            codigo: body.codigo || undefined
-        }
-
-        const data = await apiFetch<IEstudiante>(`${collection}/${id}`, 'PATCH', estudianteData)
+        const estudianteData = toStudentRequestDto(body)
+        const data = await resourceApiRepository.update<IEstudiante, typeof estudianteData>(`${collection}/${id}`, estudianteData)
         return data
     }
 
     static async newItem(body: IEstudianteFormDTO): Promise<IEstudiante> {
-        const estudianteData: Partial<IEstudiante> = {
-            nombres: body.nombres.toUpperCase(),
-            apellidos: body.apellidos.toUpperCase(),
-            tipoDocumento: body.tipo_documento as IEstudiante['tipoDocumento'],
-            numeroDocumento: body.dni,
-            celular: body.celular,
-            facultadId: body.facultad ? +body.facultad : undefined,
-            escuelaId: body.escuela ? +body.escuela : undefined,
-            codigo: body.codigo || undefined
-        }
-
-        const data = await apiFetch<IEstudiante>(`${collection}`, 'POST', estudianteData)
+        const estudianteData = toStudentRequestDto(body)
+        const data = await resourceApiRepository.create<IEstudiante, typeof estudianteData>(`${collection}`, estudianteData)
         return data
     }
 
     static async nuevoEstudianteQ10(body: IEstudianteQ10) {
-        const result = await apiFetchSafe<IEstudianteQ10>(`q10/estudiantes`, 'POST', body)
+        const result = await resourceApiRepository.postSafe<IEstudianteQ10, IEstudianteQ10>(`q10/estudiantes`, body)
         return result
     }
 }

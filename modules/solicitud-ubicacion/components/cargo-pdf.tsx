@@ -1,4 +1,4 @@
-import { Document, Page, StyleSheet, Image, Text } from "@react-pdf/renderer"
+import { Document, Page, StyleSheet, Image as PdfImage, Text } from "@react-pdf/renderer"
 import logoCiunac from '@/assets/logo-ciunac.jpg'
 import React from "react"
 import { ITexto } from "@/modules/shared/interfaces/types.interface"
@@ -35,13 +35,12 @@ const styles = StyleSheet.create({
 
 type Props = {
     textos: ITexto[],
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     obj: ISolicitudRes
 }
 const CargoPdf:React.FC<Props> = ({textos,obj}) => (
     <Document>
             <Page size='A4' style={styles.page}>
-                <Image style={styles.image} src={logoCiunac.src}/>
+                <PdfImage style={styles.image} src={logoCiunac.src}/>
                 <Text style={styles.title}>CARGO PARA EXAMEN DE UBICACIÓN</Text>
                 <Text style={styles.text}>SE HA COMPLETADO EL PROCEDIMIENTO!</Text>
                 <Text style={styles.text}>

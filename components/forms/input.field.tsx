@@ -5,7 +5,7 @@ import React from "react";
 import { Control, FieldValues, Path } from "react-hook-form";
 import { Mail, Phone } from "lucide-react"
 
-interface OmitInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'name'> {}
+type OmitInputProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, 'name'>;
 
 interface Props<T extends FieldValues> extends OmitInputProps {
     name: Path<T>;

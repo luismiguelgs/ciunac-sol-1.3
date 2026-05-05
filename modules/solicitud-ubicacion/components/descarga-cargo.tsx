@@ -1,5 +1,5 @@
 'use client'
-import useStore from '@/hooks/useStore'
+import { useCatalogStore } from '@/hooks/useCatalogStore'
 import { ITexto } from '@/modules/shared/interfaces/types.interface'
 import CargoPdf from '@/modules/solicitud-ubicacion/components/cargo-pdf'
 import SolicitudesService from '@/services/solicitudes.service'
@@ -16,7 +16,7 @@ function Finish()
 {
     const searchParams = useSearchParams()
     const id = searchParams.get('id')
-    const textos = useStore(useTextsStore, (state) => state.data)
+    const { data: textos } = useCatalogStore(useTextsStore)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [data, setData] = React.useState<any>({})
 
@@ -26,7 +26,7 @@ function Finish()
             setData(result)
         }
         getData(Number(id))
-    }, [])
+    }, [id])
 
     const exportPDF = async() => {
         const cargoPdfElement = <CargoPdf textos={textos as ITexto[]} obj={data}/>

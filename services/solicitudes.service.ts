@@ -1,50 +1,30 @@
 import Isolicitud, { ISolicitudRes } from '@/modules/shared/interfaces/solicitud.interface';
-import { apiFetch } from '@/lib/api.service';
-import { obtenerPeriodo } from '@/lib/utils';
 import ISolicitudBeca from '@/modules/solicitud-beca/interfaces/solicitudbeca.interface';
+import { resourceApiRepository } from '@/modules/shared/infrastructure/api/resource-api.repository';
+import { toSolicitudBecaRequestDto, toSolicitudRequestDto } from '@/modules/shared/infrastructure/mappers/solicitud-api.mapper';
 
 export default class SolicitudesService {
     private static collection = 'solicitudes'
 
     public static async searchItemByDni(dni: string): Promise<ISolicitudRes[]> {
-        const response = await apiFetch<ISolicitudRes[]>(`${this.collection}/documento/${dni}`, 'GET')
+        const response = await resourceApiRepository.get<ISolicitudRes[]>(`${this.collection}/documento/${dni}`)
         return response
     }
 
     public static async newItem(data: Isolicitud): Promise<string | null> {
-        const solicitudData = {
-            estudianteId: data.estudianteId,
-            tipoSolicitudId: +data.tipo_solicitud,
-            idiomaId: +data.idioma,
-            nivelId: +data.nivel,
-            estadoId: 1,
-            periodo: obtenerPeriodo(),
-            alumnoCiunac: data.alumno_ciunac,
-            fechaPago: data.fecha_pago,
-            pago: +data.pago,
-            digital: data.digital,
-            numeroVoucher: data.numero_voucher,
-            imgCertEstudio: data.img_cert_estudio,
-            imgVoucher: data.img_voucher,
-        }
-        const response = await apiFetch<{ id: string }>(`${this.collection}`, 'POST', solicitudData)
+        const solicitudData = toSolicitudRequestDto(data)
+        const response = await resourceApiRepository.create<{ id: string }, typeof solicitudData>(`${this.collection}`, solicitudData)
         return response.id
     }
 
     public static async getItemId(id: number): Promise<ISolicitudRes> {
-        const response = await apiFetch<ISolicitudRes>(`${this.collection}/${id}`, 'GET')
+        const response = await resourceApiRepository.get<ISolicitudRes>(`${this.collection}/${id}`)
         return response
     }
 
     public static async newBeca(data: ISolicitudBeca): Promise<string | undefined> {
-        const solicitudData = {
-            ...data,
-            apellidos: data.apellidos.toLocaleUpperCase(),
-            nombres: data.nombres.toLocaleUpperCase(),
-            direccion: data.direccion.toLocaleUpperCase(),
-            periodo: obtenerPeriodo(),
-        }
-        const response = await apiFetch<ISolicitudBeca>(`solicitudbecas`, 'POST', solicitudData)
+        const solicitudData = toSolicitudBecaRequestDto(data)
+        const response = await resourceApiRepository.create<ISolicitudBeca, typeof solicitudData>(`solicitudbecas`, solicitudData)
         return response?._id
     }
 }
