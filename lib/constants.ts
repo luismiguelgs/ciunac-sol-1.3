@@ -18,7 +18,7 @@ export const GenderTypeMap: Record<Gender, string> = {
 }
 
 export const NIVEL = [
-    {value:'1',label:'BÁSICO'},
-    {value:'2',label:'INTERMEDIO'},
-    {value:'3',label:'AVANZADO'},
+    { value: '1', label: 'BÁSICO' },
+    { value: '2', label: 'INTERMEDIO' },
+    { value: '3', label: 'AVANZADO' },
 ]

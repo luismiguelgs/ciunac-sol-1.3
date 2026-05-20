@@ -43,9 +43,15 @@ const cards = [
   },
   {
     title: 'Solicitud de BECA CIUNAC',
-    image: 'https://images.pexels.com/photos/27001883/pexels-photo-27001883/free-photo-of-ciudad-carretera-trafico-gente.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
+    image: 'https://images.pexels.com/photos/14035701/pexels-photo-14035701.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
     link: '/solicitud-beca',
     content: 'Ingresa tus datos y requisitos para solicitar tu beca'
+  },
+  {
+    title: 'Solicitud de CONSTANCIAS',
+    image: 'https://images.pexels.com/photos/27001883/pexels-photo-27001883/free-photo-of-ciudad-carretera-trafico-gente.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
+    link: '/solicitud-constancias',
+    content: 'Rellena el formulario con los datos y requisitos correctos. Todas las constancias son digitales, podrás descargar tu constancia en formato PDF luego de 7 días hábiles'
   },
 ];
 export default function Home() {

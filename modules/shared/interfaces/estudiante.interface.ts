@@ -7,6 +7,7 @@ export default interface IEstudiante {
     tipoDocumento: 'DNI' | 'CE' | 'PASAPORTE',
     numeroDocumento:string,
     celular:string,
+    email?:string,
     imgDoc?:string,
     facultadId?:number,
     escuelaId?:number,

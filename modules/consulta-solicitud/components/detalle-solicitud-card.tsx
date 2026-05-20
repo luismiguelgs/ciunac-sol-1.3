@@ -43,6 +43,10 @@ export default function DetalleSolicitudCard({solicitud, tipo}:Props)
             return tiposSolicitud?.filter((cer)=> cer.id === Number(solicitud.tipo_solicitud))[0]?.solicitud
         }
     }
+    const obtenerIdioma = () =>
+        idiomas?.find((idioma) => idioma.id === Number(solicitud.idioma))?.nombre ?? solicitud.idioma
+    const obtenerNivel = () =>
+        NIVEL.find((nivel) => nivel.value === solicitud.nivel)?.label ?? solicitud.nivel
     
     if (!solicitud) {
         return <div>Loading...</div>;
@@ -85,8 +89,8 @@ export default function DetalleSolicitudCard({solicitud, tipo}:Props)
                                     <React.Fragment>
                                         {detalleSolicitud('Certificado Digital', solicitud.digital ? 'Sí' : 'No')}
                                         {detalleSolicitud('Alumno antiguo', solicitud.antiguo ? 'Sí' : 'No')}
-                                        {detalleSolicitud('Idioma', idiomas?.filter((cer)=> cer.id === Number(solicitud.idioma))[0].nombre)}
-                                        {detalleSolicitud('Nivel', NIVEL.find((cer)=> cer.value === solicitud.nivel)?.label)}
+                                        {detalleSolicitud('Idioma', obtenerIdioma())}
+                                        {detalleSolicitud('Nivel', obtenerNivel())}
                                         {solicitud.img_voucher && detalleSolicitud('Monto Pagado', `S/${solicitud.pago}`)}
                                         {solicitud.img_voucher && detalleSolicitud('Fecha de Pago', solicitud.fecha_pago)}
                                         {solicitud.img_voucher && detalleSolicitud('Número de Voucher', solicitud.numero_voucher)}
@@ -99,8 +103,8 @@ export default function DetalleSolicitudCard({solicitud, tipo}:Props)
                                 <React.Fragment>
                                     {detalleSolicitud('Trabajador UNAC', solicitud.trabajador ? 'Sí' : 'No')}
                                     {detalleSolicitud('Alumno antiguo', solicitud.antiguo ? 'Sí' : 'No')}
-                                    {detalleSolicitud('Idioma', solicitud.idioma)}
-                                    {detalleSolicitud('Nivel', solicitud.nivel)}
+                                    {detalleSolicitud('Idioma', obtenerIdioma())}
+                                    {detalleSolicitud('Nivel', obtenerNivel())}
                                     {solicitud.img_voucher && detalleSolicitud('Monto Pagado', `S/${solicitud.pago}`)}
                                     {solicitud.img_voucher && detalleSolicitud('Fecha de Pago', solicitud.fecha_pago)}
                                     {solicitud.img_voucher && detalleSolicitud('Número de Voucher', solicitud.numero_voucher)}

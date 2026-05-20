@@ -32,6 +32,27 @@ El usuario ingresa a `app/solicitud-ubicacion/page.tsx`, valida correo e indica 
 14. El sistema envia notificacion por correo.
 15. El sistema redirige a la pantalla final.
 
+## Diagrama del Flujo
+```mermaid
+flowchart TD
+    Start["Usuario inicia solicitud de ubicacion"] --> Email["Verificar correo y reCAPTCHA"]
+    Email --> StudentType["Indicar si es alumno CIUNAC"]
+    StudentType --> Basic["Completar datos basicos e imagen de DNI"]
+    Basic --> StudentSearch["Buscar estudiante por documento"]
+    StudentSearch --> Duplicate["Verificar duplicidad"]
+    Duplicate --> DuplicateResult{"Existe solicitud en proceso?"}
+    DuplicateResult -->|Si| Block["Mostrar bloqueo"]
+    DuplicateResult -->|No| Payment["Completar datos de pago"]
+    Payment --> Docs{"Es alumno CIUNAC?"}
+    Docs -->|Si| Upload["Adjuntar documento adicional"]
+    Docs -->|No| Confirm["Confirmar datos y terminos"]
+    Upload --> Confirm
+    Confirm --> SaveStudent["Guardar o actualizar estudiante"]
+    SaveStudent --> SaveRequest["Crear solicitud"]
+    SaveRequest --> Mail["Enviar correo de notificacion"]
+    Mail --> Finish["Redirigir a finalizacion"]
+```
+
 ## Flujo Especifico de Duplicidad
 ```mermaid
 flowchart TD

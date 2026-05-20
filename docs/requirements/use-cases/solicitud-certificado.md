@@ -31,6 +31,26 @@ El usuario ingresa a `app/solicitud-certificados/page.tsx` e inicia la verificac
 13. El sistema envia notificacion por correo.
 14. El sistema redirige a la pantalla de finalizacion con el identificador de solicitud.
 
+## Diagrama del Flujo
+```mermaid
+flowchart TD
+    Start["Usuario inicia solicitud de certificado"] --> Email["Verificar correo y reCAPTCHA"]
+    Email --> Code{"Codigo valido?"}
+    Code -->|No| EmailError["Mostrar advertencia"]
+    Code -->|Si| Basic["Completar datos basicos"]
+    Basic --> StudentSearch["Buscar estudiante por documento"]
+    StudentSearch --> Price["Resolver tipo digital y precio"]
+    Price --> Payment["Completar datos de pago"]
+    Payment --> Docs{"Requiere documentos?"}
+    Docs -->|Si| Upload["Adjuntar documentos"]
+    Docs -->|No| Confirm["Confirmar datos y terminos"]
+    Upload --> Confirm
+    Confirm --> SaveStudent["Guardar o actualizar estudiante"]
+    SaveStudent --> SaveRequest["Crear solicitud"]
+    SaveRequest --> Mail["Enviar correo de notificacion"]
+    Mail --> Finish["Redirigir a finalizacion"]
+```
+
 ## Flujos Alternativos
 - Si el codigo de correo es incorrecto, el sistema muestra advertencia y no avanza.
 - Si el usuario no resuelve reCAPTCHA, el sistema muestra advertencia y no avanza.

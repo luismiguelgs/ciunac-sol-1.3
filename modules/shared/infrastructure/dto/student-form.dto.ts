@@ -4,6 +4,7 @@ export interface StudentFormDto {
   tipo_documento: string;
   dni: string;
   celular: string;
+  email?: string;
   facultad?: string;
   escuela?: string;
   codigo?: string;

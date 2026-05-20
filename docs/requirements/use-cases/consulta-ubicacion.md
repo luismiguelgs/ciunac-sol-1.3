@@ -22,6 +22,21 @@ El usuario ingresa a `app/consulta-ubicacion/page.tsx` o es redirigido desde con
 5. El sistema consulta detalle de examen y ciclos.
 6. El sistema muestra informacion disponible y permite descargar constancia cuando aplique.
 
+## Diagrama del Flujo
+```mermaid
+flowchart TD
+    Start["Usuario ingresa a consulta de ubicacion"] --> Document["Ingresar documento"]
+    Document --> Captcha["Resolver reCAPTCHA"]
+    Captcha --> Search["Buscar solicitud por documento"]
+    Search --> Found{"Existe solicitud?"}
+    Found -->|No| NotFound["Mostrar busqueda no encontrada"]
+    Found -->|Si| Redirect["Redirigir a detalle de ubicacion"]
+    Redirect --> Details["Consultar examenes, ciclos y detalle"]
+    Details --> Available{"Hay informacion de ubicacion?"}
+    Available -->|No| Partial["Mostrar informacion disponible"]
+    Available -->|Si| Constancia["Mostrar detalle y permitir descarga"]
+```
+
 ## Flujos Alternativos
 - Si no hay solicitudes para el documento, el sistema muestra mensaje de no encontrado.
 - Si no hay detalle de examen, el sistema muestra la informacion disponible sin constancia. Pendiente de validacion funcional.

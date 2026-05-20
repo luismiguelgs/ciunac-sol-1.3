@@ -102,7 +102,8 @@ export function FinishForm({activeStep, setActiveStep, steps, student, saveNewSt
 						steps={steps} 
 						setActiveStep={setActiveStep}
 						type="submit"
-						disabled={loading || !canSubmit}
+						disabledPrevious={loading || canSubmit}
+						disabledNext={loading || !canSubmit}
 					/>
         		</form>
     		</Form>

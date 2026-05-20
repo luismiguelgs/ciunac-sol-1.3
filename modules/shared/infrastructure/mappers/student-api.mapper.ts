@@ -8,6 +8,7 @@ export function toStudentRequestDto(body: StudentFormDto): Partial<IEstudiante> 
     tipoDocumento: body.tipo_documento as IEstudiante['tipoDocumento'],
     numeroDocumento: body.dni,
     celular: body.celular,
+    email: body.email || undefined,
     facultadId: body.facultad ? +body.facultad : undefined,
     escuelaId: body.escuela ? +body.escuela : undefined,
     codigo: body.codigo || undefined,

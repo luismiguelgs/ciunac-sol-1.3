@@ -23,6 +23,19 @@ El usuario ingresa a `app/consulta-solicitud/page.tsx`.
 5. Si existen resultados, el sistema redirige a `app/consulta-solicitud/[dni]/page.tsx`.
 6. El sistema muestra detalle de solicitudes y acciones disponibles.
 
+## Diagrama del Flujo
+```mermaid
+flowchart TD
+    Start["Usuario ingresa a consulta"] --> Document["Ingresar documento"]
+    Document --> Captcha["Resolver reCAPTCHA"]
+    Captcha --> Valid{"Documento valido?"}
+    Valid -->|No| Validation["Mostrar validacion"]
+    Valid -->|Si| Search["Buscar solicitudes por documento"]
+    Search --> Found{"Existen resultados?"}
+    Found -->|No| NotFound["Mostrar busqueda no encontrada"]
+    Found -->|Si| Detail["Redirigir a detalle de solicitudes"]
+```
+
 ## Flujos Alternativos
 - Si el usuario no resuelve reCAPTCHA, el sistema muestra advertencia.
 - Si no hay resultados, el sistema muestra mensaje de busqueda no encontrada.

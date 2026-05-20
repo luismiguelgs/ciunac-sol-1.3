@@ -6,6 +6,7 @@ Este documento describe los requisitos funcionales y no funcionales del frontend
 ## 2. Alcance
 El alcance funcional incluye:
 - registrar solicitudes de certificados;
+- registrar solicitudes de constancias;
 - registrar solicitudes de beca;
 - registrar solicitudes de examen de ubicacion;
 - registrar alumno nuevo en integracion Q10;
@@ -70,6 +71,8 @@ flowchart LR
 | RF-016 | El sistema debe permitir consultar certificados y descargar o visualizar informacion asociada cuando exista. |
 | RF-017 | El sistema debe permitir consultar informacion de examen de ubicacion por documento. |
 | RF-018 | El sistema debe mostrar mensajes de error, carga, bloqueo y finalizacion en los flujos principales. |
+| RF-019 | El sistema debe permitir registrar una solicitud de constancia mediante un flujo independiente al de certificados. |
+| RF-020 | El sistema debe generar un cargo PDF desde frontend al finalizar exitosamente una solicitud de constancia. |
 
 ## 6. Requisitos No Funcionales
 | ID | Requisito |
@@ -96,6 +99,8 @@ flowchart LR
 | RN-008 | La verificacion por correo usa un codigo temporal guardado en sesion por 5 minutos. |
 | RN-009 | Pendiente de validacion funcional: el catalogo de tipos de solicitud determina que solicitudes requieren documentos adicionales. |
 | RN-010 | Pendiente de validacion funcional: las reglas exactas de precio dependen del catalogo y reglas configuradas fuera del frontend. |
+| RN-011 | El voucher de pago es obligatorio para registrar una solicitud de constancia. |
+| RN-012 | La solicitud de constancia no debe reutilizar el flujo de certificados como experiencia principal. |
 
 ## 8. Restricciones
 - El frontend depende de disponibilidad de API CIUNAC, API Q10, servicio de correo, archivos y reCAPTCHA.
@@ -108,6 +113,8 @@ flowchart LR
 - La API CIUNAC retorna identificadores de solicitud que permiten redirigir a la pantalla final.
 - La busqueda por documento puede retornar cero, uno o varios resultados segun el backend.
 - Las URLs de archivos devueltas por el servicio de subida son persistibles en las solicitudes.
+- El cargo PDF de constancias se genera en frontend con `@react-pdf/renderer`.
+- El correo de confirmacion de constancias se dispara desde frontend contra el endpoint de correo, siguiendo el patron actual de certificados.
 
 ## 10. Criterios Generales de Aceptacion
 ```gherkin

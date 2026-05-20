@@ -61,10 +61,20 @@ interface StepperControlProps {
     steps: string[];
     setActiveStep: React.Dispatch<React.SetStateAction<number>>;
     type?: "button" | "submit";
-    disabled?: boolean; 
+    disabled?: boolean;
+    disabledPrevious?: boolean;
+    disabledNext?: boolean;
 }
 
-export function StepperControl({ activeStep, steps, setActiveStep, type = "button" , disabled=false}: StepperControlProps) {
+export function StepperControl({
+    activeStep,
+    steps,
+    setActiveStep,
+    type = "button",
+    disabled = false,
+    disabledPrevious = false,
+    disabledNext = false,
+}: StepperControlProps) {
     const handleNext = () => {
         if (type === "button") {
             setActiveStep(prev => prev + 1);
@@ -76,7 +86,7 @@ export function StepperControl({ activeStep, steps, setActiveStep, type = "butto
         <div className="mt-8 flex justify-between">
             <Button
                 onClick={() => setActiveStep(prev => prev - 1)}
-                disabled={activeStep === 0 || disabled}
+                disabled={activeStep === 0 || disabled || disabledPrevious}
                 variant="outline"
                 type="button"
             >
@@ -84,7 +94,7 @@ export function StepperControl({ activeStep, steps, setActiveStep, type = "butto
             </Button>
             <Button
                 onClick={type === "button" ? handleNext : undefined}
-                disabled={disabled}
+                disabled={disabled || disabledNext}
                 type={type}
             >
                 {activeStep === steps.length - 1 ? "Finalizar" : "Siguiente"}

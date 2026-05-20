@@ -25,6 +25,20 @@ El usuario ingresa a `app/solicitud-nuevo/page.tsx`.
 7. El sistema envia correo de registro.
 8. El sistema redirige a la pantalla de finalizacion.
 
+## Diagrama del Flujo
+```mermaid
+flowchart TD
+    Start["Postulante ingresa a alumno nuevo"] --> Programs["Cargar programas desde API Q10"]
+    Programs --> Verify["Verificar correo"]
+    Verify --> Code{"Codigo valido?"}
+    Code -->|No| VerifyError["Mostrar advertencia"]
+    Code -->|Si| Basic["Completar datos basicos"]
+    Basic --> Review["Revisar informacion"]
+    Review --> Register["Enviar registro a API Q10"]
+    Register --> Mail["Enviar correo de registro"]
+    Mail --> Finish["Redirigir a finalizacion"]
+```
+
 ## Flujos Alternativos
 - Si API Q10 no retorna programas, el sistema muestra el flujo con lista vacia. Pendiente de validacion funcional: comportamiento esperado con lista vacia.
 - Si el codigo de verificacion es incorrecto, el sistema no avanza.

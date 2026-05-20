@@ -11,24 +11,37 @@ import { useSearchParams } from 'next/navigation'
 import React from 'react'
 import { Button } from '@/components/ui/button'
 import { CloudDownloadIcon } from 'lucide-react'
+import { ISolicitudRes } from '@/modules/shared/interfaces/solicitud.interface'
 
-function Finish()
+type Props = {
+    solicitudId?: number
+}
+
+function Finish({ solicitudId }: Props)
 {
     const searchParams = useSearchParams()
     const id = searchParams.get('id')
+    const resolvedId = solicitudId || (id ? Number(id) : undefined)
     const { data: textos } = useCatalogStore(useTextsStore)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [data, setData] = React.useState<any>({})
+    const [data, setData] = React.useState<ISolicitudRes | null>(null)
 
     React.useEffect(() => {
         const getData = async (_id:number) => {
             const result = await SolicitudesService.getItemId(_id)
             setData(result)
         }
-        getData(Number(id))
-    }, [id])
+
+        if (!resolvedId || Number.isNaN(resolvedId)) {
+            setData(null)
+            return
+        }
+
+        getData(resolvedId)
+    }, [resolvedId])
 
     const exportPDF = async() => {
+        if (!data) return
+
         const cargoPdfElement = <CargoPdf textos={textos as ITexto[]} obj={data}/>
         const blobPdf = await pdf(cargoPdfElement).toBlob()
 
@@ -49,11 +62,15 @@ function Finish()
         URL.revokeObjectURL(blobUrl);
     }
 
+    if (!resolvedId || Number.isNaN(resolvedId)) {
+        return null
+    }
+
     return (
         <div className="flex flex-col items-center justify-center">
             <div className="flex items-center gap-10">
             <Image src={pdfImage.src} alt="pdf" width={50} height={50} onClick={exportPDF} className="cursor-pointer" />
-            <Button  onClick={exportPDF} autoFocus disabled={false}>
+            <Button  onClick={exportPDF} autoFocus disabled={!data}>
                 Descargar Cargo
                 <CloudDownloadIcon className="ml-2" />
             </Button>
@@ -62,10 +79,10 @@ function Finish()
     )
 }
 
-export default function DescargaCargo() {
+export default function DescargaCargo({ solicitudId }: Props) {
     return (
         <React.Suspense fallback={<div>Loading...</div>}>
-            <Finish />
+            <Finish solicitudId={solicitudId} />
         </React.Suspense>
     )
 }

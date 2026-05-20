@@ -21,6 +21,19 @@ El usuario ingresa a `app/consulta-certificado/page.tsx` o a una ruta de detalle
 4. Si existe certificado, el sistema muestra informacion del certificado.
 5. Si el usuario descarga o acepta el certificado, el sistema puede actualizar estado de aceptacion.
 
+## Diagrama del Flujo
+```mermaid
+flowchart TD
+    Start["Usuario consulta certificado"] --> Search["Buscar solicitud o certificado"]
+    Search --> Found{"Existe certificado?"}
+    Found -->|No| Empty["Mostrar informacion no disponible"]
+    Found -->|Si| Detail["Mostrar detalle de certificado"]
+    Detail --> Action{"Usuario descarga o acepta?"}
+    Action -->|No| End["Mantener detalle visible"]
+    Action -->|Si| Update["Actualizar estado de aceptacion cuando aplique"]
+    Update --> End
+```
+
 ## Flujos Alternativos
 - Si no existe certificado asociado, el sistema no muestra descarga disponible.
 - Si la busqueda por solicitud no retorna certificado, el sistema retorna `null` segun implementacion actual.

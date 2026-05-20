@@ -13,6 +13,7 @@ Este indice lista los casos de uso funcionales del frontend CIUNAC y su relacion
 | CU-005 | Consultar solicitud por documento | [consulta-solicitud.md](./consulta-solicitud.md) |
 | CU-006 | Consultar certificado | [consulta-certificado.md](./consulta-certificado.md) |
 | CU-007 | Consultar ubicacion | [consulta-ubicacion.md](./consulta-ubicacion.md) |
+| CU-008 | Registrar solicitud de constancia | [solicitud-constancia.md](./solicitud-constancia.md) |
 
 ## Diagrama General
 ```mermaid
@@ -24,6 +25,7 @@ flowchart LR
     Usuario --> CU5["CU-005 Consultar solicitud"]
     Usuario --> CU6["CU-006 Consultar certificado"]
     Usuario --> CU7["CU-007 Consultar ubicacion"]
+    Usuario --> CU8["CU-008 Registrar constancia"]
 
     CU1 --> API["API CIUNAC"]
     CU2 --> API
@@ -32,6 +34,7 @@ flowchart LR
     CU5 --> API
     CU6 --> API
     CU7 --> API
+    CU8 --> API
 ```
 
 ## Flujo General de Solicitud
@@ -47,7 +50,10 @@ flowchart TD
     Confirm --> SaveStudent["Guardar o actualizar estudiante"]
     SaveStudent --> SaveRequest["Crear solicitud"]
     SaveRequest --> Notify["Enviar correo"]
-    Notify --> Finish["Finalizar"]
+    Notify --> Pdf{"Requiere cargo PDF?"}
+    Pdf -->|Si| Cargo["Generar cargo PDF en frontend"]
+    Pdf -->|No| Finish["Finalizar"]
+    Cargo --> Finish
 ```
 
 ## Flujo General de Consulta

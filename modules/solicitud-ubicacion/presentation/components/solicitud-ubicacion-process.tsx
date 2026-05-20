@@ -23,8 +23,8 @@ type DocumentStepPayload = Extract<SolicitudUbicacionStepPayload, { img_cert_est
 
 function buildSteps(alumno: boolean): SolicitudUbicacionStep[] {
   return alumno
-    ? ['Datos bÃ¡sicos', 'Datos de Pago', 'Documentos', 'Finalizar']
-    : ['Datos bÃ¡sicos', 'Datos de Pago', 'Finalizar'];
+    ? ['Datos Básicos', 'Datos de Pago', 'Documentos', 'Finalizar']
+    : ['Datos Básicos', 'Datos de Pago', 'Finalizar'];
 }
 
 function BlockDialog() {
@@ -42,8 +42,8 @@ function BlockDialog() {
       />
       <span>
         Ya hay una solicitud en proceso. Por favor, espera a que termine
-        la operaciÃ³n actual antes de realizar una nueva solicitud. Si tiene
-        alguna duda, comunÃ­quese con nosotros a travÃ©s del telfono: <strong>014291931</strong>
+        la operación actual antes de realizar una nueva solicitud. Si tiene
+        alguna duda, comuníquese con nosotros a través del teléfono: <strong>014291931</strong>
       </span>
     </>
   );
@@ -71,7 +71,7 @@ export default function SolicitudUbicacionProcess() {
   const handleNext = React.useCallback(
     async (values: SolicitudUbicacionStepPayload) => {
       switch (steps[activeStep]) {
-        case 'Datos bÃ¡sicos': {
+        case 'Datos Básicos': {
           const basicValues = values as BasicStepPayload;
           setSolicitudField('email', email);
           setSolicitudField('alumno_ciunac', alumno);
@@ -130,7 +130,7 @@ export default function SolicitudUbicacionProcess() {
       <Stepper steps={steps} activeStep={activeStep}>
         {steps.map((step, index) => {
           switch (step) {
-            case 'Datos bÃ¡sicos':
+            case 'Datos Básicos':
               return (
                 <BasicData
                   key={index}

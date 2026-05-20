@@ -26,6 +26,22 @@ El usuario ingresa a `app/solicitud-beca/page.tsx`, valida correo y accede al pr
 8. El sistema envia notificacion por correo.
 9. El sistema redirige a la pantalla final.
 
+## Diagrama del Flujo
+```mermaid
+flowchart TD
+    Start["Usuario inicia solicitud de beca"] --> Email["Verificar correo y reCAPTCHA"]
+    Email --> Code{"Codigo valido?"}
+    Code -->|No| EmailError["Mostrar advertencia"]
+    Code -->|Si| Basic["Completar datos personales y academicos"]
+    Basic --> Docs["Adjuntar documentos obligatorios"]
+    Docs --> DocsValid{"Documentos completos?"}
+    DocsValid -->|No| DocsError["Mostrar validaciones"]
+    DocsValid -->|Si| Confirm["Confirmar registro"]
+    Confirm --> SaveRequest["Crear solicitud de beca"]
+    SaveRequest --> Mail["Enviar correo de notificacion"]
+    Mail --> Finish["Redirigir a finalizacion"]
+```
+
 ## Flujos Alternativos
 - Si el usuario no completa un documento obligatorio, el sistema no permite avanzar.
 - Si el documento tiene longitud invalida segun tipo, el sistema muestra validacion.

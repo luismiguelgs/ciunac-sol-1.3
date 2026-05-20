@@ -42,6 +42,13 @@ type Props = {
 	solicitud: 'CERTIFICADO' | 'EXAMEN'
 }
 
+function normalizeText(value: string) {
+	return value
+		.normalize('NFD')
+		.replace(/[\u0300-\u036f]/g, '')
+		.toUpperCase()
+}
+
 export default function ConsultaForm({ solicitud }: Props) {
 	const router = useRouter()
 	const [loading, setLoading] = React.useState(false)
@@ -136,13 +143,18 @@ export default function ConsultaForm({ solicitud }: Props) {
 	async function buscarExamenUbicacion(documento: string) {
 		const result = await SolicitudesService.searchItemByDni(documento) as ISolicitudRes[];
 		if (result.length > 0) {
-			const item = result[0]
-			const queryParams = new URLSearchParams(
-				Object.entries({ apellidos: item.estudiante?.apellidos.trim(), nombres: item.estudiante?.nombres.trim() }).reduce((acc, [key, value]) => {
-					acc[key] = String(value);
-					return acc;
-				}, {} as Record<string, string>)
-			).toString();
+			const item = result.find((solicitud) =>
+				normalizeText(solicitud.tiposSolicitud?.solicitud || '').includes('UBICACION')
+			) || result[0]
+			const queryParams = new URLSearchParams()
+
+			queryParams.set('apellidos', item.estudiante?.apellidos.trim() || '')
+			queryParams.set('nombres', item.estudiante?.nombres.trim() || '')
+
+			if (item.id) {
+				queryParams.set('id', String(item.id))
+			}
+
 			router.push(`./consulta-ubicacion/${documento}?${queryParams}`);
 		} else {
 			setOpen(true)

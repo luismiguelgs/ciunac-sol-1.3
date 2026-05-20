@@ -6,8 +6,14 @@ import Download from './download'
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import useCiclos from '../hooks/useCiclos'
+import DescargaCargo from '@/modules/solicitud-ubicacion/components/descarga-cargo'
 
-export default function UbicacionDetalle({dni}:{dni:string}) {
+type Props = {
+    dni: string
+    solicitudId?: number
+}
+
+export default function UbicacionDetalle({dni, solicitudId}:Props) {
 
     const {data:ciclos} = useCiclos()
     const [notas, setNotas] = React.useState<IDetalleExamenUbicacion[]>([])
@@ -38,9 +44,17 @@ export default function UbicacionDetalle({dni}:{dni:string}) {
 
     if (notas.length === 0) {
         return (
-            <p className="text-center py-6 text-muted-foreground">
-                No se encontraron notas para este alumno.
-            </p>
+            <div className="flex flex-col items-center gap-4 py-6 text-center">
+                <div className="space-y-2">
+                    <p className="font-medium">
+                        Aún no se ha encontrado notas para este alumno.
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                        Mientras se registran las notas, puede descargar el cargo de su solicitud de examen de ubicaciÃ³n.
+                    </p>
+                </div>
+                {solicitudId ? <DescargaCargo solicitudId={solicitudId} /> : null}
+            </div>
         )
     }
 

@@ -10,15 +10,17 @@ interface PageProps {
         dni: string 
     }>
     searchParams: Promise<{
-        nombres: string
-        apellidos: string
+        nombres?: string
+        apellidos?: string
+        id?: string
     }>
 }
 
 export default async function UbicationDetailPage({ params, searchParams }: PageProps) 
 {
     const { dni } = await params
-    const { nombres, apellidos } = await searchParams
+    const { nombres = '', apellidos = '', id } = await searchParams
+    const solicitudId = id ? Number(id) : undefined
 
     return (
         <main className="container mx-auto p-6 space-y-6">
@@ -63,7 +65,7 @@ export default async function UbicationDetailPage({ params, searchParams }: Page
                     <Separator className="my-2" />
                 </CardHeader>
                 <CardContent>
-                    <UbicacionDetalle dni={dni} />
+                    <UbicacionDetalle dni={dni} solicitudId={solicitudId} />
                 </CardContent>
             </Card>
 

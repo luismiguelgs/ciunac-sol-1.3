@@ -24,6 +24,8 @@ Relacionar requisitos funcionales con casos de uso, rutas Next.js y modulos prin
 | RF-016 | CU-006 | `app/consulta-certificado/page.tsx`, `app/consulta-certificado/[id]/page.tsx` | `modules/consulta-certificado`, `services/certificados.service.ts` |
 | RF-017 | CU-007 | `app/consulta-ubicacion/page.tsx`, `app/consulta-ubicacion/[dni]/page.tsx` | `modules/consulta-ubicacion` |
 | RF-018 | CU-001, CU-002, CU-003, CU-004, CU-005, CU-006, CU-007 | Todos los flujos principales | Componentes de presentation y dialogs |
+| RF-019 | CU-008 | `app/solicitud-constancias/page.tsx`, `app/solicitud-constancias/proceso/page.tsx` | `modules/solicitud-constancia` |
+| RF-020 | CU-008 | `app/solicitud-constancias/finalizar/page.tsx` | `modules/solicitud-constancia/components/cargo-pdf.tsx`, `modules/solicitud-constancia/components/descarga-cargo.tsx` |
 
 ## Cobertura de Flujos Visibles
 | Flujo visible | Estado documental |
@@ -35,6 +37,7 @@ Relacionar requisitos funcionales con casos de uso, rutas Next.js y modulos prin
 | Consulta de solicitud | Cubierto por CU-005 |
 | Consulta de certificado | Cubierto por CU-006 |
 | Consulta de ubicacion | Cubierto por CU-007 |
+| Solicitud de constancia | Cubierto por CU-008 |
 | Home `app/page.tsx` | Fuera de alcance funcional especifico; actua como entrada/navegacion |
 
 ## Matriz Visual
