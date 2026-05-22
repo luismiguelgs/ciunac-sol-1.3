@@ -5,7 +5,7 @@ export default function RequestNewStudentLayout({ children, }: Readonly<{ childr
                 <div className="container mx-auto px-4">
                     <div className="h-14 flex items-center">
                         <h1 className="text-lg font-semibold">
-                            SOLICITUD - CERTIFICADOS / CONSTANCIAS
+                            SOLICITUD - CERTIFICADOS
                         </h1>
                     </div>
                 </div>
