@@ -29,9 +29,10 @@ type Props = {
     steps: string[]
     setActiveStep: React.Dispatch<React.SetStateAction<number>>
     handleNext: (values: IBasicInfoSchema) => void
+    tipoSolicitud: 'certificado' | 'constancia'
 }
 
-export default function BasicData({ activeStep, handleNext, steps, setActiveStep }: Props) {
+export default function BasicData({ activeStep, handleNext, steps, setActiveStep, tipoSolicitud }: Props) {
     const textos = useTexts()
     const { solicitud } = useSolicitudStore()
     const escuelas = useEscuelas()
@@ -134,6 +135,7 @@ export default function BasicData({ activeStep, handleNext, steps, setActiveStep
                                 <SelectSolicitud
                                     name="tipo_solicitud"
                                     control={form.control}
+                                    tipoSolicitud={tipoSolicitud}
                                 />
                                 <SelectLanguage
                                     name="idioma"

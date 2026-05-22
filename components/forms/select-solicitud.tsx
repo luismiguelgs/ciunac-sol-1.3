@@ -1,19 +1,19 @@
 "use client"
 
 import {
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
+    FormControl,
+    FormDescription,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
 } from "@/components/ui/form"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton" // 1. Importa Skeleton
 import useSolicitudes from "@/hooks/useSolicitudes"
@@ -22,11 +22,17 @@ import { Control, FieldValues, Path } from "react-hook-form"
 type Props<T extends FieldValues> = {
     control: Control<T>
     name: Path<T>
+    tipoSolicitud: 'certificado' | 'constancia'
 }
 
-export default function SelectSolicitud<T extends FieldValues>({name, control}:Props<T>) 
-{
+const SOLICITUD_IDS = {
+    certificado: [1, 2, 3, 4],
+    constancia: [5, 6],
+}
+
+export default function SelectSolicitud<T extends FieldValues>({ name, control, tipoSolicitud }: Props<T>) {
     const data = useSolicitudes()
+    const allowedIds = SOLICITUD_IDS[tipoSolicitud]
 
     // 2. Muestra el Skeleton si no hay datos
     if (!data) {
@@ -54,8 +60,7 @@ export default function SelectSolicitud<T extends FieldValues>({name, control}:P
                         </FormControl>
                         <SelectContent className="w-full min-w-[300px]">
                             {
-                                // Filtrar el array para excluir el item con value 'PAR' antes de mapear
-                                data?.filter(item => item.id !== 7 && item.id !== 8)
+                                data?.filter(item => item.id ? allowedIds.includes(item.id) : false)
                                     .map((item, index) => (
                                         <SelectItem key={item.id ?? index} value={String(item.id)} className="py-2">
                                             {item.solicitud}

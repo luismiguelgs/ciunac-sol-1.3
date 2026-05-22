@@ -108,6 +108,7 @@ export default function SolicitudCertificadoProcess() {
                   setActiveStep={setActiveStep}
                   handleNext={handleNext}
                   steps={steps}
+                  tipoSolicitud="certificado"
                 />
               );
             case 'Datos de Pago':
