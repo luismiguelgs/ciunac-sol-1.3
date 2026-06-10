@@ -10,6 +10,7 @@ import procesoTres from "@/assets/3.png"
 import DownloadCertificado from "@/modules/consulta-solicitud/components/download-certificado";
 import DownloadCargo from "@/modules/consulta-solicitud/components/donwload-cargo";
 import TextosService from "@/services/text.service";
+import { ISolicitudRes } from "@/modules/shared/interfaces/solicitud.interface";
 
 async function getRequests(dni:string){
     try {
@@ -48,6 +49,28 @@ const renderStyledText = (text: string | undefined) => {
         return <span key={index}>{part}</span>;
     });
 };
+
+type SolicitudStatusStep = 'iniciado' | 'proceso' | 'recoger';
+
+function getSolicitudStatusStep(item: ISolicitudRes): SolicitudStatusStep {
+    const estadoNombre = item.estado?.nombre?.trim().toUpperCase();
+
+    if (item.estadoId === 1 || estadoNombre === 'NUEVO') {
+        return 'iniciado';
+    }
+
+    if (item.estadoId === 3 || estadoNombre === 'PARA RECOGER' || estadoNombre === 'ENTREGADO') {
+        return 'recoger';
+    }
+
+    return 'proceso';
+}
+
+function getSolicitudStatusImage(step: SolicitudStatusStep) {
+    if (step === 'iniciado') return procesoUno;
+    if (step === 'recoger') return procesoTres;
+    return procesoDos;
+}
 
 export default async function ResultadoSolicitudPage({ params }: PageProps) {
     const { dni } = await params;
@@ -88,14 +111,18 @@ export default async function ResultadoSolicitudPage({ params }: PageProps) {
                             </Alert>
                         </div>
                         <div className="md:w-1/2 space-y-2">
-                            {requests.map((item) => (
+                            {requests.map((item) => {
+                                const statusStep = getSolicitudStatusStep(item);
+                                const statusImage = getSolicitudStatusImage(statusStep);
+
+                                return (
                                 <Card key={item.id}>
                                     <CardHeader className="flex flex-row items-center gap-4">
                                         <Avatar>
                                             <AvatarFallback>
-                                                {item.estado?.nombre === 'NUEVO' ? (
+                                                {statusStep === 'iniciado' ? (
                                                     <HourglassIcon className="h-4 w-4 text-blue-500" />
-                                                ) : item.estado?.nombre === 'ELABORADO' ? (
+                                                ) : statusStep === 'proceso' ? (
                                                     <CheckCircleIcon className="h-4 w-4 text-green-500" />
                                                 ) : (
                                                     <ThumbsUpIcon className="h-4 w-4" />
@@ -115,37 +142,15 @@ export default async function ResultadoSolicitudPage({ params }: PageProps) {
                                             </div>
                                         </div>
                                     </CardHeader>
-                                    {item.estado?.nombre === 'NUEVO' ? (
-                                        <div className="relative h-[300px] w-full">
-                                            <Image
-                                                src={procesoUno}
-                                                alt="Proceso"
-                                                fill
-                                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                                                className="object-contain"
-                                            />
-                                        </div>
-                                    ) : item.estado?.nombre === 'ELABORADO' ? (
-                                        <div className="relative h-[300px] w-full">
-                                            <Image
-                                                src={procesoDos}
-                                                alt="Proceso2"
-                                                fill
-                                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                                                className="object-contain"
-                                            />
-                                        </div>
-                                    ) : (
-                                        <div className="relative h-[300px] w-full">
-                                            <Image
-                                                src={procesoTres}
-                                                alt="Proceso2"
-                                                fill
-                                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                                                className="object-contain"
-                                            />
-                                        </div>
-                                    )}
+                                    <div className="relative h-[300px] w-full">
+                                        <Image
+                                            src={statusImage}
+                                            alt="Estado de la solicitud"
+                                            fill
+                                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                            className="object-contain"
+                                        />
+                                    </div>
                                     <CardContent>
                                         {
                                             textos && item.digital && item.estadoId === 3 ? 
@@ -154,7 +159,8 @@ export default async function ResultadoSolicitudPage({ params }: PageProps) {
                                         }
                                     </CardContent>
                                 </Card>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
                 )}
