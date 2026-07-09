@@ -6,7 +6,12 @@ export default class ConstanciasService {
 
     public static async selectItemBySolicitud(solicitudId: number): Promise<IConstancia | null> {
         try {
-            const response = await resourceApiRepository.get<IConstancia>(`${this.collection}/solicitud/${solicitudId}`)
+            const response = await resourceApiRepository.get<IConstancia | IConstancia[] | null>(`${this.collection}/solicitud/${solicitudId}`)
+
+            if (Array.isArray(response)) {
+                return response[0] ?? null
+            }
+
             return response
         } catch (err) {
             if (err instanceof Error) {

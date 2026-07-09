@@ -16,6 +16,7 @@ type TipoDocumentoDigital = 'certificado' | 'constancia'
 type DocumentoDigital = {
     _id?: string
     id?: string
+    dni?: string
     numeroDocumento?: string
     idioma?: string
     nivel?: string
@@ -131,7 +132,7 @@ export default function DownloadDocumentoDigital({ solicitudId, tipoDocumento, f
         )
     }
 
-    if (!documento?.url) {
+    if (!isDownloadUrl(documento?.url)) {
         return <>{fallback}</>
     }
 
@@ -207,10 +208,14 @@ export default function DownloadDocumentoDigital({ solicitudId, tipoDocumento, f
 
 function buildFileName(documento: DocumentoDigital, tipoDocumento: TipoDocumentoDigital) {
     const documentoLabel = tipoDocumento === 'constancia' ? 'CONSTANCIA' : 'CERTIFICADO'
-    const numeroDocumento = documento.numeroDocumento || 'documento'
+    const numeroDocumento = documento.numeroDocumento || documento.dni || 'documento'
     const idioma = documento.idioma || documento.tipo || documentoLabel
     const nivel = documento.nivel || ''
     const fecha = documento.fechaEmision || ''
 
     return `${numeroDocumento}-${idioma}-${nivel}-${fecha}.PDF`
+}
+
+function isDownloadUrl(url: string | undefined) {
+    return Boolean(url && url.trim() && url.trim().toLowerCase() !== 'no-url')
 }
