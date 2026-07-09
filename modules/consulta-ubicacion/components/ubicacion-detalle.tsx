@@ -50,7 +50,7 @@ export default function UbicacionDetalle({dni, solicitudId}:Props) {
                         Aún no se ha encontrado notas para este alumno.
                     </p>
                     <p className="text-sm text-muted-foreground">
-                        Mientras se registran las notas, puede descargar el cargo de su solicitud de examen de ubicaciÃ³n.
+                        Mientras se registran las notas, puede descargar el cargo de su solicitud de examen de ubicación.
                     </p>
                 </div>
                 {solicitudId ? <DescargaCargo solicitudId={solicitudId} /> : null}

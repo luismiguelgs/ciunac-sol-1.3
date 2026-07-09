@@ -1,9 +1,10 @@
 'use client'
+
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
 import pdfImage from '@/assets/pdf.png'
 import { ISolicitudRes } from '@/modules/shared/interfaces/solicitud.interface'
-import CargoPdf from '@/modules/consulta-solicitud/components/cargo-pdf'
+import CargoPdf, { CargoCertificadoPdfData } from '@/modules/solicitud-certificado/components/cargo-pdf'
 import { pdf } from '@react-pdf/renderer'
 import { ITexto } from '@/modules/shared/interfaces/types.interface'
 
@@ -12,24 +13,25 @@ type Props = {
     textos: ITexto[]
 }
 
-export default function DownloadCargo({item, textos}: Props) {
-    const descargarPDF = async() => {
-        const obj = {
-            solicitud: item.tiposSolicitud?.solicitud || 'SOLICITUD DE CERTIFICADO',
-            creado: new Date(item.creadoEn as string).toLocaleDateString(),
-            apellidos: item.estudiante?.apellidos,
-            nombres: item.estudiante?.nombres,
-            dni: item.estudiante?.numeroDocumento,
-            idioma: item.idioma?.nombre,
-            nivel: item.nivel?.nombre,
+export default function DownloadCargo({ item, textos }: Props) {
+    const descargarPDF = async () => {
+        const obj: CargoCertificadoPdfData = {
+            tipoSolicitud: item.tiposSolicitud?.solicitud || 'SOLICITUD DE CERTIFICADO',
+            fechaIngreso: item.creadoEn ? new Date(item.creadoEn).toLocaleDateString() : '',
+            apellidos: item.estudiante?.apellidos ?? '',
+            nombres: item.estudiante?.nombres ?? '',
+            numeroDocumento: item.estudiante?.numeroDocumento ?? '',
+            idioma: item.idioma?.nombre ?? '',
+            nivel: item.nivel?.nombre ?? '',
             pago: item.pago,
-            voucher: item.numeroVoucher
+            numeroVoucher: item.numeroVoucher ?? '',
+            fechaPago: item.fechaPago,
         }
 
-        const cargoPdfElement = <CargoPdf textos={textos} obj={obj}/>
+        const cargoPdfElement = <CargoPdf textos={textos} obj={obj} />
         const blobPdf = await pdf(cargoPdfElement).toBlob()
         const blobUrl = URL.createObjectURL(blobPdf)
-        
+
         const a = document.createElement('a')
         a.style.display = 'none'
         a.href = blobUrl
@@ -53,8 +55,8 @@ export default function DownloadCargo({item, textos}: Props) {
                     className="cursor-pointer hover:opacity-80 transition-opacity"
                     onClick={descargarPDF}
                 />
-                <Button 
-                    variant="ghost" 
+                <Button
+                    variant="ghost"
                     className="text-base"
                     onClick={descargarPDF}
                 >
@@ -62,7 +64,7 @@ export default function DownloadCargo({item, textos}: Props) {
                 </Button>
             </div>
             <p className="text-sm font-medium text-destructive pl-2">
-                Puede descargar su cargo aqui!
+                {"Puede descargar su cargo aqu\u00ed!"}
             </p>
         </div>
     )

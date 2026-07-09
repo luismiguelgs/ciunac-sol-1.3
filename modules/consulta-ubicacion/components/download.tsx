@@ -6,6 +6,7 @@ import { IDetalleExamenUbicacion } from '@/modules/consulta-ubicacion/interfaces
 import ConstanciaFormat from '../components/ConstanciaFormat'
 import Image from "next/image"
 import pdfImage from '@/assets/pdf.png'
+import useTexts from "@/hooks/useTexts"
 
 type Props = {
     item: IDetalleExamenUbicacion
@@ -14,8 +15,10 @@ type Props = {
 }
 
 export default function Download({ item, fecha, ciclo }: Props) {
+    const textos = useTexts()
+
     const descargarPDF = async () => {
-        const cargoPdfElement = <ConstanciaFormat data={item} fecha={fecha} ciclo={ciclo} />
+        const cargoPdfElement = <ConstanciaFormat data={item} fecha={fecha} ciclo={ciclo} textos={textos ?? []} />
         const blobPdf = await pdf(cargoPdfElement).toBlob()
         const blobUrl = URL.createObjectURL(blobPdf)
 

@@ -55,7 +55,7 @@ export default function SolicitudConstanciasProcess() {
                     setSolicitudField('codigo', basicValues.codigo);
                     setSolicitudField('tipo_documento', basicValues.tipo_documento);
                     setSolicitudField('dni', basicValues.dni);
-                    setSolicitudField('digital', false);
+                    setSolicitudField('digital', true);
                     setPrecio(resolveSolicitudCertificadoPrice(basicValues.tipo_solicitud, constancias));
                     break;
                 case 'Datos de Pago':

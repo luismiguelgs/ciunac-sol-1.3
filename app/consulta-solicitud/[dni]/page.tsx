@@ -7,10 +7,10 @@ import Image from "next/image"
 import procesoUno from "@/assets/1.png"
 import procesoDos from "@/assets/2.png"
 import procesoTres from "@/assets/3.png"
-import DownloadCertificado from "@/modules/consulta-solicitud/components/download-certificado";
 import DownloadCargo from "@/modules/consulta-solicitud/components/donwload-cargo";
 import TextosService from "@/services/text.service";
 import { ISolicitudRes } from "@/modules/shared/interfaces/solicitud.interface";
+import DownloadDocumentoDigital from "@/modules/consulta-solicitud/components/download-documento-digital";
 
 async function getRequests(dni:string){
     try {
@@ -72,6 +72,10 @@ function getSolicitudStatusImage(step: SolicitudStatusStep) {
     return procesoDos;
 }
 
+function isConstancia(item: ISolicitudRes) {
+    return [5, 6].includes(Number(item.tipoSolicitudId));
+}
+
 export default async function ResultadoSolicitudPage({ params }: PageProps) {
     const { dni } = await params;
     const requests = await getRequests(dni);
@@ -114,6 +118,9 @@ export default async function ResultadoSolicitudPage({ params }: PageProps) {
                             {requests.map((item) => {
                                 const statusStep = getSolicitudStatusStep(item);
                                 const statusImage = getSolicitudStatusImage(statusStep);
+                                const tipoDocumento = isConstancia(item) ? 'constancia' : 'certificado';
+                                const shouldDownloadDigitalDocument = item.digital && statusStep === 'recoger';
+                                const cargoFallback = <DownloadCargo item={item} textos={textos} />;
 
                                 return (
                                 <Card key={item.id}>
@@ -153,9 +160,15 @@ export default async function ResultadoSolicitudPage({ params }: PageProps) {
                                     </div>
                                     <CardContent>
                                         {
-                                            textos && item.digital && item.estadoId === 3 ? 
-                                            <DownloadCertificado solucitudId={item.id as number} /> : 
-                                            <DownloadCargo item={item} textos={textos} />
+                                            textos && shouldDownloadDigitalDocument ? (
+                                                <DownloadDocumentoDigital
+                                                    solicitudId={item.id as number}
+                                                    tipoDocumento={tipoDocumento}
+                                                    fallback={cargoFallback}
+                                                />
+                                            ) : (
+                                                cargoFallback
+                                            )
                                         }
                                     </CardContent>
                                 </Card>
