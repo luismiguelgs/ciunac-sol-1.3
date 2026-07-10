@@ -6,16 +6,108 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import useSolicitudStore from '@/stores/solicitud.store';
 import { useCatalogStore } from '@/hooks/useCatalogStore';
 import { useTextsStore } from '@/stores/types.stores';
-import { useMask } from '@react-input/mask';
 import { useSearchParams } from 'next/navigation';
 import { Form } from '@/components/ui/form';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { CloudUpload } from 'lucide-react';
+import { CloudUpload, Search } from 'lucide-react';
 import { MySelect } from '@/components/forms/myselect.field';
 import InputField from '@/components/forms/input.field';
 import { DatePicker } from '@/components/forms/date-picker.new';
 import MyAlert from '@/components/forms/myAlert';
 import UploadImage from '@/components/upload-image';
+import Image from 'next/image';
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from '@/components/ui/dialog';
+
+type VoucherExampleProps = {
+	src: string;
+	title: string;
+	description: string;
+	alt: string;
+	width: number;
+	height: number;
+	thumbnailPosition: string;
+}
+
+function VoucherExample({ src, title, description, alt, width, height, thumbnailPosition }: VoucherExampleProps) {
+	return (
+		<Dialog>
+			<DialogTrigger asChild>
+				<button
+					type="button"
+					aria-label={`Ampliar ejemplo: ${title}`}
+					className="group overflow-hidden rounded-lg border bg-background text-left shadow-sm outline-none transition-shadow hover:shadow-md focus-visible:ring-2 focus-visible:ring-ring"
+				>
+					<span className="relative block h-[11.25rem] overflow-hidden">
+						<Image
+							src={src}
+							alt=""
+							width={width}
+							height={height}
+							className="h-full w-full object-cover"
+							style={{ objectPosition: thumbnailPosition }}
+							sizes="(max-width: 768px) 40vw, 160px"
+						/>
+						<span className="absolute inset-0 flex items-center justify-center bg-foreground/15 transition-colors group-hover:bg-foreground/25">
+							<span className="rounded-full bg-background/90 p-2 shadow-sm">
+								<Search className="size-5" aria-hidden="true" />
+							</span>
+						</span>
+					</span>
+					<span className="block px-2 py-1.5 text-xs font-medium">{title}</span>
+				</button>
+			</DialogTrigger>
+			<DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
+				<DialogHeader>
+					<DialogTitle>{title}</DialogTitle>
+					<DialogDescription>{description}</DialogDescription>
+				</DialogHeader>
+				<Image
+					src={src}
+					alt={alt}
+					width={width}
+					height={height}
+					className="max-h-[72vh] w-full rounded-md object-contain"
+					sizes="(max-width: 1024px) 90vw, 896px"
+				/>
+			</DialogContent>
+		</Dialog>
+	)
+}
+
+function VoucherExamples() {
+	return (
+		<div className="flex flex-col gap-2">
+			<p className="text-muted-foreground text-sm font-medium">Haz clic en la lupa para ampliar un ejemplo:</p>
+			<div className="grid grid-cols-1 gap-3">
+				<VoucherExample
+					src="/images/voucher-ejemplo-ventanilla.png"
+					title="Pago en ventanilla"
+					description="Busca el número resaltado en el campo DOC."
+					alt="Ejemplo ampliado de voucher pagado en ventanilla"
+					width={1103}
+					height={701}
+					thumbnailPosition="center 20%"
+				/>
+				<VoucherExample
+					src="/images/voucher-ejemplo-digital.png"
+					title="Pago digital"
+					description="Busca el número resaltado en el campo N° Recibo."
+					alt="Ejemplo ampliado de voucher pagado desde la aplicación"
+					width={1000}
+					height={1554}
+					thumbnailPosition="center 82%"
+				/>
+			</div>
+		</div>
+	)
+}
 
 type Props = {
 	activeStep: number;
@@ -43,8 +135,6 @@ export default function FinData({ activeStep, setActiveStep, steps, handleNext, 
 			{ value: String(precio), label: `S/${Number(precio).toFixed(2)} - precio normal` }
 		]
 	}, [isTrabajador, precio])
-
-	const voucherRef = useMask({ mask: '_______________', replacement: { _: /\d/ } });
 
 	const { solicitud } = useSolicitudStore();
 	const form = useForm<IFinInfoSchema>({
@@ -74,7 +164,6 @@ export default function FinData({ activeStep, setActiveStep, steps, handleNext, 
 	return (
 		<Form {...form}>
 			<div className="relative overflow-hidden">
-				{/* Fondo inferior izquierdo - solo en el overlay con baja opacidad */}
 				<div
 					className="absolute inset-0 pointer-events-none select-none"
 					style={{
@@ -85,15 +174,12 @@ export default function FinData({ activeStep, setActiveStep, steps, handleNext, 
 						opacity: 0.1,
 					}}
 				/>
-				<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 p-4 relative z-10">
-					<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+				<form onSubmit={form.handleSubmit(onSubmit)} className="relative z-10 flex flex-col gap-6 p-4">
+					<div className="grid grid-cols-1 gap-4 md:grid-cols-3">
 						<div>
-							<MyAlert
-								title='Atención'
-								description={textos?.find((objeto) => objeto.codigo === 'TEXTO_1_PAGO')?.contenido}
-							/>
+							<VoucherExamples />
 						</div>
-						<div className="space-y-4">
+						<div className="flex flex-col gap-4">
 							<MySelect
 								name="pago"
 								control={form.control}
@@ -104,18 +190,33 @@ export default function FinData({ activeStep, setActiveStep, steps, handleNext, 
 							<InputField
 								label="Número de voucher"
 								name="numero_voucher"
-								inputRef={voucherRef}
 								disabled={form.watch('pago') === '0'}
 								control={form.control}
+								description="Ingresa solo números. Mínimo 15 dígitos."
+								inputMode="numeric"
+								autoComplete="off"
+								maxLength={30}
 								placeholder="Ingresar su número de voucher..."
 							/>
-							{/* Fecha de pago */}
 							<DatePicker
 								control={form.control}
 								name="fecha_pago"
 								disabled={form.watch('pago') === '0'}
 								label="Fecha de Pago"
 								description="Seleccione su fecha de pago"
+							/>
+							<MyAlert
+								title='Atención'
+								description={textos?.find((objeto) => objeto.codigo === 'TEXTO_1_PAGO')?.contenido}
+							/>
+						</div>
+						<div className="flex flex-col gap-4">
+							<UploadImage
+								form={form}
+								field="img_voucher"
+								label="Voucher de pago"
+								dni={solicitud.dni as string}
+								folder="vouchers"
 							/>
 							{imageVal ? (
 								<Alert variant="destructive" className="mt-4">
@@ -136,19 +237,8 @@ export default function FinData({ activeStep, setActiveStep, steps, handleNext, 
 								</Alert>
 							)}
 						</div>
-						<div>
-							<UploadImage
-								form={form}
-								field="img_voucher"
-								label="Voucher de pago"
-								dni={solicitud.dni as string}
-								folder="vouchers"
-							/>
-						</div>
-
 					</div>
 
-					{/* Botones de navegación */}
 					<StepperControl
 						activeStep={activeStep}
 						steps={steps}

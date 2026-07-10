@@ -9,10 +9,24 @@ const finInfoSchema = z.object({
     img_voucher: z.string().nullable()
 }).superRefine((data, ctx) => {
     if (data.pago !== '0') {
-        if (!data.numero_voucher) {
+        const numeroVoucher = data.numero_voucher?.trim();
+
+        if (!numeroVoucher) {
             ctx.addIssue({
                 code: z.ZodIssueCode.custom,
                 message: msgReq,
+                path: ['numero_voucher']
+            });
+        } else if (!/^\d+$/.test(numeroVoucher)) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Ingrese solo números.',
+                path: ['numero_voucher']
+            });
+        } else if (numeroVoucher.length < 15) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'El número de voucher debe tener como mínimo 15 dígitos.',
                 path: ['numero_voucher']
             });
         }

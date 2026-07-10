@@ -18,7 +18,7 @@ interface Props<T extends FieldValues> extends OmitInputProps {
 	description?: string;	
 }
 
-export default function InputField<T extends FieldValues>({ control, type='text', disabled=false, inputRef, label, description, name, placeholder }: Props<T>)
+export default function InputField<T extends FieldValues>({ control, type='text', disabled=false, inputRef, label, description, name, placeholder, ...inputProps }: Props<T>)
 {
     let info:{label:string, placeholder:string, icon:React.ReactNode};
 
@@ -51,6 +51,7 @@ export default function InputField<T extends FieldValues>({ control, type='text'
                                 <FormLabel>{label}</FormLabel>
                                 <FormControl>
                                     <Input 
+                                        {...inputProps}
                                         {...field} 
                                         type={type}
                                         placeholder={placeholder} 
@@ -77,6 +78,7 @@ export default function InputField<T extends FieldValues>({ control, type='text'
                                 <div className="relative">
                                 {info.icon}
                                     <Input 
+                                        {...inputProps}
                                         {...field} 
                                         type={type}
                                         className="pl-10"
