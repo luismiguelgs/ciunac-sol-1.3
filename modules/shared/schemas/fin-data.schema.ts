@@ -23,10 +23,10 @@ const finInfoSchema = z.object({
                 message: 'Ingrese solo números.',
                 path: ['numero_voucher']
             });
-        } else if (numeroVoucher.length < 15) {
+        } else if (numeroVoucher.length !== 15) {
             ctx.addIssue({
                 code: z.ZodIssueCode.custom,
-                message: 'El número de voucher debe tener como mínimo 15 dígitos.',
+                message: 'El número de voucher debe tener exactamente 15 dígitos.',
                 path: ['numero_voucher']
             });
         }

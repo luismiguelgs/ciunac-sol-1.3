@@ -192,10 +192,10 @@ export default function FinData({ activeStep, setActiveStep, steps, handleNext, 
 								name="numero_voucher"
 								disabled={form.watch('pago') === '0'}
 								control={form.control}
-								description="Ingresa solo números. Mínimo 15 dígitos."
+								description="Ingresa solo números. Debe tener 15 dígitos."
 								inputMode="numeric"
 								autoComplete="off"
-								maxLength={30}
+								maxLength={15}
 								placeholder="Ingresar su número de voucher..."
 							/>
 							<DatePicker
