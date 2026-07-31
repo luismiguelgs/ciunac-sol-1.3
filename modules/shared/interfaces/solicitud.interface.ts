@@ -14,6 +14,7 @@ export interface ISolicitudRes {
     imgVoucher: string,
     imgCertEstudio: string,
     digital: boolean,
+    observaciones?: string,
     creadoEn: string,
     modificadoEn: string,
     estudiante?: {

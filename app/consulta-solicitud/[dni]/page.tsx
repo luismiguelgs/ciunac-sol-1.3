@@ -1,12 +1,13 @@
 import SolicitudesService from "@/services/solicitudes.service";
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { HourglassIcon, CheckCircleIcon, ThumbsUpIcon } from "lucide-react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { HourglassIcon, CheckCircleIcon, ThumbsUpIcon, XCircleIcon } from "lucide-react"
 import Image from "next/image"
 import procesoUno from "@/assets/1.png"
 import procesoDos from "@/assets/2.png"
 import procesoTres from "@/assets/3.png"
+import solicitudRechazada from "@/assets/solicitud-rechazada.png"
 import DownloadCargo from "@/modules/consulta-solicitud/components/donwload-cargo";
 import TextosService from "@/services/text.service";
 import { ISolicitudRes } from "@/modules/shared/interfaces/solicitud.interface";
@@ -50,10 +51,14 @@ const renderStyledText = (text: string | undefined) => {
     });
 };
 
-type SolicitudStatusStep = 'iniciado' | 'proceso' | 'recoger';
+type SolicitudStatusStep = 'iniciado' | 'proceso' | 'recoger' | 'rechazado';
 
 function getSolicitudStatusStep(item: ISolicitudRes): SolicitudStatusStep {
     const estadoNombre = item.estado?.nombre?.trim().toUpperCase();
+
+    if (item.estadoId === 5 || estadoNombre === 'RECHAZADO') {
+        return 'rechazado';
+    }
 
     if (item.estadoId === 1 || estadoNombre === 'NUEVO') {
         return 'iniciado';
@@ -63,12 +68,17 @@ function getSolicitudStatusStep(item: ISolicitudRes): SolicitudStatusStep {
         return 'recoger';
     }
 
+    if (item.estadoId === 2 || item.estadoId === 4 || estadoNombre === 'ASIGNADO' || estadoNombre === 'PAGADO') {
+        return 'proceso';
+    }
+
     return 'proceso';
 }
 
 function getSolicitudStatusImage(step: SolicitudStatusStep) {
     if (step === 'iniciado') return procesoUno;
     if (step === 'recoger') return procesoTres;
+    if (step === 'rechazado') return solicitudRechazada;
     return procesoDos;
 }
 
@@ -131,6 +141,8 @@ export default async function ResultadoSolicitudPage({ params }: PageProps) {
                                                     <HourglassIcon className="h-4 w-4 text-blue-500" />
                                                 ) : statusStep === 'proceso' ? (
                                                     <CheckCircleIcon className="h-4 w-4 text-green-500" />
+                                                ) : statusStep === 'rechazado' ? (
+                                                    <XCircleIcon className="h-4 w-4 text-red-600" />
                                                 ) : (
                                                     <ThumbsUpIcon className="h-4 w-4" />
                                                 )}
@@ -159,8 +171,17 @@ export default async function ResultadoSolicitudPage({ params }: PageProps) {
                                         />
                                     </div>
                                     <CardContent>
-                                        {
-                                            textos && shouldDownloadDigitalDocument ? (
+                                        {statusStep === 'rechazado' ? (
+                                            <Alert variant="destructive">
+                                                <XCircleIcon />
+                                                <AlertTitle>Motivo del rechazo</AlertTitle>
+                                                <AlertDescription>
+                                                    <p className="whitespace-pre-wrap">
+                                                        {item.observaciones?.trim() || 'No se registró un motivo para el rechazo.'}
+                                                    </p>
+                                                </AlertDescription>
+                                            </Alert>
+                                        ) : textos && shouldDownloadDigitalDocument ? (
                                                 <DownloadDocumentoDigital
                                                     solicitudId={item.id as number}
                                                     tipoDocumento={tipoDocumento}
@@ -168,8 +189,7 @@ export default async function ResultadoSolicitudPage({ params }: PageProps) {
                                                 />
                                             ) : (
                                                 cargoFallback
-                                            )
-                                        }
+                                            )}
                                     </CardContent>
                                 </Card>
                                 );
