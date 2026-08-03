@@ -18,7 +18,7 @@ El usuario ingresa a `app/solicitud-certificados/page.tsx` e inicia la verificac
 ## Flujo Principal
 1. El sistema muestra el formulario de verificacion de correo.
 2. El usuario ingresa correo, solicita codigo y resuelve reCAPTCHA.
-3. El sistema valida el codigo temporal de 4 digitos.
+3. El servidor valida el OTP temporal de 6 digitos.
 4. El sistema redirige a `app/solicitud-certificados/proceso/page.tsx`.
 5. El usuario completa tipo de solicitud, idioma, nivel, datos personales y datos academicos si declara ser alumno.
 6. El sistema permite buscar datos de estudiante por documento y precargar datos si existen.

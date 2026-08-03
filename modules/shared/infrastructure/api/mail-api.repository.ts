@@ -1,15 +1,14 @@
-import { httpClient } from '@/modules/shared/infrastructure/http/http-client';
+import { NotificationType } from '@/modules/security/domain/security.types';
+import { sendSecureNotification } from '@/modules/security/client/security-client';
 
 export type MailRequestDto = {
-  type: string;
-  email: string;
-  user?: string;
-  number?: number;
+  type: NotificationType;
+  reference: string;
 };
 
 export class MailApiRepository {
   async send(body: MailRequestDto): Promise<void> {
-    await httpClient.post<MailRequestDto, MailRequestDto>('mailer', body);
+    await sendSecureNotification(body.type, body.reference);
   }
 }
 

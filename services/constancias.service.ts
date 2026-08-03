@@ -13,12 +13,7 @@ export default class ConstanciasService {
             }
 
             return response
-        } catch (err) {
-            if (err instanceof Error) {
-                console.error('Error al buscar constancia por solicitud:', err.message)
-            } else {
-                console.error('Error desconocido al buscar constancia por solicitud:', err)
-            }
+        } catch {
             return null
         }
     }

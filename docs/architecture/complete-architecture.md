@@ -13,6 +13,7 @@ La arquitectura actual se define como una aplicacion Next.js App Router con arqu
 - Zustand se reserva para estado efimero entre pasos y catalogos de sesion.
 - Los nuevos flujos deben seguir capas internas por feature: `presentation`, `application`, `domain`, `infrastructure`.
 - `services/` queda como fachada legacy; la nueva integracion debe vivir en `modules/**/infrastructure`.
+- Las credenciales, OTP, CAPTCHA y correo se resuelven en Route Handlers server-side.
 
 ## 3. Vista de contexto
 El frontend no contiene la base de datos ni la logica transaccional principal. Actua como capa de experiencia, validacion de entrada, orquestacion frontend y adaptacion a contratos HTTP.
@@ -21,10 +22,12 @@ El frontend no contiene la base de datos ni la logica transaccional principal. A
 flowchart LR
     User["Usuario final"] --> Browser["Navegador"]
     Browser --> Frontend["Frontend CIUNAC\nNext.js App Router"]
-    Frontend --> Api["API CIUNAC\nSolicitudes, estudiantes, catalogos"]
+    Browser --> BFF["Next.js BFF\nRoute Handlers"]
+    BFF --> Api["API CIUNAC\nSolicitudes, estudiantes, catalogos"]
     Frontend --> Q10["API Q10\nDatos academicos"]
-    Frontend --> Storage["Servicio de archivos\nUploads y descargas"]
-    Frontend --> Mail["Servicio de correo\nNotificaciones"]
+    BFF --> Storage["Servicio de archivos\nUploads y descargas"]
+    BFF --> Mail["Servicio de correo\nNotificaciones"]
+    BFF --> Captcha["Google reCAPTCHA"]
     Api --> BackendDb[("Persistencia backend")]
 ```
 
@@ -44,6 +47,7 @@ flowchart TB
         FeatureModules["modules/\nfeatures de negocio"]
         SharedUi["components/ y modules/shared/components\nUI compartida"]
         SharedInfra["modules/shared/infrastructure\nHTTP, repositories, mappers"]
+        Security["modules/security y app/api\nBFF, OTP, CAPTCHA, sesiones"]
         LegacyServices["services/\nfachadas legacy"]
     end
 
@@ -60,10 +64,11 @@ flowchart TB
     FeatureModules --> SharedUi
     FeatureModules --> SharedInfra
     LegacyServices --> SharedInfra
-    SharedInfra --> Api
+    SharedInfra --> Security
+    Security --> Api
     SharedInfra --> Q10
-    SharedInfra --> Mail
-    SharedInfra --> Files
+    Security --> Mail
+    Security --> Files
 ```
 
 ## 5. Vista logica por capas
@@ -77,7 +82,8 @@ flowchart TD
     Application --> Ports["ports\ncontratos requeridos"]
     Ports --> Infrastructure["infrastructure\ngateways, DTOs, mappers"]
     Infrastructure --> SharedHttp["shared HTTP client"]
-    SharedHttp --> ExternalApi["API externa"]
+    SharedHttp --> BFF["Next.js BFF"]
+    BFF --> ExternalApi["API externa"]
 ```
 
 ### Responsabilidades
@@ -153,6 +159,7 @@ sequenceDiagram
     participant Student as Student Gateway
     participant Solicitud as Solicitud Gateway
     participant Email as Email Gateway
+    participant BFF as Next.js BFF
     participant Api as API Externa
 
     User->>Page: Ingresa al flujo
@@ -161,14 +168,20 @@ sequenceDiagram
     Process->>Hook: submit(formModel)
     Hook->>UseCase: execute(command)
     UseCase->>Student: saveFromSolicitud()
-    Student->>Api: POST/PATCH estudiante
-    Api-->>Student: estudiante guardado
+    Student->>BFF: POST/PATCH estudiante
+    BFF->>Api: Request con API key privada
+    Api-->>BFF: estudiante guardado
+    BFF-->>Student: respuesta normalizada
     UseCase->>Solicitud: create()
-    Solicitud->>Api: POST solicitud
-    Api-->>Solicitud: id solicitud
+    Solicitud->>BFF: POST solicitud
+    BFF->>Api: POST solicitud
+    Api-->>BFF: id solicitud
+    BFF-->>Solicitud: id solicitud
     UseCase->>Email: sendSolicitudCreada()
-    Email->>Api: POST correo
-    Api-->>Email: ok
+    Email->>BFF: POST notificacion
+    BFF->>Api: POST mailer
+    Api-->>BFF: ok
+    BFF-->>Email: ok
     UseCase-->>Hook: resultado
     Hook-->>Process: estado de exito
     Process-->>User: feedback y navegacion final

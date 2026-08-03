@@ -15,12 +15,7 @@ export default class CertificadosService
         try {
             const response = await resourceApiRepository.get<ICertificado>(`${this.collection}/solicitud/${solicitudId}`)
             return response
-        } catch (err) {
-            if (err instanceof Error) {
-                console.error('Error al buscar por id_solicitud:', err.message)
-            } else {
-                console.error('Error desconocido al buscar por id_solicitud:', err)
-            }
+        } catch {
             return null
         }
     }

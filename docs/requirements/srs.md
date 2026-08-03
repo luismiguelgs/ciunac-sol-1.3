@@ -53,7 +53,7 @@ flowchart LR
 ## 5. Requisitos Funcionales
 | ID | Requisito |
 | --- | --- |
-| RF-001 | El sistema debe permitir verificar un correo electronico mediante codigo de 4 digitos antes de iniciar flujos de solicitud principales. |
+| RF-001 | El sistema debe permitir verificar un correo electronico mediante OTP de 6 digitos antes de iniciar flujos de solicitud principales. |
 | RF-002 | El sistema debe exigir reCAPTCHA antes de aceptar la verificacion de correo y las consultas por documento. |
 | RF-003 | El sistema debe permitir registrar una solicitud de certificado mediante un flujo por pasos. |
 | RF-004 | El sistema debe permitir seleccionar tipo de solicitud, idioma, nivel, datos personales y datos academicos para certificados. |
@@ -96,7 +96,7 @@ flowchart LR
 | RN-005 | En pagos distintos de cero, numero de voucher y fecha de pago son obligatorios. |
 | RN-006 | La solicitud de beca requiere constancia de matricula, historial academico, constancia de tercio, carta de compromiso y declaracion jurada. |
 | RN-007 | La solicitud de ubicacion debe bloquear duplicados con estado en proceso para el mismo documento, idioma y tipo de solicitud. |
-| RN-008 | La verificacion por correo usa un codigo temporal guardado en sesion por 5 minutos. |
+| RN-008 | La verificacion por correo usa un OTP generado y validado en servidor, con vigencia de 5 minutos y maximo de 5 intentos. |
 | RN-009 | Pendiente de validacion funcional: el catalogo de tipos de solicitud determina que solicitudes requieren documentos adicionales. |
 | RN-010 | Pendiente de validacion funcional: las reglas exactas de precio dependen del catalogo y reglas configuradas fuera del frontend. |
 | RN-011 | El voucher de pago es obligatorio para registrar una solicitud de constancia. |
@@ -114,7 +114,7 @@ flowchart LR
 - La busqueda por documento puede retornar cero, uno o varios resultados segun el backend.
 - Las URLs de archivos devueltas por el servicio de subida son persistibles en las solicitudes.
 - El cargo PDF de constancias se genera en frontend con `@react-pdf/renderer`.
-- El correo de confirmacion de constancias se dispara desde frontend contra el endpoint de correo, siguiendo el patron actual de certificados.
+- El navegador solicita correos al BFF y no accede directamente al endpoint externo de correo.
 
 ## 10. Criterios Generales de Aceptacion
 ```gherkin

@@ -1,51 +1,42 @@
 # Contratos de Integracion
 
 ## Proposito
-Documentar los contratos externos relevantes para el frontend. Este documento registra lo confirmado por el codigo actual y marca pendientes para nuevos flujos.
+Documentar las fronteras HTTP visibles desde el navegador y la comunicacion server-side con servicios externos.
 
-## Patron Actual de Correo
-El frontend dispara correos llamando al endpoint `mailer`. El envio real ocurre en el backend/API de correo.
+## Frontera BFF
+El navegador solo consume rutas same-origin de Next.js. `/api/ciunac/[...path]` aplica allowlist, sesion, origen, content type, tamano y validacion Zod antes de reenviar una operacion. La cabecera `x-api-key` se agrega exclusivamente en servidor.
 
-Flujo confirmado en certificados:
+| Endpoint interno | Metodo | Autorizacion | Respuesta |
+| --- | --- | --- | --- |
+| `/api/security/otp/request` | `POST` | CAPTCHA valido | `202 { ok: true }` |
+| `/api/security/otp/verify` | `POST` | Desafio OTP valido | `200 { ok: true }` |
+| `/api/security/consulta` | `POST` | CAPTCHA valido | `{ ok, found }` |
+| `/api/security/notifications` | `POST` | Sesion de email verificada | `202 { ok: true }` |
+| `/api/ciunac/[...path]` | `GET/POST/PATCH` | Segun allowlist | Payload de exito o error normalizado |
+
+## Correo
+El navegador ya no accede a `mailer`. OTP y notificaciones se envian desde Route Handlers, que recuperan el email de la sesion cuando corresponde.
+
 ```mermaid
 sequenceDiagram
-    participant UI as Frontend Use Case
-    participant Gateway as CertificadoEmailGateway
-    participant Service as EmailService
-    participant Repo as MailApiRepository
-    participant API as API mailer
+    participant UI as Navegador
+    participant Route as Route Handler Next.js
+    participant Mail as API mailer
 
-    UI->>Gateway: sendSolicitudCreada(email, requestId)
-    Gateway->>Service: sendEmailCertificado(email, requestId)
-    Service->>Repo: send(body)
-    Repo->>API: POST mailer
+    UI->>Route: POST notification {type, reference}
+    Route->>Route: Validar sesion y proposito
+    Route->>Mail: POST mailer {type, email de sesion, user}
+    Mail-->>Route: Resultado
+    Route-->>UI: Respuesta normalizada
 ```
-
-## Endpoint de Correo
-| Contrato | Valor |
-| --- | --- |
-| Metodo | `POST` |
-| Ruta frontend actual | `mailer` |
-| Cliente | `modules/shared/infrastructure/api/mail-api.repository.ts` |
-| DTO | `{ type, email, user?, number? }` |
-| Pendiente | Confirmar `type` para constancias. |
 
 ## Solicitud de Constancia
 | Aspecto | Estado |
 | --- | --- |
-| Guardado backend | Pendiente de confirmacion. |
+| Guardado backend | Pendiente de confirmacion funcional. |
 | Endpoint candidato | `solicitudes` si constancia es tipo de solicitud. |
-| Endpoint alternativo | Nuevo endpoint de `constancias`, si backend lo separa. |
-| Respuesta minima esperada | Identificador de solicitud para finalizar y generar cargo. |
-| Correo | Frontend dispara llamada a `mailer`; backend/API ejecuta envio. |
+| Respuesta minima esperada | Identificador de solicitud. |
+| Correo | Se dispara por `/api/security/notifications`; `mailer` solo es accesible server-side. |
 | Cargo PDF | Generado en frontend con `@react-pdf/renderer`. |
 
-## Datos Minimos Pendientes
-Antes de implementar constancias se debe confirmar:
-- nombre de endpoint para crear la solicitud;
-- shape de request;
-- shape de response;
-- tipo de correo esperado por `mailer`;
-- catalogo de tipos de constancia;
-- estructura de datos requerida para construir el cargo PDF.
-
+Queda pendiente confirmar un tipo de correo propio para constancias y el contrato backend definitivo antes de completar la Fase 1E.

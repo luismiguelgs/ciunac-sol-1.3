@@ -1,4 +1,4 @@
-import CertificadosService from "@/services/certificados.service"
+import { redirect } from 'next/navigation'
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Separator } from "@/components/ui/separator"
@@ -9,9 +9,11 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertTriangle } from "lucide-react"
 import { Mail, Phone } from "lucide-react"
 import { ICertificado, ICertificadoNota } from "@/modules/shared/interfaces/certificado.interface";
+import { ciunacRequest } from '@/modules/security/server/ciunac-client';
+import { readConsultationSession } from '@/modules/security/server/session';
 
 async function getCertificate(id:string): Promise<ICertificado | undefined> {
-    const resData = await CertificadosService.selectItem(id)
+    const resData = await ciunacRequest<ICertificado>(`certificados/${id}`)
     return resData
 }
 
@@ -30,6 +32,9 @@ type PageProps = {
 }
 
 export default async function GetCertificatePage({params}:PageProps) {
+    const consultation = await readConsultationSession('CERTIFICADO')
+    if (!consultation) redirect('/consulta-solicitud')
+
     const {id} = await params
     const certificado = await getCertificate(id)
     const certificadoNotas = await getCertificateDetail(certificado?.notas ?? [])

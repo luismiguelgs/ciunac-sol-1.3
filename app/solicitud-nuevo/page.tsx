@@ -1,5 +1,8 @@
 import Process from '@/modules/solicitud-nuevo/components/process'
 import IProgram from '@/modules/solicitud-nuevo/interfaces/programs.interface'
+import { getQ10ApiKey } from '@/modules/security/server/environment'
+
+export const dynamic = 'force-dynamic'
 
 async function getPrograms():Promise<IProgram[]> {
     try{
@@ -7,9 +10,9 @@ async function getPrograms():Promise<IProgram[]> {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
-                'Cache-Control': 'no-cache',
-                'Api-Key': process.env.API_KEY_Q10 || ''
-            }
+                'Api-Key': getQ10ApiKey(),
+            },
+            cache: 'no-store',
         })
         if(!res.ok){
             throw new Error('Error al obtener los programas')
@@ -17,8 +20,7 @@ async function getPrograms():Promise<IProgram[]> {
         let data:IProgram[] = await res.json()
         data = data.filter((program:IProgram) => program.Numero_resolucion === null)
         return data
-    }catch(error){
-        console.log(error)
+    }catch{
         return [] 
     }
 }

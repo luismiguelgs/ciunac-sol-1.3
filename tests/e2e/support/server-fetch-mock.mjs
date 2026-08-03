@@ -15,5 +15,12 @@ globalThis.fetch = async function e2eFetch(input, init) {
     })
   }
 
+  if (url === 'https://www.google.com/recaptcha/api/siteverify') {
+    return new Response(JSON.stringify({ success: true, hostname: '127.0.0.1' }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
   return nativeFetch(input, init)
 }

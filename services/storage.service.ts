@@ -9,7 +9,6 @@ export async function uploadFile(file: File, folder: 'dnis' | 'vouchers' | 'beca
 		return await storageApiRepository.upload(folder, formData);
 	} catch (error: unknown) {
 		const message = error instanceof Error ? error.message : 'Error al subir archivo';
-		console.error('❌ Error al subir archivo:', message);
 		throw new Error(message);
 	}
 }

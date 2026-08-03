@@ -28,7 +28,7 @@ El usuario ingresa al futuro flujo `app/solicitud-constancias/page.tsx` e inicia
 8. El usuario confirma que la informacion es correcta.
 9. El frontend envia la solicitud al backend.
 10. El backend guarda la solicitud y retorna un identificador.
-11. El frontend dispara el correo de confirmacion hacia el endpoint de correo.
+11. El frontend solicita al BFF el correo de confirmacion y el BFF invoca el servicio externo.
 12. El frontend genera el cargo PDF con los datos de la solicitud.
 13. El sistema permite descargar el cargo PDF.
 14. El sistema muestra la finalizacion del flujo.
@@ -64,7 +64,7 @@ flowchart TD
 ## Postcondiciones
 - La solicitud queda registrada en backend cuando el flujo termina exitosamente.
 - El usuario puede descargar un cargo PDF generado en frontend.
-- El correo de confirmacion fue disparado desde frontend hacia el endpoint de correo.
+- El correo de confirmacion fue solicitado por frontend y enviado server-side por el BFF.
 
 ## Datos Requeridos
 - Correo electronico.
@@ -92,7 +92,7 @@ Entonces el sistema permite confirmar la solicitud de constancia
 ```gherkin
 Dado que el usuario confirma una solicitud valida
 Cuando el backend guarda la solicitud
-Entonces el frontend dispara el correo de confirmacion
+Entonces el frontend solicita al BFF el correo de confirmacion
 Y genera el cargo PDF en frontend
 ```
 

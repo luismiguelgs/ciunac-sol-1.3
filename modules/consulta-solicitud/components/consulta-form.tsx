@@ -10,9 +10,8 @@ import { Loader2 } from "lucide-react"
 import ReCAPTCHA from "react-google-recaptcha"
 import { useMask } from '@react-input/mask';
 import { MyAlertDialog } from "@/components/dialogs/alert-dialog"
-import SolicitudesService from "@/services/solicitudes.service"
 import { useRouter } from "next/navigation"
-import { ISolicitudRes } from "@/modules/shared/interfaces/solicitud.interface"
+import { consultByDocument } from '@/modules/security/client/security-client'
 
 const msg = {
 	required: "El número de documento es requerido",
@@ -42,13 +41,6 @@ type Props = {
 	solicitud: 'CERTIFICADO' | 'EXAMEN'
 }
 
-function normalizeText(value: string) {
-	return value
-		.normalize('NFD')
-		.replace(/[\u0300-\u036f]/g, '')
-		.toUpperCase()
-}
-
 export default function ConsultaForm({ solicitud }: Props) {
 	const router = useRouter()
 	const [loading, setLoading] = React.useState(false)
@@ -65,17 +57,36 @@ export default function ConsultaForm({ solicitud }: Props) {
 	})
 
 	const onSubmit = async (data: z.infer<typeof schema>) => {
-		if (!captchaRef.current?.getValue()) {
+		const captchaToken = captchaRef.current?.getValue()
+		if (!captchaToken) {
 			setOpen(true)
 			setDialog(alert.captcha)
 			return
-		} else {
-			setLoading(true)
-			if (solicitud === 'CERTIFICADO') {
-				buscarSolicitud(data.documento)
-			} else {
-				buscarExamenUbicacion(data.documento)
+		}
+
+		setLoading(true)
+		try {
+			const result = await consultByDocument(data.documento, solicitud, captchaToken)
+			if (!result.found) {
+				setOpen(true)
+				setDialog(alert.notFound)
+				return
 			}
+
+			if (solicitud === 'CERTIFICADO') {
+				router.push(`./consulta-solicitud/${data.documento}`)
+			} else {
+				router.push(`./consulta-ubicacion/${data.documento}`)
+			}
+		} catch (error) {
+			setOpen(true)
+			setDialog({
+				title: 'No se pudo realizar la consulta',
+				description: error instanceof Error ? error.message : 'Intente nuevamente más tarde.',
+			})
+		} finally {
+			captchaRef.current?.reset()
+			setLoading(false)
 		}
 	}
 
@@ -130,37 +141,5 @@ export default function ConsultaForm({ solicitud }: Props) {
 		</React.Fragment>
 	)
 
-	async function buscarSolicitud(documento: string) {
-		const result = await SolicitudesService.searchItemByDni(documento) as ISolicitudRes[];
-		if (result.length > 0) {
-			router.push(`./consulta-solicitud/${documento}`)
-		} else {
-			setOpen(true)
-			setDialog(alert.notFound)
-			setLoading(false)
-		}
-	}
-	async function buscarExamenUbicacion(documento: string) {
-		const result = await SolicitudesService.searchItemByDni(documento) as ISolicitudRes[];
-		if (result.length > 0) {
-			const item = result.find((solicitud) =>
-				normalizeText(solicitud.tiposSolicitud?.solicitud || '').includes('UBICACION')
-			) || result[0]
-			const queryParams = new URLSearchParams()
-
-			queryParams.set('apellidos', item.estudiante?.apellidos.trim() || '')
-			queryParams.set('nombres', item.estudiante?.nombres.trim() || '')
-
-			if (item.id) {
-				queryParams.set('id', String(item.id))
-			}
-
-			router.push(`./consulta-ubicacion/${documento}?${queryParams}`);
-		} else {
-			setOpen(true)
-			setDialog(alert.notFound)
-			setLoading(false)
-		}
-	}
 }
 

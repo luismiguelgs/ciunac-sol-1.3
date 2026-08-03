@@ -5,7 +5,6 @@ import useSolicitudStore from "@/stores/solicitud.store";
 import React from "react"
 import BasicData from "../solicitud-certificado/components/basic-data";
 import { SolicitudCertificadoStepPayload } from "../solicitud-certificado/presentation/view-models/solicitud-certificado-process.view-model";
-import { useSearchParams } from "next/navigation";
 import FinData from "../shared/components/fin-data";
 import { useDocumentsStore } from "@/stores/types.stores";
 import { resolveSolicitudCertificadoPrice } from "../solicitud-certificado/domain/rules/resolve-solicitud-certificado-price";
@@ -21,9 +20,7 @@ const STEPS = [
     'Finalizar'
 ];
 
-export default function SolicitudConstanciasProcess() {
-    const searchParams = useSearchParams();
-    const email = searchParams.get('email');
+export default function SolicitudConstanciasProcess({ email }: { email: string }) {
     const { setSolicitudField, resetSolicitud } = useSolicitudStore();
     const constancias = useDocumentsStore((state) => state.data);
     const [activeStep, setActiveStep] = React.useState(0);
@@ -102,6 +99,7 @@ export default function SolicitudConstanciasProcess() {
                                         steps={STEPS}
                                         handleNext={handleNext}
                                         precio={precio}
+                                        isTrabajador={false}
                                     />
                                 );
                             case 'Finalizar':

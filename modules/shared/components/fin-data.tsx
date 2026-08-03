@@ -6,7 +6,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import useSolicitudStore from '@/stores/solicitud.store';
 import { useCatalogStore } from '@/hooks/useCatalogStore';
 import { useTextsStore } from '@/stores/types.stores';
-import { useSearchParams } from 'next/navigation';
 import { Form } from '@/components/ui/form';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { CloudUpload, Search } from 'lucide-react';
@@ -115,14 +114,12 @@ type Props = {
 	steps: string[];
 	handleNext: (values: IFinInfoSchema) => void;
 	precio: string;
+	isTrabajador?: boolean;
 }
 
-export default function FinData({ activeStep, setActiveStep, steps, handleNext, precio }: Props) {
-	const searchParams = useSearchParams()
-
+export default function FinData({ activeStep, setActiveStep, steps, handleNext, precio, isTrabajador = false }: Props) {
 	const { data: textos } = useCatalogStore(useTextsStore)
 	const [imageVal, setImageVal] = React.useState<boolean>(false)
-	const isTrabajador = searchParams.get('trabajador') === 'true'
 	const pagos = React.useMemo(() => {
 		if (isTrabajador) {
 			return [

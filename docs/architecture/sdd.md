@@ -5,10 +5,13 @@ El frontend CIUNAC gestiona procesos academicos y administrativos para postulant
 
 ```mermaid
 flowchart LR
-    U[Usuario] --> FE[Frontend Next.js]
-    FE --> API[API CIUNAC]
-    FE --> Q10[API Q10]
-    API --> MAIL[Servicio de correo]
+    U[Usuario] --> Browser[Navegador]
+    Browser --> FE[Next.js App Router]
+    FE --> BFF[Route Handlers BFF]
+    BFF --> API[API CIUNAC]
+    FE --> Q10[API Q10 server-side]
+    BFF --> MAIL[Servicio de correo]
+    BFF --> CAPTCHA[Google reCAPTCHA]
     API --> DB[(Persistencia backend)]
 ```
 
@@ -31,6 +34,7 @@ Quedan dentro del alcance:
 - `shadcn/ui`, React Hook Form y Zod para UI y validacion.
 - Zustand para estado efimero de flujo y cache de catalogos por sesion.
 - Infraestructura compartida para HTTP, errores, repositories y mappers.
+- BFF con Route Handlers para credenciales, OTP, CAPTCHA y operaciones protegidas.
 - Features principales organizadas por capas internas.
 
 ## 4. Arquitectura objetivo
@@ -51,7 +55,8 @@ flowchart TD
     UseCase --> Port[Application Port]
     Port --> Gateway[Infrastructure Gateway]
     Gateway --> Http[Shared HTTP Client]
-    Http --> API[External API]
+    Http --> BFF[Next.js BFF]
+    BFF --> API[External API]
     UseCase --> Domain[Domain Rules]
 ```
 
@@ -91,6 +96,10 @@ Infraestructura compartida:
 - `modules/shared/infrastructure/mappers/*`
 - `hooks/useCatalogStore.ts`
 - `hooks/useCachedFetch.ts`
+- `modules/security/server/*`
+- `modules/security/client/security-client.ts`
+- `app/api/security/*`
+- `app/api/ciunac/[...path]/route.ts`
 
 Estado compartido y de flujo:
 - `stores/types.stores.ts`: catalogos por sesion.
@@ -131,7 +140,10 @@ La aplicacion compila como frontend Next.js. Las rutas se generan como contenido
 flowchart TD
     Browser[Navegador] --> Next[Next.js App]
     Next --> Public[Assets publicos]
-    Next --> Api[API CIUNAC]
+    Browser --> BFF[Route Handlers BFF]
+    BFF --> Api[API CIUNAC]
+    BFF --> Mail[Correo]
+    BFF --> Captcha[reCAPTCHA]
     Next --> Q10[API Q10]
 ```
 
@@ -144,6 +156,8 @@ ADRs vigentes:
 - ADR-003 Adoptar capas internas por feature.
 - ADR-004 Centralizar HTTP, errores y mappers.
 - ADR-005 Definir politica de estado frontend.
+- ADR-006 Separar el flujo de constancias.
+- ADR-007 Introducir BFF seguro, OTP y CAPTCHA server-side.
 
 ## 11. Riesgos y mitigaciones
 - Riesgo: extraer demasiada logica a `shared`.
@@ -154,6 +168,8 @@ ADRs vigentes:
   Mitigacion: separar catalogos, flujo y estado visual.
 - Riesgo: servicios legacy sigan creciendo.
   Mitigacion: mantenerlos como fachada y mover nueva integracion a infrastructure.
+- Riesgo: replay deliberado de una cookie OTP antigua.
+  Mitigacion: limitacion documentada; migrar intentos y uso unico a Redis o persistencia backend.
 
 ## 12. Criterios de calidad
 - `npm run lint` sin errores.

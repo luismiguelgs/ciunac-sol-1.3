@@ -1,4 +1,4 @@
-import SolicitudesService from "@/services/solicitudes.service";
+import { redirect } from 'next/navigation';
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -9,25 +9,25 @@ import procesoDos from "@/assets/2.png"
 import procesoTres from "@/assets/3.png"
 import solicitudRechazada from "@/assets/solicitud-rechazada.png"
 import DownloadCargo from "@/modules/consulta-solicitud/components/donwload-cargo";
-import TextosService from "@/services/text.service";
 import { ISolicitudRes } from "@/modules/shared/interfaces/solicitud.interface";
 import DownloadDocumentoDigital from "@/modules/consulta-solicitud/components/download-documento-digital";
+import { ITexto } from '@/modules/shared/interfaces/types.interface';
+import { ciunacRequest } from '@/modules/security/server/ciunac-client';
+import { readConsultationSession } from '@/modules/security/server/session';
 
 async function getRequests(dni:string){
     try {
-        const res = await SolicitudesService.searchItemByDni(dni);
+        const res = await ciunacRequest<ISolicitudRes[]>(`solicitudes/documento/${dni}`);
         return res;
-    } catch (error) {
-        console.error('Error fetching requests:', error);
+    } catch {
         return [];
     }
 }
 async function getTextos(){
     try {
-        const res = await TextosService.fetchItems();
+        const res = await ciunacRequest<ITexto[]>('textos');
         return res;
-    } catch (error) {
-        console.error('Error fetching textos:', error);
+    } catch {
         return [];
     }
 }
@@ -88,6 +88,8 @@ function isConstancia(item: ISolicitudRes) {
 
 export default async function ResultadoSolicitudPage({ params }: PageProps) {
     const { dni } = await params;
+    const consultation = await readConsultationSession('CERTIFICADO', dni);
+    if (!consultation) redirect('/consulta-solicitud');
     const requests = await getRequests(dni);
     const textos = await getTextos();
 

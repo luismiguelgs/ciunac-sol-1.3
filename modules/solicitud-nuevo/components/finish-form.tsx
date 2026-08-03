@@ -50,7 +50,6 @@ export function FinishForm({activeStep, setActiveStep, steps, student, saveNewSt
     const canSubmit = Boolean(accept && dataAccepted)
 
   	async function onSubmit() {	
-		//console.log(data)
         setLoading(true)
         setState('SAVE')
         setOpen(true)

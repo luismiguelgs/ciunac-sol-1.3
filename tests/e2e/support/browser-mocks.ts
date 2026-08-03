@@ -81,5 +81,18 @@ export async function resetMockApi(request: APIRequestContext) {
 export async function getMockRequests(request: APIRequestContext) {
   const response = await request.get('http://127.0.0.1:4100/__test/requests')
   expect(response.ok()).toBeTruthy()
-  return response.json() as Promise<Array<{ method: string; path: string; body: unknown }>>
+  return response.json() as Promise<Array<{
+    method: string
+    path: string
+    body: unknown
+    hasApiKey: boolean
+  }>>
+}
+
+export async function getMockOtp(request: APIRequestContext) {
+  const response = await request.get('http://127.0.0.1:4100/__test/otp')
+  expect(response.ok()).toBeTruthy()
+  const payload = await response.json() as { code: number | null }
+  expect(payload.code).not.toBeNull()
+  return String(payload.code).padStart(6, '0')
 }

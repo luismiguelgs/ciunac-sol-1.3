@@ -2,7 +2,6 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { useSearchParams } from 'next/navigation';
 import { Stepper } from '@/components/stepper';
 import BasicData from '@/modules/solicitud-ubicacion/components/basic-data';
 import FinData from '@/modules/shared/components/fin-data';
@@ -49,10 +48,12 @@ function BlockDialog() {
   );
 }
 
-export default function SolicitudUbicacionProcess() {
-  const searchParams = useSearchParams();
-  const email = searchParams.get('email');
-  const alumno = searchParams.get('alumno_ciunac') === 'true';
+type Props = {
+  email: string;
+  alumno: boolean;
+};
+
+export default function SolicitudUbicacionProcess({ email, alumno }: Props) {
   const { setSolicitudField, resetSolicitud } = useSolicitudStore();
   const [activeStep, setActiveStep] = React.useState(0);
   const [precio, setPrecio] = React.useState('0');
@@ -138,6 +139,7 @@ export default function SolicitudUbicacionProcess() {
                   setActiveStep={setActiveStep}
                   handleNext={handleNext}
                   steps={steps}
+                  alumno={alumno}
                 />
               );
             case 'Datos de Pago':
@@ -149,6 +151,7 @@ export default function SolicitudUbicacionProcess() {
                   steps={steps}
                   handleNext={handleNext}
                   precio={precio}
+                  isTrabajador={false}
                 />
               );
             case 'Documentos':

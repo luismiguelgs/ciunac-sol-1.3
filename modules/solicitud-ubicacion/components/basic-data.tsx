@@ -18,7 +18,6 @@ import { CloudUpload } from 'lucide-react';
 import { StepperControl } from '@/components/stepper';
 import UploadImage from '@/components/upload-image';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Search, Loader2 } from 'lucide-react';
 import EstudiantesService from '@/services/estudiantes.service';
@@ -29,12 +28,10 @@ type Props = {
     setActiveStep: React.Dispatch<React.SetStateAction<number>>,
     steps: string[],
     handleNext: (values: IBasicInfoSchema) => void,
+    alumno: boolean,
 }
 
-export default function BasicData({ activeStep, setActiveStep, steps, handleNext }: Props) {
-    const searchParams = useSearchParams();
-    const alumno = searchParams.get('alumno_ciunac')
-
+export default function BasicData({ activeStep, setActiveStep, steps, handleNext, alumno }: Props) {
     const { data: textos } = useCatalogStore(useTextsStore);
     const { solicitud } = useSolicitudStore()
     const [imageVal, setImageVal] = React.useState<boolean>(false)
@@ -98,8 +95,7 @@ export default function BasicData({ activeStep, setActiveStep, steps, handleNext
                     )
                 })
             }
-        } catch (e) {
-            console.error(e)
+        } catch {
             toast.error('Ocurrió un error al buscar los datos', {
                 description: (
                     <span className="text-red-600 font-bold block mt-1">
@@ -189,7 +185,7 @@ export default function BasicData({ activeStep, setActiveStep, steps, handleNext
                                             name="nivel"
                                             control={form.control}
                                             label="Nivel"
-                                            disabled={alumno === 'true' ? false : true}
+                                            disabled={!alumno}
                                             placeholder='Selecciona un nivel'
                                             options={NIVEL}
                                         />

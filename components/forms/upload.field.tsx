@@ -53,8 +53,7 @@ export const FileUploaderCard = ({ name, label, icon:Icon, dni, folder }: FileUp
 			onChange(url);
 			setValue(name, url);
 			setProgress(100);
-		} catch (err) {
-			console.error('Error al subir archivo:', err);
+		} catch {
 			alert('Error al subir archivo');
 		} finally {
 			setUploading(false);

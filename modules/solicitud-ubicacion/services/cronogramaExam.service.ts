@@ -1,13 +1,6 @@
 import IcronogramaExam from '@/modules/solicitud-ubicacion/interfaces/cronograma-exam.interface';
 import { resourceApiRepository } from '@/modules/shared/infrastructure/api/resource-api.repository'
 
-enum CRUD {
-    CREATE = 'create',
-    READ = 'read',
-    UPDATE = 'update',
-    DELETE = 'delete'
-}
-
 export default class CronogramaExamService
 {
     private static dataCollection = 'cronogramaubicacion'
@@ -19,30 +12,8 @@ export default class CronogramaExamService
             return res
         }
         catch(err){
-            this.errorHandler(err, CRUD.READ)
+            throw err
         }
-    }
-
-    private static errorHandler(err: unknown, operation:string): void {
-        if (err instanceof Error) {
-            switch (operation){
-                case CRUD.CREATE:
-                    console.error('Error al crear el elemento:', err.message); 
-                    break;
-                case CRUD.UPDATE:
-                    console.error('Error al actualizar el elemento:', err.message);
-                    break;
-                case CRUD.DELETE:
-                    console.error('Error al borrar el elemento:', err.message);
-                    break;
-                case CRUD.READ:
-                    console.error('Error al cargar el elemento:', err.message);
-                    break;
-            }
-        } else {
-            console.error('Error desconocido al actualizar el elemento:', err);
-        }
-        throw err
     }
 }
 

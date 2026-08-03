@@ -1,7 +1,6 @@
 'use client'
 
 import React from 'react';
-import { useSearchParams } from 'next/navigation';
 import { Stepper } from '@/components/stepper';
 import Documentos from '@/modules/shared/components/documentos-step';
 import FinData from '@/modules/shared/components/fin-data';
@@ -26,14 +25,15 @@ function buildSteps(trabajador: boolean): SolicitudCertificadoStep[] {
     : ['Datos básicos', 'Datos de Pago', 'Finalizar'];
 }
 
-export default function SolicitudCertificadoProcess() {
+type Props = {
+  email: string;
+  trabajador: boolean;
+  antiguo: boolean;
+};
+
+export default function SolicitudCertificadoProcess({ email, trabajador, antiguo }: Props) {
   const { setSolicitudField, resetSolicitud } = useSolicitudStore();
   const certificados = useDocumentsStore((state) => state.data);
-  const searchParams = useSearchParams();
-  const email = searchParams.get('email');
-  const trabajador = searchParams.get('trabajador') === 'true';
-  const antiguo = searchParams.get('antiguo') === 'true';
-
   const [activeStep, setActiveStep] = React.useState(0);
   const [precio, setPrecio] = React.useState('0');
 
@@ -120,6 +120,7 @@ export default function SolicitudCertificadoProcess() {
                   steps={steps}
                   handleNext={handleNext}
                   precio={precio}
+                  isTrabajador={trabajador}
                 />
               );
             case 'Documentos':

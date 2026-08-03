@@ -17,6 +17,10 @@ npm run dev
 npm run build
 npm run start
 npm run lint
+npm run env:check
+npm run test:unit
+npm run test:e2e
+npm run security:bundle-check
 ```
 
 ## Estructura actual
@@ -53,3 +57,5 @@ La primera implementacion de este patron se encuentra en `modules/solicitud-cert
 - [Estrategia de pruebas](./docs/architecture/testing-strategy.md)
 - [Roadmap de refactorizacion](./docs/architecture/refactoring-roadmap.md)
 - [Reglas arquitectonicas](./docs/architecture/architecture-rules.md)
+- [Seguridad Fase 1C](./docs/security/phase-1c.md)
+- [ADR BFF, OTP y CAPTCHA](./docs/architecture/adr/007-secure-bff-otp-captcha.md)

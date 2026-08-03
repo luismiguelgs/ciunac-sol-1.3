@@ -12,7 +12,7 @@ Como **Usuario solicitante**, quiero registrar una **solicitud de constancia** e
 - El usuario debe ingresar datos personales y academicos.
 - El usuario debe ingresar datos de pago y subir voucher.
 - La solicitud debe guardarse en backend.
-- El correo de confirmacion se dispara desde frontend hacia el endpoint de correo, siguiendo el patron actual de certificados.
+- El frontend solicita el correo de confirmacion al BFF; el endpoint externo de correo solo se invoca server-side.
 - El cargo PDF se genera en frontend usando `@react-pdf/renderer`.
 
 ### Criterios de Aceptacion
@@ -41,7 +41,7 @@ Y el backend registra la solicitud
 Dado que la solicitud fue registrada correctamente
 Cuando finaliza el proceso
 Entonces el frontend genera un cargo PDF para el usuario
-Y dispara el correo de confirmacion hacia el endpoint de correo
+Y solicita al BFF el correo de confirmacion
 ```
 
 ```gherkin

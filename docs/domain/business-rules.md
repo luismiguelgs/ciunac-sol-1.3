@@ -13,7 +13,7 @@ Consolidar reglas funcionales relevantes para solicitudes y consultas. Este docu
 | RN-005 | En pagos distintos de cero, numero de voucher y fecha de pago son obligatorios. |
 | RN-006 | La solicitud de beca requiere los documentos definidos por el flujo de beca. |
 | RN-007 | La solicitud de ubicacion debe bloquear duplicados con estado en proceso para el mismo documento, idioma y tipo. |
-| RN-008 | La verificacion por correo usa un codigo temporal guardado en sesion por 5 minutos. |
+| RN-008 | La verificacion usa un OTP server-side de 6 digitos, vigencia de 5 minutos, 5 intentos y uso unico en el estado actual. |
 
 ## Reglas de Constancias
 | ID | Regla |
@@ -21,7 +21,7 @@ Consolidar reglas funcionales relevantes para solicitudes y consultas. Este docu
 | RN-011 | El voucher de pago es obligatorio para registrar una solicitud de constancia. |
 | RN-012 | La solicitud de constancia debe implementarse como flujo independiente y no reutilizar el flujo de certificados como experiencia principal. |
 | RN-013 | El cargo PDF de constancia debe generarse en frontend con `@react-pdf/renderer`. |
-| RN-014 | El correo de confirmacion de constancia debe dispararse desde frontend hacia el endpoint de correo, siguiendo el patron actual de certificados, salvo decision contraria de backend. |
+| RN-014 | El frontend solicita la notificacion de constancia al BFF; solo el servidor puede invocar el endpoint externo de correo. |
 
 ## Pendientes de Validacion
 - Catalogo definitivo de tipos de constancia.

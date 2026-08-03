@@ -11,7 +11,7 @@ type Props<T extends FieldValues> = {
     disabled?: boolean;
 }
 
-export default function MyInputOpt<T extends FieldValues>({control, label, description, name,disabled}:Props<T>) 
+export default function MyInputOpt<T extends FieldValues>({control, label, description, name, disabled = false}:Props<T>)
 {
     return (
         <React.Fragment>
@@ -22,12 +22,14 @@ export default function MyInputOpt<T extends FieldValues>({control, label, descr
                     <FormItem className="w-full">
                         <FormLabel>{label}</FormLabel>
                         <FormControl>
-                            <InputOTP maxLength={4} {...field} disabled={!disabled}>
+                            <InputOTP maxLength={6} {...field} disabled={disabled}>
                                 <InputOTPGroup>
                                     <InputOTPSlot index={0} />
                                     <InputOTPSlot index={1} />
                                     <InputOTPSlot index={2} />
                                     <InputOTPSlot index={3} />
+                                    <InputOTPSlot index={4} />
+                                    <InputOTPSlot index={5} />
                                 </InputOTPGroup>
                             </InputOTP>
                         </FormControl>

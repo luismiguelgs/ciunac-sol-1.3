@@ -8,7 +8,7 @@ const msg = {
 
 export const verificationSchema = z.object({
     email: z.string().min(1,msg.required).email('Ingrese un correo electrónico válido').regex(msg.emailRegex),
-    code: z.string().min(4,msg.invalid(4)).max(4,msg.invalid(4))
+    code: z.string().min(6,msg.invalid(6)).max(6,msg.invalid(6)).regex(/^\d{6}$/, msg.invalid(6))
 })
 
 

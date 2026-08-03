@@ -6,7 +6,7 @@ Propuesto
 ## Contexto
 El proyecto ya cuenta con un flujo de solicitud de certificados. Se requiere construir una solicitud de constancias como flujo independiente, aunque comparta patrones funcionales: verificacion de correo, captura de datos, datos de pago, voucher, guardado backend, correo de confirmacion y cargo PDF.
 
-El flujo de certificados actualmente dispara el correo desde frontend mediante `EmailService`, que llama al endpoint `mailer`. El cargo PDF de certificados se genera en frontend con `@react-pdf/renderer`.
+El flujo de certificados solicita el correo desde frontend mediante `EmailService`, pero el Route Handler seguro es el unico que llama al endpoint externo `mailer`. El cargo PDF de certificados se genera en frontend con `@react-pdf/renderer`.
 
 ## Decision
 Crear constancias como modulo independiente:
@@ -21,7 +21,7 @@ Y exponerlo mediante rutas:
 app/solicitud-constancias/
 ```
 
-El cargo PDF de constancias se generara en frontend con `@react-pdf/renderer`. El correo de confirmacion se disparara desde frontend hacia el endpoint de correo, salvo que el backend defina un contrato diferente antes de la implementacion.
+El cargo PDF de constancias se generara en frontend con `@react-pdf/renderer`. El correo de confirmacion se solicitara al BFF seguro; el navegador no llamara directamente a `mailer`.
 
 ## Consecuencias
 - Se evita mezclar reglas y pantallas de certificados con constancias.

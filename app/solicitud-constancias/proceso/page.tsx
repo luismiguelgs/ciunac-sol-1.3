@@ -1,10 +1,10 @@
-import React from 'react'
+import { redirect } from 'next/navigation'
 import SolicitudConstanciasProcess from '@/modules/solicitud-constancia/solicitud-constancias-process'
+import { readVerifiedSession } from '@/modules/security/server/session'
 
-export default function SolicitudConstanciasProcesoPage() {
-    return (
-        <React.Suspense fallback={<div>Cargando...</div>}>
-            <SolicitudConstanciasProcess />
-        </React.Suspense>
-    )
+export default async function SolicitudConstanciasProcesoPage() {
+    const session = await readVerifiedSession('CONSTANCIA')
+    if (!session) redirect('/solicitud-constancias')
+
+    return <SolicitudConstanciasProcess email={session.email} />
 }

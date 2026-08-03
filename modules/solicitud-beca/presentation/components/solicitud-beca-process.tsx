@@ -1,7 +1,6 @@
 'use client'
 
 import React from 'react';
-import { useSearchParams } from 'next/navigation';
 import { Stepper } from '@/components/stepper';
 import useSolicitudBecaStore from '@/modules/solicitud-beca/stores/solicitud-beca.store';
 import useFacultades from '@/hooks/useFacultades';
@@ -21,9 +20,7 @@ function isDocumentsFormValues(value: SolicitudBecaStepPayload): value is Docume
   return 'constancia_matricula' in value && 'historial_academico' in value && 'carta_compromiso' in value;
 }
 
-export default function SolicitudBecaProcess() {
-  const searchParams = useSearchParams();
-  const email = searchParams.get('email');
+export default function SolicitudBecaProcess({ email }: { email: string }) {
   const facultades = useFacultades();
   const escuelas = useEscuelas();
   const [activeStep, setActiveStep] = React.useState(0);
@@ -47,7 +44,7 @@ export default function SolicitudBecaProcess() {
             const facultadName = facultades?.find((f) => String(f.id) === values.facultad)?.nombre || '';
             const escuelaName = escuelas?.find((e) => String(e.id) === values.escuela)?.nombre || '';
 
-            setSolicitudField('email', email ?? '');
+            setSolicitudField('email', email);
             setSolicitudField('apellidos', values.apellidos);
             setSolicitudField('nombres', values.nombres);
             setSolicitudField('facultad', facultadName);

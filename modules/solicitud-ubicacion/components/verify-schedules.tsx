@@ -17,9 +17,8 @@ export default function VerifySchedules()
 		try {
 			const data = await CronogramaExamService.getAll();
 			setCronogramas(data);
-            console.log(data)
-		} catch (error) {
-			console.error('Error fetching cronogramas:', error);
+		} catch {
+			setCronogramas([])
 		} finally {
 			setLoading(false); // Finalizar la carga
 		}

@@ -109,8 +109,7 @@ export default function BasicData({ activeStep, handleNext, steps, setActiveStep
             }
 
             toast.warning("No se encontraron datos para el documento ingresado")
-        } catch (error) {
-            console.error(error)
+        } catch {
             toast.error("Ocurrió un error al buscar los datos")
         } finally {
             setSearching(false)

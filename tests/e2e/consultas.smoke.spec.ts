@@ -17,6 +17,11 @@ test('consulta una solicitud por documento', async ({ page }) => {
 })
 
 test('consulta un certificado y muestra sus notas', async ({ page }) => {
+  await page.goto('/consulta-solicitud')
+  await page.locator('input[name="documento"]').fill('12345678')
+  await page.getByRole('button', { name: 'Buscar' }).click()
+  await expect(page).toHaveURL(/\/consulta-solicitud\/12345678$/)
+
   await page.goto('/consulta-certificado/CERT-E2E')
 
   await expect(page.getByRole('heading', { name: /Detalle de Certificado/i })).toBeVisible()
@@ -29,7 +34,7 @@ test('consulta el resultado del examen de ubicacion', async ({ page }) => {
   await page.locator('input[name="documento"]').fill('12345678')
   await page.getByRole('button', { name: 'Buscar' }).click()
 
-  await expect(page).toHaveURL(/\/consulta-ubicacion\/12345678\?.*id=1002/)
+  await expect(page).toHaveURL(/\/consulta-ubicacion\/12345678$/)
   await expect(page.getByText(/MARIA PRUEBA E2E/i)).toBeVisible()
   await expect(page.getByText('88/100')).toBeVisible()
   await expect(page.getByText('BASICO 2')).toBeVisible()

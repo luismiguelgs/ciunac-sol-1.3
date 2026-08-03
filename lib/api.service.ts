@@ -1,11 +1,10 @@
 import { AppError, normalizeAppError } from '@/modules/shared/application/errors/app-error';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
-const apiKey: string = process.env.NEXT_PUBLIC_API_KEY!;
+const API_BASE_PATH = '/api/ciunac';
 const REQUEST_TIMEOUT_MS = 15000;
 
 function buildUrl(url: string) {
-  return `${API_URL}/${url}`;
+  return `${API_BASE_PATH}/${url.replace(/^\/+/, '')}`;
 }
 
 function createRequestOptions(method: string, body?: unknown, signal?: AbortSignal): RequestInit {
@@ -13,9 +12,8 @@ function createRequestOptions(method: string, body?: unknown, signal?: AbortSign
     method,
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': apiKey,
     },
-    credentials: 'include',
+    credentials: 'same-origin',
     body: body ? JSON.stringify(body) : undefined,
     signal,
   };
@@ -49,12 +47,11 @@ export async function apiFetch<T>(url: string, method: string, body?: unknown): 
   const response = await executeRequest(buildUrl(url), createRequestOptions(method, body));
 
   if (!response.ok) {
-    const msg = await response.text();
+    const payload = await response.json().catch(() => null) as { error?: { message?: string } } | null;
     throw new AppError({
       code: 'INTEGRATION',
-      message: `HTTP error! status: ${response.status}: ${msg}`,
+      message: payload?.error?.message ?? 'No se pudo completar la solicitud',
       status: response.status,
-      details: msg,
     });
   }
 
@@ -96,20 +93,16 @@ export async function apiFetchSafe<T>(url: string, method: string, body?: unknow
 export async function apiUpload<T>(url: string, formData: FormData): Promise<T> {
   const response = await executeRequest(buildUrl(url), {
     method: 'POST',
-    headers: {
-      'x-api-key': apiKey,
-    },
-    credentials: 'include',
+    credentials: 'same-origin',
     body: formData,
   });
 
   if (!response.ok) {
-    const msg = await response.text();
+    const payload = await response.json().catch(() => null) as { error?: { message?: string } } | null;
     throw new AppError({
       code: 'INTEGRATION',
-      message: `HTTP error! status: ${response.status}: ${msg}`,
+      message: payload?.error?.message ?? 'No se pudo cargar el archivo',
       status: response.status,
-      details: msg,
     });
   }
 

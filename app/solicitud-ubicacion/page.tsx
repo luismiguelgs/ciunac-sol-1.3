@@ -1,11 +1,13 @@
 import VerificacionEmail from '@/modules/shared/components/verificacion-email-view'
 import { ITipoSolicitud } from '@/modules/shared/interfaces/types.interface'
 import VerifySchedules from '@/modules/solicitud-ubicacion/components/verify-schedules'
-import TypesService, { Collection } from '@/services/types.service'
 import CertificadosTable from '@/modules/consulta-certificado/components/certificados-table'
+import { ciunacRequest } from '@/modules/security/server/ciunac-client'
+
+export const dynamic = 'force-dynamic'
 
 const getCertificates = async () => {
-    const res = await TypesService.fetchItems<ITipoSolicitud>(Collection.Tiposolicitud)
+    const res = await ciunacRequest<ITipoSolicitud[]>('tipossolicitud')
     return res
 }
 

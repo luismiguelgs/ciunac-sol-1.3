@@ -4,23 +4,36 @@ import { User } from "lucide-react"
 import Copyright from "@/modules/shared/components/copyright"
 import UbicacionDetalle from "@/modules/consulta-ubicacion/components/ubicacion-detalle"
 import { GraduationCap } from "lucide-react"
+import { redirect } from 'next/navigation'
+import { ISolicitudRes } from '@/modules/shared/interfaces/solicitud.interface'
+import { ciunacRequest } from '@/modules/security/server/ciunac-client'
+import { readConsultationSession } from '@/modules/security/server/session'
 
 interface PageProps {
     params: Promise<{ 
         dni: string 
     }>
-    searchParams: Promise<{
-        nombres?: string
-        apellidos?: string
-        id?: string
-    }>
 }
 
-export default async function UbicationDetailPage({ params, searchParams }: PageProps) 
+function normalizeText(value: string) {
+    return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase()
+}
+
+export default async function UbicationDetailPage({ params }: PageProps)
 {
     const { dni } = await params
-    const { nombres = '', apellidos = '', id } = await searchParams
-    const solicitudId = id ? Number(id) : undefined
+    const consultation = await readConsultationSession('EXAMEN', dni)
+    if (!consultation) redirect('/consulta-ubicacion')
+
+    const solicitudes = await ciunacRequest<ISolicitudRes[]>(`solicitudes/documento/${dni}`)
+    const solicitud = solicitudes.find((item) =>
+        normalizeText(item.tiposSolicitud?.solicitud ?? '').includes('UBICACION')
+    )
+    if (!solicitud) redirect('/consulta-ubicacion')
+
+    const nombres = solicitud.estudiante?.nombres ?? ''
+    const apellidos = solicitud.estudiante?.apellidos ?? ''
+    const solicitudId = solicitud.id
 
     return (
         <main className="container mx-auto p-6 space-y-6">

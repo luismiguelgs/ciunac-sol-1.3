@@ -76,6 +76,12 @@ const server = createServer(async (request, response) => {
     return
   }
 
+  if (path === '__test/otp') {
+    const otpRequest = requests.findLast((item) => item.path === '/mailer' && item.body?.type === 'RANDOM')
+    sendJson(response, otpRequest ? 200 : 404, { code: otpRequest?.body?.number ?? null })
+    return
+  }
+
   const rawBody = await readBody(request)
   const contentType = request.headers['content-type'] ?? ''
   let body = null
@@ -86,7 +92,12 @@ const server = createServer(async (request, response) => {
     body = { parseError: true, raw: rawBody.toString('utf8') }
   }
 
-  requests.push({ method, path: `/${path}`, body })
+  requests.push({
+    method,
+    path: `/${path}`,
+    body,
+    hasApiKey: typeof request.headers['x-api-key'] === 'string',
+  })
 
   if (method === 'GET' && path === 'tipossolicitud') return sendJson(response, 200, fixture.tiposSolicitud)
   if (method === 'GET' && path === 'idiomas') return sendJson(response, 200, fixture.idiomas)

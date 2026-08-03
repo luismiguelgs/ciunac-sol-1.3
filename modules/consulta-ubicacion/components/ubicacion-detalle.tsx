@@ -28,8 +28,7 @@ export default function UbicacionDetalle({dni, solicitudId}:Props) {
                 const rExamenes = await SolicitudesExamenService.fetchItems()
                 setNotas(rNotas)
                 setExamenes(rExamenes)
-            } catch (error) {
-                console.error('Error al obtener las notas:', error)
+            } catch {
             }
             finally {
                 setLoading(false)
