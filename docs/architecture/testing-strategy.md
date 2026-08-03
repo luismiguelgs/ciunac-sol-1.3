@@ -1,11 +1,13 @@
 # Estrategia de Pruebas
 
 ## Estado actual
-El proyecto no tiene framework de pruebas configurado. La validacion actual se sostiene con:
+El proyecto usa Playwright para smoke tests E2E del comportamiento observable. La validacion se sostiene con:
+- `npm test`
 - `npm run lint`
 - `npx tsc --noEmit`
 - `npm run build`
-- pruebas manuales de flujos principales
+
+Los smoke tests ejecutan la aplicacion y una API simulada en puertos locales dedicados. No consumen las APIs CIUNAC, Q10, correo, almacenamiento ni reCAPTCHA reales.
 
 ## Prioridad de pruebas
 Agregar pruebas en este orden:
@@ -27,6 +29,6 @@ Agregar pruebas en este orden:
 ## Herramientas sugeridas
 - Vitest para unit tests.
 - React Testing Library para hooks/componentes.
-- Playwright para flujos E2E.
+- Playwright para flujos E2E (implementado para smoke tests).
 
-No se agregan dependencias de pruebas en esta fase para evitar ampliar el alcance sin una decision explicita del equipo.
+La cobertura E2E actual protege rutas publicas, navegacion, registro de certificado y consultas principales. Las pruebas unitarias y de componentes siguen pendientes.

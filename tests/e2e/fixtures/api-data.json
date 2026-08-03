@@ -1,0 +1,180 @@
+{
+  "tiposSolicitud": [
+    { "id": 1, "solicitud": "CERTIFICADO DE ESTUDIOS", "precio": 50 },
+    { "id": 2, "solicitud": "CERTIFICADO DE SUFICIENCIA", "precio": 60 },
+    { "id": 3, "solicitud": "CERTIFICADO DUPLICADO", "precio": 70 },
+    { "id": 4, "solicitud": "CERTIFICADO DIGITAL", "precio": 45 },
+    { "id": 5, "solicitud": "CONSTANCIA DE ESTUDIOS", "precio": 30 },
+    { "id": 6, "solicitud": "CONSTANCIA DE NOTAS", "precio": 30 },
+    { "id": 7, "solicitud": "EXAMEN DE UBICACION", "precio": 80 }
+  ],
+  "idiomas": [
+    { "id": 2, "nombre": "INGLES" },
+    { "id": 3, "nombre": "PORTUGUES" }
+  ],
+  "facultades": [
+    { "id": 1, "nombre": "INGENIERIA", "codigo": "FIIS" }
+  ],
+  "escuelas": [
+    { "id": 1, "nombre": "INGENIERIA DE SISTEMAS", "facultadId": 1 }
+  ],
+  "textos": [
+    { "id": "1", "codigo": "TEXTO_1_BASICO", "contenido": "Complete cuidadosamente los datos solicitados." },
+    { "id": "2", "codigo": "TEXTO_1_PAGO", "contenido": "Registre los datos exactos del pago." },
+    { "id": "3", "codigo": "TEXTO_1_FINAL", "contenido": "Verifique la informacion antes de finalizar." },
+    { "id": "4", "codigo": "TEXTO_1_DISCLAMER", "contenido": "El cargo acredita el registro de la solicitud." },
+    { "id": "5", "codigo": "TEXTO_UBICACION_5", "contenido": "Su solicitud se encuentra EN PROCESO hasta que sea marcada PARA RECOGER." },
+    { "id": "6", "codigo": "TEXTO_NOMBREAN", "contenido": "ANO ACADEMICO 2026" },
+    { "id": "7", "codigo": "TEXTO_UBICACION_6", "contenido": "Conserve su cargo de examen de ubicacion." }
+  ],
+  "cronogramas": [
+    {
+      "id": 1,
+      "moduloId": 1,
+      "fecha": "2099-12-15T15:00:00.000Z",
+      "activo": true,
+      "creadoEn": "2026-01-01T00:00:00.000Z",
+      "modificadoEn": "2026-01-01T00:00:00.000Z",
+      "modulo": { "id": 1, "nombre": "1" }
+    }
+  ],
+  "ciclos": [
+    { "id": 1, "nombre": "BASICO 1" },
+    { "id": 2, "nombre": "BASICO 2" }
+  ],
+  "estudiante": {
+    "id": "student-e2e",
+    "nombres": "MARIA",
+    "apellidos": "PRUEBA E2E",
+    "genero": "F",
+    "fechaNacimiento": "2000-01-01T00:00:00.000Z",
+    "tipoDocumento": "DNI",
+    "numeroDocumento": "12345678",
+    "celular": "999888777",
+    "email": "e2e@example.com"
+  },
+  "solicitudes": [
+    {
+      "id": 1001,
+      "estudianteId": "student-e2e",
+      "tipoSolicitudId": 1,
+      "idiomaId": 2,
+      "nivelId": 1,
+      "estadoId": 1,
+      "periodo": "2026-1",
+      "alumnoCiunac": false,
+      "fechaPago": "2026-08-01T00:00:00.000Z",
+      "pago": 50,
+      "numeroVoucher": "123456789012345",
+      "imgVoucher": "/images/upload.svg",
+      "imgCertEstudio": "",
+      "digital": false,
+      "creadoEn": "2026-08-01T00:00:00.000Z",
+      "modificadoEn": "2026-08-01T00:00:00.000Z",
+      "estudiante": { "id": "student-e2e", "nombres": "MARIA", "apellidos": "PRUEBA E2E", "numeroDocumento": "12345678" },
+      "tiposSolicitud": { "id": 1, "solicitud": "CERTIFICADO DE ESTUDIOS", "precio": 50 },
+      "idioma": { "id": 2, "nombre": "INGLES" },
+      "nivel": { "id": 1, "nombre": "BASICO", "orden": 1 },
+      "estado": { "id": 1, "nombre": "NUEVO", "referencia": "REGISTRADO" }
+    },
+    {
+      "id": 1002,
+      "estudianteId": "student-e2e",
+      "tipoSolicitudId": 7,
+      "idiomaId": 2,
+      "nivelId": 1,
+      "estadoId": 2,
+      "periodo": "2026-1",
+      "alumnoCiunac": false,
+      "fechaPago": "2026-08-01T00:00:00.000Z",
+      "pago": 80,
+      "numeroVoucher": "123456789012345",
+      "imgVoucher": "/images/upload.svg",
+      "imgCertEstudio": "",
+      "digital": false,
+      "creadoEn": "2026-08-01T00:00:00.000Z",
+      "modificadoEn": "2026-08-01T00:00:00.000Z",
+      "estudiante": { "id": "student-e2e", "nombres": "MARIA", "apellidos": "PRUEBA E2E", "numeroDocumento": "12345678" },
+      "tiposSolicitud": { "id": 7, "solicitud": "EXAMEN DE UBICACION", "precio": 80 },
+      "idioma": { "id": 2, "nombre": "INGLES" },
+      "nivel": { "id": 1, "nombre": "BASICO", "orden": 1 },
+      "estado": { "id": 2, "nombre": "ASIGNADO", "referencia": "EN PROCESO" }
+    }
+  ],
+  "certificado": {
+    "_id": "CERT-E2E",
+    "tipo": "VIRTUAL",
+    "periodo": "2026-1",
+    "estudiante": "MARIA PRUEBA E2E",
+    "numeroDocumento": "12345678",
+    "idiomaId": 2,
+    "idioma": "INGLES",
+    "nivel": "BASICO",
+    "nivelId": 1,
+    "cantidadHoras": 180,
+    "solicitudId": 1001,
+    "fechaEmision": "2026-07-15T00:00:00.000Z",
+    "numeroRegistro": "REG-E2E-001",
+    "fechaConcluido": "2026-06-30T00:00:00.000Z",
+    "curriculaAnterior": false,
+    "impreso": false,
+    "duplicado": false,
+    "certificadoOriginal": "",
+    "elaboradoPor": "E2E",
+    "url": "http://127.0.0.1:4100/files/certificado.pdf",
+    "aceptado": false,
+    "fechaAceptacion": "",
+    "notas": [
+      { "ciclo": "INGLES 1", "periodo": "2025-1", "modalidad": "REGULAR", "nota": 90 },
+      { "ciclo": "INGLES 2", "periodo": "2025-2", "modalidad": "REGULAR", "nota": 95 }
+    ],
+    "creado_en": "2026-07-15T00:00:00.000Z",
+    "modificado_en": "2026-07-15T00:00:00.000Z"
+  },
+  "examenes": [
+    { "id": 501, "codigo": "EX-E2E", "fecha": "2026-07-20T15:00:00.000Z", "estadoId": 1, "idiomaId": 2, "docenteId": "teacher-e2e", "aulaId": 1 }
+  ],
+  "detallesUbicacion": [
+    {
+      "id": 601,
+      "examenId": 501,
+      "solicitudId": 1002,
+      "idiomaId": 2,
+      "nivelId": 1,
+      "estudianteId": "student-e2e",
+      "nota": 88,
+      "calificacionId": 1,
+      "terminado": true,
+      "idioma": { "id": 2, "nombre": "INGLES" },
+      "nivel": { "id": 1, "nombre": "BASICO" },
+      "calificacion": { "id": 1, "cicloId": 2 }
+    }
+  ],
+  "constancia": {
+    "id": "CONST-E2E",
+    "solicitudId": 1003,
+    "numeroDocumento": "12345678",
+    "tipo": "ESTUDIOS",
+    "url": "http://127.0.0.1:4100/files/constancia.pdf",
+    "aceptado": true,
+    "fechaEmision": "2026-07-15T00:00:00.000Z"
+  },
+  "q10Programs": [
+    {
+      "Codigo": "ING-E2E",
+      "Nombre": "INGLES E2E",
+      "Abreviatura": "ING",
+      "Numero_resolucion": null,
+      "Fecha_resolucion": "",
+      "Aplica_preinscripcion": true,
+      "Aplica_grupo": true,
+      "Tipo_evaluacion": false,
+      "Numero_creditos": 0,
+      "Aplica_para_snies": false,
+      "Aplica_para_siet": false,
+      "Aplica_para": true,
+      "Codigo_snies": "",
+      "Estado": true
+    }
+  ]
+}
