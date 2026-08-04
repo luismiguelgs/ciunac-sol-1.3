@@ -7,6 +7,8 @@ const port = 4100
 const fixtureUrl = new URL('../fixtures/api-data.json', import.meta.url)
 const fixture = JSON.parse(readFileSync(fileURLToPath(fixtureUrl), 'utf8'))
 let requests = []
+let scenario = {}
+let documentRequestReads = 0
 
 function corsHeaders() {
   return {
@@ -67,6 +69,15 @@ const server = createServer(async (request, response) => {
 
   if (path === '__test/reset' && method === 'POST') {
     requests = []
+    scenario = {}
+    documentRequestReads = 0
+    sendJson(response, 200, { ok: true })
+    return
+  }
+
+  if (path === '__test/scenario' && method === 'POST') {
+    const rawScenario = await readBody(request)
+    scenario = { ...scenario, ...JSON.parse(rawScenario.toString('utf8')) }
     sendJson(response, 200, { ok: true })
     return
   }
@@ -109,6 +120,7 @@ const server = createServer(async (request, response) => {
   if (method === 'GET' && path === 'cronogramaubicacion') return sendJson(response, 200, fixture.cronogramas)
   if (method === 'GET' && path === 'examenesubicacion') return sendJson(response, 200, fixture.examenes)
   if (method === 'GET' && path.startsWith('detallesubicacion/estudiante/documento/')) {
+    if (scenario.locationDetailsError) return sendJson(response, 503, { internal: 'hidden provider failure' })
     return sendJson(response, 200, fixture.detallesUbicacion)
   }
 
@@ -123,9 +135,17 @@ const server = createServer(async (request, response) => {
   }
 
   if (method === 'GET' && path.startsWith('solicitudes/documento/')) {
+    documentRequestReads += 1
+    if (scenario.emptyRequestsAfterFirst && documentRequestReads > 1) return sendJson(response, 200, [])
     return sendJson(response, 200, fixture.solicitudes)
   }
   if (method === 'POST' && path === 'solicitudes') {
+    if (scenario.emptySolicitudResponse) {
+      response.writeHead(204, corsHeaders())
+      response.end()
+      return
+    }
+    if (scenario.malformedSolicitudResponse) return sendJson(response, 201, {})
     return sendJson(response, 201, { id: '1001' })
   }
   if (method === 'GET' && /^solicitudes\/\d+$/.test(path)) {
@@ -139,6 +159,7 @@ const server = createServer(async (request, response) => {
     return sendJson(response, 200, fixture.certificado)
   }
   if (method === 'GET' && path.startsWith('certificados/')) {
+    if (scenario.certificateWithoutNotes) return sendJson(response, 200, { ...fixture.certificado, notas: [] })
     return sendJson(response, 200, fixture.certificado)
   }
   if (method === 'PATCH' && path.startsWith('certificados/')) {
@@ -153,6 +174,10 @@ const server = createServer(async (request, response) => {
   }
 
   if (method === 'POST' && path === 'mailer') {
+    if (body?.type !== 'RANDOM' && Number(scenario.mailFailuresRemaining ?? 0) > 0) {
+      scenario.mailFailuresRemaining = Number(scenario.mailFailuresRemaining) - 1
+      return sendJson(response, 503, { internal: 'hidden mail failure' })
+    }
     return sendJson(response, 200, { ok: true })
   }
   if (method === 'POST' && path.startsWith('upload/')) {

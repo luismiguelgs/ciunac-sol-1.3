@@ -3,16 +3,17 @@ import { SolicitudBecaNotificationGateway } from '@/modules/solicitud-beca/appli
 import EmailService from '@/services/email.service';
 
 export class BecaEmailGateway implements SolicitudBecaNotificationGateway {
-  async sendSolicitudCreada(email: string, requestId: string): Promise<void> {
+  async sendSolicitudCreada(email: string, requestId: string): Promise<string> {
     try {
-      await EmailService.sendEmailBeca(email, requestId);
+      return await EmailService.sendEmailBeca(email, requestId);
     } catch (error) {
       const appError = normalizeAppError(error, 'La solicitud de beca se guardo, pero el correo no pudo enviarse');
       throw new AppError({
-        code: 'INTEGRATION',
+        code: 'EXTERNAL_SERVICE',
         message: appError.message,
         status: appError.status,
         cause: error,
+        retryable: true,
       });
     }
   }

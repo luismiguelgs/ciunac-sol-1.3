@@ -15,7 +15,7 @@ export class StudentUbicacionApiGateway implements StudentUbicacionGateway {
     } catch (error) {
       const appError = normalizeAppError(error, 'No se pudo guardar la informacion del estudiante');
       throw new AppError({
-        code: 'INTEGRATION',
+        code: 'EXTERNAL_SERVICE',
         message: appError.message,
         status: appError.status,
         cause: error,

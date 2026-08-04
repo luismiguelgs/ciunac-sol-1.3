@@ -128,6 +128,7 @@ async function handle(request: NextRequest, context: RouteContext, method: Allow
     }
 
     const data = await ciunacRequest<unknown>(path, { method, body });
+    if (data === null) return new NextResponse(null, { status: 204 });
     return NextResponse.json(data);
   } catch (error) {
     return securityErrorResponse('security.bff.request.failed', correlationId, error);

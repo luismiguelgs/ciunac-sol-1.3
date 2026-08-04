@@ -1,8 +1,13 @@
-import { apiFetch, apiFetchSafe, apiUpload } from '@/lib/api.service';
+import { apiCommand, apiFetch, apiFetchOptional, apiFetchSafe, apiUpload } from '@/lib/api.service';
+import { AppResult } from '@/modules/shared/application/results/app-result';
 
 export class HttpClient {
   get<T>(path: string): Promise<T> {
     return apiFetch<T>(path, 'GET');
+  }
+
+  getOptional<T>(path: string): Promise<T | null> {
+    return apiFetchOptional<T>(path, 'GET');
   }
 
   post<TResponse, TBody = unknown>(path: string, body?: TBody): Promise<TResponse> {
@@ -13,7 +18,11 @@ export class HttpClient {
     return apiFetch<TResponse>(path, 'PATCH', body);
   }
 
-  postSafe<TResponse, TBody = unknown>(path: string, body?: TBody) {
+  patchCommand<TBody = unknown>(path: string, body?: TBody): Promise<void> {
+    return apiCommand(path, 'PATCH', body);
+  }
+
+  postSafe<TResponse, TBody = unknown>(path: string, body?: TBody): Promise<AppResult<TResponse>> {
     return apiFetchSafe<TResponse>(path, 'POST', body);
   }
 

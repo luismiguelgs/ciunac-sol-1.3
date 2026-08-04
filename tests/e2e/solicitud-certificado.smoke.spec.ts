@@ -4,6 +4,7 @@ import {
   getMockOtp,
   installBrowserMocks,
   resetMockApi,
+  setMockScenario,
 } from './support/browser-mocks'
 
 async function selectOption(page: Page, label: string, option: RegExp) {
@@ -23,6 +24,28 @@ async function verifyCertificateEmail(page: Page, request: Parameters<typeof get
   await otp.fill(await getMockOtp(request))
   await page.getByRole('button', { name: /Enviar/i }).click()
   await expect(page).toHaveURL(/\/solicitud-certificados\/proceso$/)
+}
+
+async function completeCertificateForm(page: Page) {
+  await selectOption(page, 'Solicitud', /CERTIFICADO DE ESTUDIOS/i)
+  await selectOption(page, 'Programa', /INGLES/i)
+  await selectOption(page, 'Nivel', /B.SICO/i)
+  await page.locator('input[name="dni"]').fill('12345678')
+  await page.locator('input[name="apellidos"]').fill('PRUEBA E2E')
+  await page.locator('input[name="nombres"]').fill('MARIA')
+  await page.locator('input[name="celular"]').fill('999888777')
+  await page.getByRole('button', { name: 'Siguiente' }).click()
+  await selectOption(page, 'Monto pagado', /S\/50\.00/i)
+  await page.locator('input[name="numero_voucher"]').fill('123456789012345')
+  await page.locator('input[type="file"]').setInputFiles({
+    name: 'voucher.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64'),
+  })
+  await expect(page.getByText(/Archivo cargado/i)).toBeVisible()
+  await page.getByRole('button', { name: 'Siguiente' }).click()
+  await page.getByRole('switch', { name: /Confirmo que los datos/i }).click()
+  await page.getByRole('switch', { name: /Acepto los t/i }).click()
 }
 
 test.beforeEach(async ({ page, request }) => {
@@ -81,7 +104,7 @@ test('registra una solicitud de certificado de extremo a extremo', async ({ page
   await page.getByRole('switch', { name: /Acepto los t/i }).click()
   await page.getByRole('button', { name: 'Finalizar' }).click()
 
-  await expect(page).toHaveURL(/\/solicitud-certificados\/finalizar\?id=1001$/)
+  await expect(page).toHaveURL(/\/solicitud-certificados\/finalizar\?id=1001&receipt=/)
   await expect(page.getByRole('button', { name: /Descargar Cargo/i })).toBeVisible()
 
   const requests = await getMockRequests(request)
@@ -100,4 +123,42 @@ test('rechaza el acceso directo al proceso sin una sesion verificada', async ({ 
 
   await expect(page).toHaveURL(/\/solicitud-certificados$/)
   await expect(page.getByRole('heading', { name: /correo electr/i })).toBeVisible()
+})
+
+test('reintenta solo el correo cuando la solicitud ya fue guardada', async ({ page, request }) => {
+  await verifyCertificateEmail(page, request)
+  await setMockScenario(request, { mailFailuresRemaining: 1 })
+  await completeCertificateForm(page)
+  await page.getByRole('button', { name: 'Finalizar' }).click()
+
+  await expect(page.getByText(/solicitud 1001 ya esta guardada/i)).toBeVisible()
+  const beforeRetry = await getMockRequests(request)
+  expect(beforeRetry.filter((item) => item.path === '/solicitudes')).toHaveLength(1)
+  expect(beforeRetry.filter((item) => item.path === '/mailer' && (item.body as { type?: string })?.type === 'CERTIFICADO')).toHaveLength(1)
+
+  await page.getByRole('button', { name: /Reintentar correo/i }).click()
+  await expect(page).toHaveURL(/\/solicitud-certificados\/finalizar\?id=1001&receipt=/)
+  await expect(page.getByText(/servicio acepto el correo/i)).toBeVisible()
+
+  const afterRetry = await getMockRequests(request)
+  expect(afterRetry.filter((item) => item.path === '/solicitudes')).toHaveLength(1)
+  expect(afterRetry.filter((item) => item.path === '/mailer' && (item.body as { type?: string })?.type === 'CERTIFICADO')).toHaveLength(2)
+})
+
+test('detiene el correo cuando la API guarda sin devolver identificador', async ({ page, request }) => {
+  await verifyCertificateEmail(page, request)
+  await setMockScenario(request, { emptySolicitudResponse: true })
+  await completeCertificateForm(page)
+  await page.getByRole('button', { name: 'Finalizar' }).click()
+
+  await expect(page.getByText(/no devolvio los datos esperados/i)).toBeVisible()
+  const requests = await getMockRequests(request)
+  expect(requests.filter((item) => item.path === '/solicitudes')).toHaveLength(1)
+  expect(requests.filter((item) => item.path === '/mailer' && (item.body as { type?: string })?.type === 'CERTIFICADO')).toHaveLength(0)
+})
+
+test('no muestra exito de correo sin comprobante valido', async ({ page }) => {
+  await page.goto('/solicitud-certificados/finalizar?id=1001')
+  await expect(page.getByText(/No se pudo confirmar el estado del correo/i)).toBeVisible()
+  await expect(page.getByText(/servicio acepto el correo/i)).toHaveCount(0)
 })

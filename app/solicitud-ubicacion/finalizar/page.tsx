@@ -2,9 +2,17 @@ import Image from 'next/image'
 import {  CheckCircle2 } from 'lucide-react'
 import Disclamer from '@/modules/solicitud-ubicacion/components/disclamer'
 import DescargaCargo from '@/modules/solicitud-ubicacion/components/descarga-cargo'
+import NotificationResult from '@/modules/shared/components/notification-result'
+import { readNotificationReceipt } from '@/modules/security/server/session'
 
-export default function FinalizarPage() 
+type PageProps = {
+    searchParams: Promise<{ id?: string; receipt?: string }>
+}
+
+export default async function FinalizarPage({ searchParams }: PageProps)
 {
+    const { id, receipt: receiptId } = await searchParams
+    const receipt = id ? await readNotificationReceipt(receiptId, 'UBICACION', id) : null
     return (
         <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-blue-100">
             <div className="bg-white rounded-2xl shadow-2xl p-4 w-full max-w-4xl md:w-3/4 sm:w-full flex flex-col items-center">
@@ -15,10 +23,7 @@ export default function FinalizarPage()
                         <Image src="/images/save-student.png" alt="ok" width={80} height={80} className="rounded-lg shadow-md" />
                         <span className="mt-2 text-lg font-semibold text-green-700">Solicitud guardada exitosamente!</span>
                     </div>
-                    <div className="flex flex-col items-center">
-                        <Image src="/images/send-email.png" alt="ok" width={80} height={80} className="rounded-lg shadow-md" />
-                        <span className="mt-2 text-lg font-semibold text-blue-700">Correo enviado exitosamente!</span>
-                    </div>
+                    <NotificationResult confirmed={Boolean(receipt)} />
                 </div>
                 <div className="w-full border-t border-gray-200 my-2"></div>
                 <div className="w-full flex flex-col gap-1">

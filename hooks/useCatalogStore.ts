@@ -8,9 +8,11 @@ export function useCatalogStore<T>(
 ) {
   const data = store((state) => state.data);
   const hasHydrated = store((state) => state.hasHydrated);
+  const hasLoaded = store((state) => state.hasLoaded);
 
   return {
-    data: hasHydrated ? data : undefined,
+    data: hasHydrated && hasLoaded ? data : undefined,
     hasHydrated,
+    hasLoaded,
   };
 }

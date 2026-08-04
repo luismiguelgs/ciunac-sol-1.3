@@ -7,8 +7,12 @@ export type MailRequestDto = {
 };
 
 export class MailApiRepository {
-  async send(body: MailRequestDto): Promise<void> {
-    await sendSecureNotification(body.type, body.reference);
+  async send(body: MailRequestDto): Promise<string> {
+    const response = await sendSecureNotification(body.type, body.reference);
+    if (!response.receiptId) {
+      throw new Error('Notification receipt is missing');
+    }
+    return response.receiptId;
   }
 }
 

@@ -10,7 +10,7 @@ export class SolicitudApiGateway implements SolicitudGateway {
     } catch (error) {
       const appError = normalizeAppError(error, 'No se pudo guardar la solicitud');
       throw new AppError({
-        code: 'INTEGRATION',
+        code: 'EXTERNAL_SERVICE',
         message: appError.message,
         status: appError.status,
         cause: error,

@@ -5,11 +5,7 @@ import {
   SolicitudGateway,
   StudentGateway,
 } from '@/modules/solicitud-certificado/application/ports/register-solicitud-certificado.ports';
-
-export type RegisterSolicitudCertificadoResult = {
-  requestId: string;
-  message: string;
-};
+import { RegistrationOutcome } from '@/modules/shared/application/results/registration-outcome';
 
 type Dependencies = {
   studentGateway: StudentGateway;
@@ -20,26 +16,37 @@ type Dependencies = {
 export class RegisterSolicitudCertificadoUseCase {
   constructor(private readonly dependencies: Dependencies) {}
 
-  async execute({ solicitud }: RegisterSolicitudCertificadoCommand): Promise<RegisterSolicitudCertificadoResult> {
+  async execute({ solicitud }: RegisterSolicitudCertificadoCommand): Promise<RegistrationOutcome> {
     try {
       const student = await this.dependencies.studentGateway.saveFromSolicitud(solicitud);
+      if (!student?.id) {
+        throw new Error('Student response is incomplete');
+      }
       const requestId = await this.dependencies.solicitudGateway.create({
         ...solicitud,
-        estudianteId: student.id ?? '',
+        estudianteId: student.id,
       });
 
       if (!requestId) {
         throw new Error('No se pudo registrar la solicitud');
       }
 
-      await this.dependencies.notificationGateway.sendSolicitudCreada(solicitud.email, requestId);
-
-      return {
-        requestId,
-        message: 'Solicitud guardada correctamente',
-      };
+      try {
+        const notificationReceiptId = await this.retryNotification(solicitud.email, requestId);
+        return { status: 'completed', requestId, notificationReceiptId };
+      } catch (error) {
+        return {
+          status: 'saved_notification_failed',
+          requestId,
+          error: normalizeAppError(error, 'La solicitud se guardo, pero no se pudo procesar el correo.'),
+        };
+      }
     } catch (error) {
       throw normalizeAppError(error, 'No se pudo completar el registro de la solicitud');
     }
+  }
+
+  retryNotification(email: string, requestId: string): Promise<string> {
+    return this.dependencies.notificationGateway.sendSolicitudCreada(email, requestId);
   }
 }

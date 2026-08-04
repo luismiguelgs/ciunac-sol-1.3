@@ -4,6 +4,7 @@ import {
   SolicitudBecaGateway,
   SolicitudBecaNotificationGateway,
 } from '@/modules/solicitud-beca/application/ports/register-solicitud-beca.ports';
+import { RegistrationOutcome } from '@/modules/shared/application/results/registration-outcome';
 
 type Dependencies = {
   solicitudGateway: SolicitudBecaGateway;
@@ -13,7 +14,7 @@ type Dependencies = {
 export class RegisterSolicitudBecaUseCase {
   constructor(private readonly dependencies: Dependencies) {}
 
-  async execute({ solicitud }: RegisterSolicitudBecaCommand) {
+  async execute({ solicitud }: RegisterSolicitudBecaCommand): Promise<RegistrationOutcome> {
     try {
       const requestId = await this.dependencies.solicitudGateway.create(solicitud);
 
@@ -21,14 +22,22 @@ export class RegisterSolicitudBecaUseCase {
         throw new Error('No se pudo registrar la solicitud de beca');
       }
 
-      await this.dependencies.notificationGateway.sendSolicitudCreada(solicitud.email, requestId);
-
-      return {
-        requestId,
-        message: 'Solicitud guardada correctamente',
-      };
+      try {
+        const notificationReceiptId = await this.retryNotification(solicitud.email, requestId);
+        return { status: 'completed', requestId, notificationReceiptId };
+      } catch (error) {
+        return {
+          status: 'saved_notification_failed',
+          requestId,
+          error: normalizeAppError(error, 'La solicitud se guardo, pero no se pudo procesar el correo.'),
+        };
+      }
     } catch (error) {
       throw normalizeAppError(error, 'No se pudo completar el registro de la solicitud de beca');
     }
+  }
+
+  retryNotification(email: string, requestId: string): Promise<string> {
+    return this.dependencies.notificationGateway.sendSolicitudCreada(email, requestId);
   }
 }

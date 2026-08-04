@@ -78,6 +78,11 @@ export async function resetMockApi(request: APIRequestContext) {
   expect(response.ok()).toBeTruthy()
 }
 
+export async function setMockScenario(request: APIRequestContext, scenario: Record<string, unknown>) {
+  const response = await request.post('http://127.0.0.1:4100/__test/scenario', { data: scenario })
+  expect(response.ok()).toBeTruthy()
+}
+
 export async function getMockRequests(request: APIRequestContext) {
   const response = await request.get('http://127.0.0.1:4100/__test/requests')
   expect(response.ok()).toBeTruthy()

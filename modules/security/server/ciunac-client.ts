@@ -6,7 +6,7 @@ type CiunacRequestOptions = {
   body?: unknown;
 };
 
-export async function ciunacRequest<T>(path: string, options: CiunacRequestOptions = {}): Promise<T> {
+export async function ciunacRequest<T>(path: string, options: CiunacRequestOptions = {}): Promise<T | null> {
   const { apiKey, apiUrl } = getCiunacConfig();
   const normalizedPath = path.replace(/^\/+/, '');
 
@@ -43,7 +43,7 @@ export async function ciunacRequest<T>(path: string, options: CiunacRequestOptio
   }
 
   const text = await response.text();
-  if (!text) return null as T;
+  if (!text) return null;
 
   try {
     return JSON.parse(text) as T;

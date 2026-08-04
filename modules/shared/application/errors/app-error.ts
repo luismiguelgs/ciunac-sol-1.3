@@ -1,4 +1,10 @@
-export type AppErrorCode = 'VALIDATION' | 'INTEGRATION' | 'NETWORK' | 'UNEXPECTED';
+export type AppErrorCode =
+  | 'VALIDATION'
+  | 'AUTHENTICATION'
+  | 'AUTHORIZATION'
+  | 'EXTERNAL_SERVICE'
+  | 'NETWORK'
+  | 'UNEXPECTED';
 
 type AppErrorParams = {
   code: AppErrorCode;
@@ -6,21 +12,27 @@ type AppErrorParams = {
   status?: number;
   cause?: unknown;
   details?: unknown;
+  correlationId?: string;
+  retryable?: boolean;
 };
 
 export class AppError extends Error {
   readonly code: AppErrorCode;
   readonly status?: number;
   readonly details?: unknown;
+  readonly correlationId?: string;
+  readonly retryable: boolean;
   override readonly cause?: unknown;
 
-  constructor({ code, message, status, cause, details }: AppErrorParams) {
+  constructor({ code, message, status, cause, details, correlationId, retryable = false }: AppErrorParams) {
     super(message);
     this.name = 'AppError';
     this.code = code;
     this.status = status;
     this.cause = cause;
     this.details = details;
+    this.correlationId = correlationId;
+    this.retryable = retryable;
   }
 }
 
@@ -36,7 +48,7 @@ export function normalizeAppError(error: unknown, fallbackMessage = 'Ocurrio un 
   if (error instanceof Error) {
     return new AppError({
       code: 'UNEXPECTED',
-      message: error.message || fallbackMessage,
+      message: fallbackMessage,
       cause: error,
     });
   }

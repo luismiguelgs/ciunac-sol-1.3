@@ -8,6 +8,8 @@ import { redirect } from 'next/navigation'
 import { ISolicitudRes } from '@/modules/shared/interfaces/solicitud.interface'
 import { ciunacRequest } from '@/modules/security/server/ciunac-client'
 import { readConsultationSession } from '@/modules/security/server/session'
+import EmptyState from '@/modules/shared/components/empty-state'
+import { externalRecordArraySchema, parseExternalResponse } from '@/modules/shared/infrastructure/validation/external-response'
 
 interface PageProps {
     params: Promise<{ 
@@ -25,11 +27,25 @@ export default async function UbicationDetailPage({ params }: PageProps)
     const consultation = await readConsultationSession('EXAMEN', dni)
     if (!consultation) redirect('/consulta-ubicacion')
 
-    const solicitudes = await ciunacRequest<ISolicitudRes[]>(`solicitudes/documento/${dni}`)
+    const response = await ciunacRequest<unknown>(`solicitudes/documento/${dni}`)
+    const solicitudes = response === null
+        ? []
+        : parseExternalResponse(externalRecordArraySchema, response, 'La API devolvio solicitudes no validas') as unknown as ISolicitudRes[]
     const solicitud = solicitudes.find((item) =>
         normalizeText(item.tiposSolicitud?.solicitud ?? '').includes('UBICACION')
     )
-    if (!solicitud) redirect('/consulta-ubicacion')
+    if (!solicitud) {
+        return (
+            <main className="flex min-h-screen items-center justify-center p-4">
+                <EmptyState
+                    title="Solicitud de ubicacion no disponible"
+                    description="No se encontro una solicitud de examen de ubicacion para el documento consultado."
+                    href="/consulta-ubicacion"
+                    actionLabel="Realizar otra consulta"
+                />
+            </main>
+        )
+    }
 
     const nombres = solicitud.estudiante?.nombres ?? ''
     const apellidos = solicitud.estudiante?.apellidos ?? ''

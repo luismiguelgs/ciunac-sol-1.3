@@ -61,3 +61,21 @@ Advertencias pendientes:
 - En Windows, los servidores hijos de Playwright permanecieron escuchando al finalizar y se detuvieron manualmente despues de obtener resultados exitosos. Conviene aislar su lifecycle en una mejora posterior del runner.
 
 La Fase 1C queda implementada y verificada en codigo, pero no se considera desplegable hasta configurar los secretos privados, rotar/revocar la API key expuesta y obtener un `env:check` exitoso.
+
+## Resultado de Fase 1D
+
+- Alcance: correo, respuestas vacias o incompletas, accesos inseguros y estados de exito falsos.
+- Next.js: 16.2.12, sin cambios de dependencias.
+- `npm run lint`: correcto, sin errores ni warnings.
+- `npx tsc --noEmit`: correcto.
+- `npm run test:unit`: correcto, 24 de 24 pruebas en 4 archivos.
+- `npm run test:e2e`: correcto, 33 de 33 smoke tests en Chromium.
+- `npm run build`: correcto, 25 rutas totales y 20 paginas estaticas generadas.
+- `npm run security:bundle-check`: correcto; no se detectaron valores privados configurados en `.next/static`.
+- `git diff --check`: correcto; solo se informan conversiones de fin de linea propias de Windows.
+
+El primer intento de build no pudo descargar `Geist` y `Geist Mono` por la restriccion de red del sandbox. El mismo comando se repitio con acceso de red y termino correctamente; no se modifico la configuracion de fuentes.
+
+`npm run env:check` continua fallando de manera esperada porque `RECAPTCHA_SECRET_KEY` esta ausente o no es valida. `API_URL`, `API_KEY`, `API_KEY_Q10`, `APP_BASE_URL`, `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` y `OTP_SESSION_SECRET` estan presentes, y `NEXT_PUBLIC_API_KEY` ya no esta configurada. No se mostro ningun valor ni se modifico el `.env` real.
+
+La Fase 1D queda cerrada. La Fase 1E de constancias no se inicio. El riesgo residual principal es que un `2xx` de `mailer` confirma aceptacion HTTP, no entrega SMTP, y el reintento manual no puede garantizar idempotencia sin soporte del backend.

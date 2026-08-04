@@ -14,19 +14,19 @@ import DownloadDocumentoDigital from "@/modules/consulta-solicitud/components/do
 import { ITexto } from '@/modules/shared/interfaces/types.interface';
 import { ciunacRequest } from '@/modules/security/server/ciunac-client';
 import { readConsultationSession } from '@/modules/security/server/session';
+import EmptyState from '@/modules/shared/components/empty-state';
+import { externalRecordArraySchema, parseExternalResponse } from '@/modules/shared/infrastructure/validation/external-response';
 
-async function getRequests(dni:string){
-    try {
-        const res = await ciunacRequest<ISolicitudRes[]>(`solicitudes/documento/${dni}`);
-        return res;
-    } catch {
-        return [];
-    }
+async function getRequests(dni:string): Promise<ISolicitudRes[]> {
+    const res = await ciunacRequest<unknown>(`solicitudes/documento/${dni}`);
+    if (res === null) return [];
+    return parseExternalResponse(externalRecordArraySchema, res, 'La API devolvio solicitudes no validas') as unknown as ISolicitudRes[];
 }
-async function getTextos(){
+async function getTextos(): Promise<ITexto[]> {
     try {
-        const res = await ciunacRequest<ITexto[]>('textos');
-        return res;
+        const res = await ciunacRequest<unknown>('textos');
+        if (res === null) return [];
+        return parseExternalResponse(externalRecordArraySchema, res, 'La API devolvio textos no validos') as unknown as ITexto[];
     } catch {
         return [];
     }
@@ -92,6 +92,19 @@ export default async function ResultadoSolicitudPage({ params }: PageProps) {
     if (!consultation) redirect('/consulta-solicitud');
     const requests = await getRequests(dni);
     const textos = await getTextos();
+
+    if (requests.length === 0) {
+        return (
+            <main className="flex min-h-screen items-center justify-center bg-slate-100 p-4">
+                <EmptyState
+                    title="No se encontraron solicitudes"
+                    description="No existen solicitudes disponibles para el documento consultado."
+                    href="/consulta-solicitud"
+                    actionLabel="Realizar otra consulta"
+                />
+            </main>
+        );
+    }
 
     return (
         <main className="min-h-screen w-full bg-cover bg-center bg-no-repeat flex items-center justify-center bg-slate-100 dark:bg-slate-900">

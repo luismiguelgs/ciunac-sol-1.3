@@ -6,6 +6,7 @@ type ErrorPayload = {
     code?: string;
     message?: string;
   };
+  correlationId?: string;
 };
 
 async function postSecurity<TResponse, TBody>(path: string, body: TBody): Promise<TResponse> {
@@ -23,10 +24,28 @@ async function postSecurity<TResponse, TBody>(path: string, body: TBody): Promis
 
   const payload = await response.json().catch(() => null) as (TResponse & ErrorPayload) | null;
   if (!response.ok) {
+    const code = response.status === 400 || response.status === 409 || response.status === 422
+      ? 'VALIDATION'
+      : response.status === 401
+        ? 'AUTHENTICATION'
+        : response.status === 403
+          ? 'AUTHORIZATION'
+          : response.status >= 500
+            ? 'EXTERNAL_SERVICE'
+            : 'UNEXPECTED';
     throw new AppError({
-      code: response.status === 400 ? 'VALIDATION' : 'INTEGRATION',
+      code,
       message: payload?.error?.message ?? 'No se pudo completar la operacion',
       status: response.status,
+      correlationId: payload?.correlationId,
+      retryable: response.status >= 500,
+    });
+  }
+
+  if (!payload) {
+    throw new AppError({
+      code: 'EXTERNAL_SERVICE',
+      message: 'El servicio devolvio una respuesta no valida.',
     });
   }
 
@@ -55,7 +74,7 @@ export function consultByDocument(documento: string, type: ConsultationType, cap
 }
 
 export function sendSecureNotification(type: NotificationType, reference: string) {
-  return postSecurity<{ ok: true }, { type: NotificationType; reference: string }>(
+  return postSecurity<{ ok: true; receiptId: string }, { type: NotificationType; reference: string }>(
     '/api/security/notifications',
     { type, reference },
   );

@@ -2,13 +2,11 @@
 
 import IProgram from "@/modules/solicitud-nuevo/interfaces/programs.interface"
 import useStore from "../stores/student.store"
-import IStudent from "@/modules/solicitud-nuevo/interfaces/student.interface"
 import MyAlert from "@/components/forms/myAlert"
 import { FinishForm } from "./finish-form"
 import DataDetail from "./data-detail"
 import Link from "next/link"
 import React from "react"
-import EstudiantesService from "@/services/estudiantes.service"
 
 type Props = {
     programs : IProgram[]
@@ -51,20 +49,10 @@ export default function Finish({ programs, activeStep, setActiveStep, steps}:Pro
                 setActiveStep={setActiveStep}
                 steps={steps}
                 student={student}
-                saveNewStudent={saveNewStudent}
             />
             
         </div>
     )
 
-    async function saveNewStudent(student:IStudent) {
-        student.Primer_apellido = student.Primer_apellido.toLocaleUpperCase();
-        student.Segundo_apellido = student.Segundo_apellido.toLocaleUpperCase();
-        student.Primer_nombre = student.Primer_nombre.toLocaleUpperCase();
-        student.Segundo_nombre = student.Segundo_nombre?.toLocaleUpperCase() || undefined;
-        
-        const response = await EstudiantesService.nuevoEstudianteQ10(student)
-        return response
-    }
 }
 

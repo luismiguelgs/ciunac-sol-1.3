@@ -1,5 +1,6 @@
 import { ICertificado } from '@/modules/shared/interfaces/certificado.interface';
 import { resourceApiRepository } from '@/modules/shared/infrastructure/api/resource-api.repository';
+import { externalRecordSchema, parseExternalResponse } from '@/modules/shared/infrastructure/validation/external-response';
 
 export default class CertificadosService
 {
@@ -8,25 +9,21 @@ export default class CertificadosService
     public static async selectItem(id:string):Promise<ICertificado | undefined>
     {
        const response = await resourceApiRepository.get<ICertificado>(`${this.collection}/${id}`)
-       return response
+       return parseExternalResponse(externalRecordSchema, response, 'La API devolvio un certificado no valido') as unknown as ICertificado
     }
 
     public static async selectItemBySolicitud(solicitudId: number): Promise<ICertificado | null> {
-        try {
-            const response = await resourceApiRepository.get<ICertificado>(`${this.collection}/solicitud/${solicitudId}`)
-            return response
-        } catch {
-            return null
-        }
+        const response = await resourceApiRepository.getOptional<unknown>(`${this.collection}/solicitud/${solicitudId}`)
+        if (response === null) return null
+        return parseExternalResponse(externalRecordSchema, response, 'La API devolvio un certificado no valido') as unknown as ICertificado
     }
 
-    public static async updateStatus(id:string, status:boolean):Promise<ICertificado | null>
+    public static async updateStatus(id:string, status:boolean):Promise<void>
     {
         const data = {
             aceptado : status,
             fechaAceptacion : new Date()
         }
-        const response = await resourceApiRepository.update<ICertificado, typeof data>(`${this.collection}/${id}`, data)
-        return response 
+        await resourceApiRepository.updateCommand(`${this.collection}/${id}`, data)
     }
 }

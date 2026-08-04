@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
-import { ConsultationType, OtpPurpose } from '@/modules/security/domain/security.types';
+import { ConsultationType, NotificationType, OtpPurpose } from '@/modules/security/domain/security.types';
 import { getOtpSessionSecret } from '@/modules/security/server/environment';
 import { OtpChallenge } from '@/modules/security/server/otp';
 import { decryptToken, encryptToken } from '@/modules/security/server/token-crypto';
@@ -8,9 +8,11 @@ import { decryptToken, encryptToken } from '@/modules/security/server/token-cryp
 const OTP_CHALLENGE_COOKIE = 'ciunac_otp_challenge';
 const VERIFIED_SESSION_COOKIE = 'ciunac_verified_session';
 const CONSULTATION_SESSION_COOKIE = 'ciunac_consultation_session';
+const NOTIFICATION_RECEIPT_COOKIE = 'ciunac_notification_receipt';
 const VERIFIED_SESSION_MS = 15 * 60 * 1000;
 const CONSULTATION_SESSION_MS = 10 * 60 * 1000;
 const CHALLENGE_COOKIE_MS = 15 * 60 * 1000;
+const NOTIFICATION_RECEIPT_MS = 15 * 60 * 1000;
 
 export type VerifiedSession = {
   kind: 'verified-email';
@@ -23,6 +25,14 @@ export type ConsultationSession = {
   kind: 'consultation';
   documento: string;
   type: ConsultationType;
+  expiresAt: number;
+};
+
+export type NotificationReceipt = {
+  kind: 'notification-receipt';
+  receiptId: string;
+  type: NotificationType;
+  reference: string;
   expiresAt: number;
 };
 
@@ -135,4 +145,41 @@ export async function readConsultationSession(
   if (type && session.type !== type) return null;
   if (documento && session.documento !== documento.toUpperCase()) return null;
   return session;
+}
+
+export function writeNotificationReceipt(
+  response: NextResponse,
+  receiptId: string,
+  type: NotificationType,
+  reference: string,
+  now = Date.now(),
+): void {
+  const receipt: NotificationReceipt = {
+    kind: 'notification-receipt',
+    receiptId,
+    type,
+    reference,
+    expiresAt: now + NOTIFICATION_RECEIPT_MS,
+  };
+
+  response.cookies.set(
+    NOTIFICATION_RECEIPT_COOKIE,
+    encryptToken(receipt, getOtpSessionSecret()),
+    cookieOptions(NOTIFICATION_RECEIPT_MS),
+  );
+}
+
+export async function readNotificationReceipt(
+  receiptId: string | undefined,
+  type: NotificationType,
+  reference?: string,
+): Promise<NotificationReceipt | null> {
+  if (!receiptId) return null;
+
+  const cookieStore = await cookies();
+  const receipt = decodeCookie<NotificationReceipt>(cookieStore.get(NOTIFICATION_RECEIPT_COOKIE)?.value);
+  if (!receipt || receipt.kind !== 'notification-receipt' || !isCurrent(receipt.expiresAt)) return null;
+  if (receipt.receiptId !== receiptId || receipt.type !== type) return null;
+  if (reference && receipt.reference !== reference) return null;
+  return receipt;
 }

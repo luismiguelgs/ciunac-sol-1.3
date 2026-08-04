@@ -10,7 +10,7 @@ export class SolicitudUbicacionApiGateway implements SolicitudUbicacionGateway {
     } catch (error) {
       const appError = normalizeAppError(error, 'No se pudo guardar la solicitud');
       throw new AppError({
-        code: 'INTEGRATION',
+        code: 'EXTERNAL_SERVICE',
         message: appError.message,
         status: appError.status,
         cause: error,
@@ -24,7 +24,7 @@ export class SolicitudUbicacionApiGateway implements SolicitudUbicacionGateway {
     } catch (error) {
       const appError = normalizeAppError(error, 'No se pudo consultar solicitudes existentes');
       throw new AppError({
-        code: 'INTEGRATION',
+        code: 'EXTERNAL_SERVICE',
         message: appError.message,
         status: appError.status,
         cause: error,

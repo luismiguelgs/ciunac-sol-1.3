@@ -7,6 +7,7 @@ import { assertTrustedOrigin, parseJsonBody } from '@/modules/security/server/re
 import { securityErrorResponse } from '@/modules/security/server/responses';
 import { consultationSchema } from '@/modules/security/server/schemas';
 import { writeConsultationSession } from '@/modules/security/server/session';
+import { externalRecordArraySchema, parseExternalResponse } from '@/modules/shared/infrastructure/validation/external-response';
 
 export const runtime = 'nodejs';
 
@@ -28,8 +29,11 @@ export async function POST(request: NextRequest) {
     const remoteIp = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim();
     await verifyCaptchaToken(input.captchaToken, remoteIp);
 
-    const solicitudes = await ciunacRequest<ISolicitudRes[]>(`solicitudes/documento/${input.documento}`);
-    const found = Array.isArray(solicitudes) && solicitudes.some((item) => isRequestedType(item, input.type));
+    const upstream = await ciunacRequest<unknown>(`solicitudes/documento/${input.documento}`);
+    const solicitudes = upstream === null
+      ? []
+      : parseExternalResponse(externalRecordArraySchema, upstream, 'Invalid consultation response') as unknown as ISolicitudRes[];
+    const found = solicitudes.some((item) => isRequestedType(item, input.type));
     const response = NextResponse.json({ ok: true, found });
 
     if (found) {

@@ -10,19 +10,19 @@ import {
 export default class EmailService 
 {
     public static async sendEmailUbicacion(email:string, codigo:string) {
-        await this.sendEmail(toUbicacionMailRequest(email, codigo))
+        return this.sendEmail(toUbicacionMailRequest(email, codigo))
     }
     public static async sendEmailCertificado(email:string, codigo:string) {
-        await this.sendEmail(toCertificadoMailRequest(email, codigo))
+        return this.sendEmail(toCertificadoMailRequest(email, codigo))
     }
     public static async sendEmailBeca(email:string, codigo:string) {
-        await this.sendEmail(toBecaMailRequest(email, codigo))
+        return this.sendEmail(toBecaMailRequest(email, codigo))
     }
     public static async sendEmailRegister(student:IStudent) {
-        await this.sendEmail(toRegisterMailRequest(student))
+        return this.sendEmail(toRegisterMailRequest(student))
     }
     private static async sendEmail(body: Parameters<typeof mailApiRepository.send>[0]) 
     {
-        await mailApiRepository.send(body)
+        return mailApiRepository.send(body)
     }
 }

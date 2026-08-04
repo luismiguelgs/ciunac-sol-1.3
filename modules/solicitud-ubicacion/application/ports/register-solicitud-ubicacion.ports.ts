@@ -11,5 +11,5 @@ export interface SolicitudUbicacionGateway {
 }
 
 export interface SolicitudUbicacionNotificationGateway {
-  sendSolicitudCreada(email: string, requestId: string): Promise<void>;
+  sendSolicitudCreada(email: string, requestId: string): Promise<string>;
 }

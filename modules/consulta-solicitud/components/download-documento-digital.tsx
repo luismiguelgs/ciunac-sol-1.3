@@ -10,6 +10,7 @@ import MyAlert from '@/components/forms/myAlert'
 import pdfImage from '@/assets/pdf.png'
 import CertificadosService from '@/services/certificados.service'
 import ConstanciasService from '@/services/constancias.service'
+import { normalizeAppError } from '@/modules/shared/application/errors/app-error'
 
 type TipoDocumentoDigital = 'certificado' | 'constancia'
 
@@ -54,6 +55,9 @@ export default function DownloadDocumentoDigital({ solicitudId, tipoDocumento, f
     const [open, setOpen] = React.useState(false)
     const [accepted, setAccepted] = React.useState(false)
     const [loadingAccept, setLoadingAccept] = React.useState(false)
+    const [error, setError] = React.useState<string | null>(null)
+    const [actionError, setActionError] = React.useState<string | null>(null)
+    const [attempt, setAttempt] = React.useState(0)
 
     React.useEffect(() => {
         let mounted = true
@@ -65,13 +69,20 @@ export default function DownloadDocumentoDigital({ solicitudId, tipoDocumento, f
             }
 
             setLoading(true)
-            const result = tipoDocumento === 'constancia'
-                ? await ConstanciasService.selectItemBySolicitud(solicitudId)
-                : await CertificadosService.selectItemBySolicitud(solicitudId)
+            setError(null)
+            try {
+                const result = tipoDocumento === 'constancia'
+                    ? await ConstanciasService.selectItemBySolicitud(solicitudId)
+                    : await CertificadosService.selectItemBySolicitud(solicitudId)
 
-            if (mounted) {
-                setDocumento(result)
-                setLoading(false)
+                if (mounted) setDocumento(result)
+            } catch (cause) {
+                if (mounted) {
+                    setDocumento(null)
+                    setError(normalizeAppError(cause, 'No se pudo consultar el documento digital').message)
+                }
+            } finally {
+                if (mounted) setLoading(false)
             }
         }
 
@@ -80,7 +91,7 @@ export default function DownloadDocumentoDigital({ solicitudId, tipoDocumento, f
         return () => {
             mounted = false
         }
-    }, [solicitudId, tipoDocumento])
+    }, [attempt, solicitudId, tipoDocumento])
 
     const descargar = () => {
         if (!documento?.url) return
@@ -95,10 +106,14 @@ export default function DownloadDocumentoDigital({ solicitudId, tipoDocumento, f
 
     const handleAceptar = async () => {
         const documentoId = documento?._id || documento?.id
-        if (!documentoId || !documento?.url) return
+        if (!documentoId || !documento?.url) {
+            setActionError('El documento no tiene los datos necesarios para confirmar la descarga.')
+            return
+        }
 
         try {
             setLoadingAccept(true)
+            setActionError(null)
 
             if (tipoDocumento === 'constancia') {
                 await ConstanciasService.updateStatus(documentoId, true)
@@ -109,6 +124,8 @@ export default function DownloadDocumentoDigital({ solicitudId, tipoDocumento, f
             setDocumento((current) => current ? { ...current, aceptado: true } : current)
             descargarPdf(documento)
             setOpen(false)
+        } catch (cause) {
+            setActionError(normalizeAppError(cause, 'No se pudo confirmar la descarga').message)
         } finally {
             setLoadingAccept(false)
         }
@@ -129,6 +146,22 @@ export default function DownloadDocumentoDigital({ solicitudId, tipoDocumento, f
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Buscando documento...
             </Button>
+        )
+    }
+
+    if (error) {
+        return (
+            <div className="space-y-3">
+                <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>No se pudo consultar el documento</AlertTitle>
+                    <AlertDescription>{error}</AlertDescription>
+                </Alert>
+                <Button type="button" variant="outline" onClick={() => setAttempt((value) => value + 1)}>
+                    Reintentar consulta
+                </Button>
+                {fallback}
+            </div>
         )
     }
 
@@ -179,6 +212,13 @@ export default function DownloadDocumentoDigital({ solicitudId, tipoDocumento, f
                             Para continuar, debe aceptar los terminos y condiciones, haciendo clic en el checkbox.
                         </AlertDescription>
                     </Alert>
+                    {actionError ? (
+                        <Alert variant="destructive">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertTitle>No se pudo continuar</AlertTitle>
+                            <AlertDescription>{actionError}</AlertDescription>
+                        </Alert>
+                    ) : null}
                     <div className="flex items-start gap-2">
                         <input
                             id={`accept-terms-${tipoDocumento}-${solicitudId}`}

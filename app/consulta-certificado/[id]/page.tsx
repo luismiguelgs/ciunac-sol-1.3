@@ -11,14 +11,17 @@ import { Mail, Phone } from "lucide-react"
 import { ICertificado, ICertificadoNota } from "@/modules/shared/interfaces/certificado.interface";
 import { ciunacRequest } from '@/modules/security/server/ciunac-client';
 import { readConsultationSession } from '@/modules/security/server/session';
+import EmptyState from '@/modules/shared/components/empty-state'
+import { certificateResponseSchema, parseExternalResponse } from '@/modules/shared/infrastructure/validation/external-response'
 
-async function getCertificate(id:string): Promise<ICertificado | undefined> {
-    const resData = await ciunacRequest<ICertificado>(`certificados/${id}`)
-    return resData
+async function getCertificate(id:string): Promise<ICertificado | null> {
+    const resData = await ciunacRequest<unknown>(`certificados/${id}`)
+    if (resData === null) return null
+    return parseExternalResponse(certificateResponseSchema, resData, 'La API devolvio un certificado no valido') as unknown as ICertificado
 }
 
 async function getCertificateDetail(notas:ICertificadoNota[]) {
-    const sortedData = notas.sort((a: { ciclo: string }, b: { ciclo: string }) => {
+    const sortedData = [...notas].sort((a: { ciclo: string }, b: { ciclo: string }) => {
 		const aNumber = parseInt(a.ciclo.match(/\d+$/)?.[0] || '0');
   		const bNumber = parseInt(b.ciclo.match(/\d+$/)?.[0] || '0');
 		return aNumber - bNumber;
@@ -37,7 +40,22 @@ export default async function GetCertificatePage({params}:PageProps) {
 
     const {id} = await params
     const certificado = await getCertificate(id)
+    if (!certificado) {
+        return (
+            <main className="flex min-h-screen items-center justify-center p-4">
+                <EmptyState
+                    title="Certificado no disponible"
+                    description="No se encontraron datos para el certificado consultado."
+                    href="/consulta-solicitud"
+                    actionLabel="Volver a consultar"
+                />
+            </main>
+        )
+    }
     const certificadoNotas = await getCertificateDetail(certificado?.notas ?? [])
+    const cycleParts = certificadoNotas[0]?.ciclo?.split(/\s+/) ?? []
+    const idioma = cycleParts[0] || certificado.idioma || 'No disponible'
+    const nivel = cycleParts.slice(1).join(' ') || certificado.nivel || 'No disponible'
 
     return (
         <main className="min-h-screen flex flex-col">
@@ -70,7 +88,7 @@ export default async function GetCertificatePage({params}:PageProps) {
                             <div className="grid grid-cols-1 gap-3 text-sm md:text-base">
                                 <div className="flex justify-between items-center">
                                     <span className="font-semibold">Idioma:</span>
-                                    <span>{certificadoNotas[0].ciclo.split(" ")[0]}</span>
+                                    <span>{idioma}</span>
                                 </div>
                                 <div className="flex justify-between items-center">
                                     <span className="font-semibold">Nivel:</span>
@@ -86,11 +104,11 @@ export default async function GetCertificatePage({params}:PageProps) {
                                 </div>
                                 <div className="flex justify-between items-center">
                                     <span className="font-semibold">Fecha de Emisión:</span>
-                                    <span>{new Date(certificado?.fechaEmision ?? '').toLocaleDateString()}</span>
+                                    <span>{formatDate(certificado.fechaEmision)}</span>
                                 </div>
                                 <div className="flex justify-between items-center">
                                     <span className="font-semibold">Fecha de Conclusión:</span>
-                                    <span>{new Date(certificado?.fechaConcluido ?? '').toLocaleDateString()}</span>
+                                    <span>{formatDate(certificado.fechaConcluido)}</span>
                                 </div>
                                 <div className="flex justify-between items-center">
                                     <span className="font-semibold">Entregado:</span>
@@ -100,7 +118,7 @@ export default async function GetCertificatePage({params}:PageProps) {
                                     certificado?.aceptado && (
                                         <div className="flex justify-between items-center">
                                             <span className="font-semibold">Fecha de Entrega:</span>
-                                            <span>{new Date(certificado?.fechaAceptacion ?? '').toLocaleDateString()}</span>
+                                            <span>{formatDate(certificado.fechaAceptacion)}</span>
                                         </div>
                                     )
                                 }
@@ -112,7 +130,7 @@ export default async function GetCertificatePage({params}:PageProps) {
                     <Card className="shadow-lg">
                         <CardHeader>
                             <h2 className="text-2xl font-bold text-center md:text-left">
-                                NIVEL {certificadoNotas[0].ciclo.split(" ")[1]}
+                                NIVEL {nivel}
                             </h2>
                             <Separator className="my-4" />
                         </CardHeader>
@@ -134,6 +152,13 @@ export default async function GetCertificatePage({params}:PageProps) {
                                                 <TableCell>{item.nota}</TableCell>
                                             </TableRow>
                                         ))}
+                                        {certificadoNotas.length === 0 ? (
+                                            <TableRow>
+                                                <TableCell colSpan={3} className="py-8 text-center text-muted-foreground">
+                                                    No hay notas disponibles para este certificado.
+                                                </TableCell>
+                                            </TableRow>
+                                        ) : null}
                                     </TableBody>
                                 </Table>
                             </div>
@@ -164,5 +189,11 @@ export default async function GetCertificatePage({params}:PageProps) {
             <Copyright />
         </main>
     )
+}
+
+function formatDate(value: string | undefined) {
+    if (!value) return 'No disponible'
+    const date = new Date(value)
+    return Number.isNaN(date.getTime()) ? 'No disponible' : date.toLocaleDateString('es-PE')
 }
 

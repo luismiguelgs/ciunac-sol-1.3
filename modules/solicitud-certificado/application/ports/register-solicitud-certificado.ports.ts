@@ -10,5 +10,5 @@ export interface SolicitudGateway {
 }
 
 export interface NotificationGateway {
-  sendSolicitudCreada(email: string, requestId: string): Promise<void>;
+  sendSolicitudCreada(email: string, requestId: string): Promise<string>;
 }

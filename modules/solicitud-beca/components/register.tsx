@@ -29,9 +29,9 @@ export default function Register({activeStep, setActiveStep, steps}:Props)
 {
     const router = useRouter();
     const { solicitud } = useStore();
-    const { loading, open, setOpen, state, message, submit } = useRegisterSolicitudBeca({
-        onSuccess: () => {
-            router.push('/solicitud-beca/finalizar')
+    const { loading, open, setOpen, state, message, savedRequestId, retryEmail, submit } = useRegisterSolicitudBeca({
+        onSuccess: (requestId, receiptId) => {
+            router.push(`/solicitud-beca/finalizar?id=${requestId}&receipt=${receiptId}`)
         },
     })
    
@@ -88,7 +88,7 @@ export default function Register({activeStep, setActiveStep, steps}:Props)
                         steps={steps} 
                         setActiveStep={setActiveStep}
                         type="submit"
-                        disabled={loading || !(info && terminos)}
+                        disabled={loading || Boolean(savedRequestId) || !(info && terminos)}
                     />
                 </form>
             </Form>
@@ -96,7 +96,7 @@ export default function Register({activeStep, setActiveStep, steps}:Props)
 				open={open} 
 				setOpen={setOpen}
 				title="Espere, procesando informaciÃ³n..." 
-				description={state === 'EMAIL'? "Enviando correo electrÃ³nico" : state === 'SAVE'? "Guardando informaciÃ³n" : "Error al procesar la solicitud"}
+				description={state === 'EMAIL_ERROR' ? 'Solicitud guardada; correo pendiente' : state === 'EMAIL'? "Enviando correo electrÃ³nico" : state === 'SAVE'? "Guardando informaciÃ³n" : "Error al procesar la solicitud"}
 			>
 				<div className="flex items-center justify-between gap-6 p-4">
 					<Image 
@@ -107,7 +107,7 @@ export default function Register({activeStep, setActiveStep, steps}:Props)
 						className="flex-shrink-0"
 					/>
 					<div className="flex flex-col items-center space-y-4">
-						{ state !== 'ERROR' ? (<>
+						{ state === 'SAVE' || state === 'EMAIL' ? (<>
 							<Loader2 className="h-16 w-16 animate-spin text-primary" />
 							<span className="text-sm text-muted-foreground">
 								Espere por favor, estamos procesando su solicitud. Esto puede tomar unos minutos.
@@ -116,14 +116,12 @@ export default function Register({activeStep, setActiveStep, steps}:Props)
 							<span className="text-sm text-muted-foreground font-bold">
 								{message}
 							</span>
-							<Button
-								className="mt-4"
-								type="button"
-								color="primary"
-								onClick={()=>setOpen(false)}
-							>
-								Cerrar
-							</Button>
+							<div className="flex gap-2">
+								{state === 'EMAIL_ERROR' ? (
+									<Button type="button" onClick={retryEmail} disabled={loading}>Reintentar correo</Button>
+								) : null}
+								<Button type="button" variant="outline" onClick={()=>setOpen(false)}>Cerrar</Button>
+							</div>
 						</>)}
 					</div>
 				</div>

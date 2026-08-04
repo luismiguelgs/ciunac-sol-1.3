@@ -30,9 +30,9 @@ export default function Register({ activeStep, setActiveStep, steps }: Props) {
     const router = useRouter()
     const { solicitud } = useSolicitudStore()
     const { data: textos } = useCatalogStore(useTextsStore)
-    const { loading, open, setOpen, state, message, submit } = useRegisterSolicitudCertificado({
-        onSuccess: (requestId) => {
-            router.push(`/solicitud-certificados/finalizar?id=${requestId}`)
+    const { loading, open, setOpen, state, message, savedRequestId, retryEmail, submit } = useRegisterSolicitudCertificado({
+        onSuccess: (requestId, receiptId) => {
+            router.push(`/solicitud-certificados/finalizar?id=${requestId}&receipt=${receiptId}`)
         },
     })
 
@@ -99,7 +99,7 @@ export default function Register({ activeStep, setActiveStep, steps }: Props) {
                         steps={steps}
                         setActiveStep={setActiveStep}
                         type="submit"
-                        disabled={loading}
+                        disabled={loading || Boolean(savedRequestId)}
                     />
                 </form>
             </Form>
@@ -107,7 +107,7 @@ export default function Register({ activeStep, setActiveStep, steps }: Props) {
                 open={open}
                 setOpen={setOpen}
                 title="Espere, procesando información..."
-                description={state === 'EMAIL' ? 'Enviando correo electrónico' : state === 'SAVE' ? 'Guardando información' : 'Error al procesar la solicitud'}
+                description={state === 'EMAIL_ERROR' ? 'Solicitud guardada; correo pendiente' : state === 'EMAIL' ? 'Enviando correo electrónico' : state === 'SAVE' ? 'Guardando información' : 'Error al procesar la solicitud'}
             >
                 <div className="flex items-center justify-between gap-6 p-4">
                     <Image
@@ -118,7 +118,7 @@ export default function Register({ activeStep, setActiveStep, steps }: Props) {
                         className="flex-shrink-0"
                     />
                     <div className="flex flex-col items-center space-y-4">
-                        {state !== 'ERROR' ? (
+                        {state === 'SAVE' || state === 'EMAIL' ? (
                             <>
                                 <Loader2 className="h-16 w-16 animate-spin text-primary" />
                                 <span className="text-sm text-muted-foreground">
@@ -130,14 +130,16 @@ export default function Register({ activeStep, setActiveStep, steps }: Props) {
                                 <span className="text-sm font-bold text-muted-foreground">
                                     {message}
                                 </span>
-                                <Button
-                                    className="mt-4"
-                                    type="button"
-                                    color="primary"
-                                    onClick={() => setOpen(false)}
-                                >
-                                    Cerrar
-                                </Button>
+                                <div className="flex gap-2">
+                                    {state === 'EMAIL_ERROR' ? (
+                                        <Button type="button" onClick={retryEmail} disabled={loading}>
+                                            Reintentar correo
+                                        </Button>
+                                    ) : null}
+                                    <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                                        Cerrar
+                                    </Button>
+                                </div>
                             </>
                         )}
                     </div>

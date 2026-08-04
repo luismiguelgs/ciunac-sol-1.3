@@ -3,12 +3,14 @@ import { ITipoSolicitud } from '@/modules/shared/interfaces/types.interface'
 import VerifySchedules from '@/modules/solicitud-ubicacion/components/verify-schedules'
 import CertificadosTable from '@/modules/consulta-certificado/components/certificados-table'
 import { ciunacRequest } from '@/modules/security/server/ciunac-client'
+import { externalRecordArraySchema, parseExternalResponse } from '@/modules/shared/infrastructure/validation/external-response'
 
 export const dynamic = 'force-dynamic'
 
-const getCertificates = async () => {
-    const res = await ciunacRequest<ITipoSolicitud[]>('tipossolicitud')
-    return res
+const getCertificates = async (): Promise<ITipoSolicitud[]> => {
+    const res = await ciunacRequest<unknown>('tipossolicitud')
+    if (res === null) return []
+    return parseExternalResponse(externalRecordArraySchema, res, 'La API devolvio tipos de solicitud no validos') as unknown as ITipoSolicitud[]
 }
 
 export default async function SolicitudUbicacionPage() 

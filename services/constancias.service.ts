@@ -1,30 +1,25 @@
 import { IConstancia } from '@/modules/shared/interfaces/constancia.interface'
 import { resourceApiRepository } from '@/modules/shared/infrastructure/api/resource-api.repository'
+import { externalRecordSchema, parseExternalResponse } from '@/modules/shared/infrastructure/validation/external-response'
 
 export default class ConstanciasService {
     private static collection = 'constancias'
 
     public static async selectItemBySolicitud(solicitudId: number): Promise<IConstancia | null> {
-        try {
-            const response = await resourceApiRepository.get<IConstancia | IConstancia[] | null>(`${this.collection}/solicitud/${solicitudId}`)
+        const response = await resourceApiRepository.getOptional<unknown>(`${this.collection}/solicitud/${solicitudId}`)
+        if (response === null) return null
 
-            if (Array.isArray(response)) {
-                return response[0] ?? null
-            }
-
-            return response
-        } catch {
-            return null
-        }
+        const item = Array.isArray(response) ? response[0] : response
+        if (item === undefined || item === null) return null
+        return parseExternalResponse(externalRecordSchema, item, 'La API devolvio una constancia no valida') as unknown as IConstancia
     }
 
-    public static async updateStatus(id: string, status: boolean): Promise<IConstancia | null> {
+    public static async updateStatus(id: string, status: boolean): Promise<void> {
         const data = {
             aceptado: status,
             fechaAceptacion: new Date(),
         }
 
-        const response = await resourceApiRepository.update<IConstancia, typeof data>(`${this.collection}/${id}`, data)
-        return response
+        await resourceApiRepository.updateCommand(`${this.collection}/${id}`, data)
     }
 }

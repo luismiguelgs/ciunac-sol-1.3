@@ -5,7 +5,10 @@ import { ciunacRequest } from '@/modules/security/server/ciunac-client';
 import { assertTrustedOrigin, parseJsonBody } from '@/modules/security/server/request-security';
 import { securityErrorResponse } from '@/modules/security/server/responses';
 import { notificationSchema } from '@/modules/security/server/schemas';
-import { readVerifiedSessionFromRequest } from '@/modules/security/server/session';
+import {
+  readVerifiedSessionFromRequest,
+  writeNotificationReceipt,
+} from '@/modules/security/server/session';
 import { SecurityError } from '@/modules/security/server/security-error';
 
 export const runtime = 'nodejs';
@@ -42,7 +45,10 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ ok: true }, { status: 202 });
+    const receiptId = randomUUID();
+    const response = NextResponse.json({ ok: true, receiptId }, { status: 202 });
+    writeNotificationReceipt(response, receiptId, input.type, input.reference);
+    return response;
   } catch (error) {
     return securityErrorResponse('security.notification.failed', correlationId, error);
   }
