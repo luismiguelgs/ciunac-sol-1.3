@@ -3,7 +3,7 @@
 import React from 'react';
 import { Stepper } from '@/components/stepper';
 import Documentos from '@/modules/shared/components/documentos-step';
-import FinData from '@/modules/shared/components/fin-data';
+import FinData, { PaymentOption } from '@/modules/shared/components/fin-data';
 import { useDocumentsStore } from '@/stores/types.stores';
 import useSolicitudStore from '@/stores/solicitud.store';
 import BasicData from '@/modules/solicitud-certificado/components/basic-data';
@@ -32,12 +32,28 @@ type Props = {
 };
 
 export default function SolicitudCertificadoProcess({ email, trabajador, antiguo }: Props) {
-  const { setSolicitudField, resetSolicitud } = useSolicitudStore();
+  const { solicitud, setSolicitudField, resetSolicitud } = useSolicitudStore();
   const certificados = useDocumentsStore((state) => state.data);
   const [activeStep, setActiveStep] = React.useState(0);
   const [precio, setPrecio] = React.useState('0');
 
   const steps = React.useMemo(() => buildSteps(trabajador), [trabajador]);
+  const paymentOptions = React.useMemo<PaymentOption[]>(() => {
+    const amount = Number(precio);
+    if (trabajador) {
+      return [
+        {
+          value: String(amount - amount * 0.8),
+          label: `S/${(amount - amount * 0.8).toFixed(2)} - presentar certificado de trabajo(docente)`,
+        },
+        {
+          value: '0',
+          label: 'S/0.00 - presentar certificado de trabajo(CAS)',
+        },
+      ];
+    }
+    return [{ value: String(precio), label: `S/${amount.toFixed(2)} - precio normal` }];
+  }, [precio, trabajador]);
 
   React.useEffect(() => {
     resetSolicitud();
@@ -119,8 +135,14 @@ export default function SolicitudCertificadoProcess({ email, trabajador, antiguo
                   setActiveStep={setActiveStep}
                   steps={steps}
                   handleNext={handleNext}
-                  precio={precio}
-                  isTrabajador={trabajador}
+                  documentNumber={solicitud.dni ?? ''}
+                  defaultValues={{
+                    pago: String(solicitud.pago ?? '0'),
+                    numero_voucher: solicitud.numero_voucher ?? '',
+                    fecha_pago: solicitud.fecha_pago ? new Date(solicitud.fecha_pago) : undefined,
+                    img_voucher: solicitud.img_voucher ?? '',
+                  }}
+                  paymentOptions={paymentOptions}
                 />
               );
             case 'Documentos':

@@ -126,6 +126,7 @@ Estado actual de los modulos principales:
 | `solicitud-certificado` | Refactorizado por capas | Flujo piloto y referencia principal. |
 | `solicitud-beca` | Refactorizado por capas | Replica del patron con caso de uso y gateways. |
 | `solicitud-ubicacion` | Refactorizado por capas | Incluye validacion de duplicidad y reglas de precio. |
+| `solicitud-constancia` | Refactorizado por capas | Slice independiente con pago transversal compartido y cargo PDF propio. |
 | `solicitud-nuevo` | Parcial | Mantiene componentes y store; candidato siguiente para migracion completa. |
 | `consulta-*` | Parcial / legacy controlado | Mantiene componentes de consulta y algunos servicios adaptados. |
 | `modules/shared` | Consolidado inicial | Errores, HTTP, repositories, mappers y componentes compartidos. |
@@ -135,12 +136,14 @@ flowchart LR
     App["app/ routes"] --> Cert["modules/solicitud-certificado"]
     App --> Beca["modules/solicitud-beca"]
     App --> Ubi["modules/solicitud-ubicacion"]
+    App --> Constancia["modules/solicitud-constancia"]
     App --> Nuevo["modules/solicitud-nuevo"]
     App --> Consulta["modules/consulta-*"]
 
     Cert --> Shared["modules/shared"]
     Beca --> Shared
     Ubi --> Shared
+    Constancia --> Shared
     Nuevo --> Shared
     Consulta --> Shared
     Shared --> Services["services legacy facade"]

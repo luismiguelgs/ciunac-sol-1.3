@@ -1,111 +1,98 @@
 # CU-008 Registrar Solicitud de Constancia
 
 ## Objetivo
-Permitir que un Usuario solicitante registre una solicitud de constancia en un flujo independiente al de certificados, completando verificacion de correo, datos del solicitante, datos de pago, voucher, registro backend, correo de confirmacion y descarga de cargo PDF generado en frontend.
+Permitir que un Usuario solicitante registre una constancia en un flujo independiente de certificados, con verificacion de correo, datos personales y academicos, pago compartido, persistencia, notificacion y cargo PDF generado en frontend.
 
 ## Actores
 - Actor principal: Usuario solicitante.
-- Actores secundarios: Sistema CIUNAC, API CIUNAC, Servicio de correo, Servicio de archivos.
+- Actores secundarios: Sistema CIUNAC, API CIUNAC, Servicio de correo y Servicio de archivos.
 
 ## Precondiciones
-- El usuario cuenta con correo electronico valido.
-- El servicio de correo permite enviar codigo de verificacion y confirmacion.
-- El backend expone un mecanismo para guardar la solicitud de constancia.
-- El frontend puede generar el cargo PDF con `@react-pdf/renderer`.
-- Pendiente de validacion funcional: confirmar si constancias usa el endpoint actual `solicitudes` o un endpoint nuevo.
+- El usuario cuenta con un correo electronico valido.
+- La API expone los tipos de solicitud `5` y `6` y sus precios.
+- El usuario obtiene una sesion verificada para el proposito `CONSTANCIA`.
 
 ## Disparador
-El usuario ingresa al futuro flujo `app/solicitud-constancias/page.tsx` e inicia la verificacion de correo.
+El usuario ingresa a `app/solicitud-constancias/page.tsx` e inicia la verificacion de correo.
 
 ## Flujo Principal
-1. El sistema muestra el formulario de verificacion de correo.
-2. El usuario ingresa correo, solicita codigo y resuelve reCAPTCHA.
-3. El sistema valida el codigo temporal.
-4. El sistema redirige al proceso de solicitud de constancia.
-5. El usuario ingresa datos personales y academicos requeridos.
-6. El usuario ingresa datos de pago.
-7. El usuario sube el voucher de pago.
-8. El usuario confirma que la informacion es correcta.
-9. El frontend envia la solicitud al backend.
-10. El backend guarda la solicitud y retorna un identificador.
-11. El frontend solicita al BFF el correo de confirmacion y el BFF invoca el servicio externo.
-12. El frontend genera el cargo PDF con los datos de la solicitud.
-13. El sistema permite descargar el cargo PDF.
-14. El sistema muestra la finalizacion del flujo.
+1. El usuario solicita y valida un OTP despues de resolver CAPTCHA.
+2. El sistema abre el wizard de constancias con la sesion verificada.
+3. El usuario selecciona tipo de constancia, idioma y nivel e ingresa sus datos.
+4. Si declara ser Alumno UNAC, ingresa facultad, escuela y codigo.
+5. El flujo resuelve el precio del tipo seleccionado y lo inyecta al componente compartido de pago.
+6. Si el monto es mayor que cero, el usuario ingresa numero de 15 digitos, fecha y archivo del voucher.
+7. El usuario revisa y confirma la solicitud.
+8. El caso de uso guarda o actualiza al estudiante y crea la solicitud en `solicitudes`.
+9. El frontend solicita al BFF la notificacion `CONSTANCIA` usando el ID persistido.
+10. El sistema redirige a finalizar con el ID y el comprobante de notificacion.
+11. El frontend consulta la solicitud y genera un cargo PDF A4 descargable.
 
 ## Diagrama del Flujo
 ```mermaid
 flowchart TD
-    Start["Usuario inicia solicitud de constancia"] --> Email["Verificar correo electronico"]
-    Email --> Code{"Codigo valido?"}
-    Code -->|No| EmailError["Mostrar advertencia"]
-    Code -->|Si| Basic["Ingresar datos del solicitante"]
-    Basic --> Payment["Ingresar datos de pago"]
-    Payment --> Voucher["Subir voucher"]
-    Voucher --> Confirm["Confirmar solicitud"]
-    Confirm --> Save["Guardar solicitud en backend"]
-    Save --> Mail["Disparar correo de confirmacion"]
-    Save --> Pdf["Generar cargo PDF en frontend"]
-    Mail --> Finish["Finalizar flujo"]
-    Pdf --> Finish
+    Start["Iniciar solicitud de constancia"] --> Verify["Verificar correo, CAPTCHA y OTP"]
+    Verify --> Basic["Ingresar datos basicos"]
+    Basic --> Price["Resolver precio del catalogo 5 o 6"]
+    Price --> Paid{"Monto mayor que cero?"}
+    Paid -->|Si| Voucher["Ingresar numero, fecha y archivo"]
+    Paid -->|No| Confirm["Confirmar solicitud"]
+    Voucher --> Confirm
+    Confirm --> Student["Guardar estudiante"]
+    Student --> Save["Crear solicitud en backend"]
+    Save --> Mail["Solicitar correo al BFF"]
+    Mail --> Finish["Mostrar finalizacion"]
+    Finish --> Pdf["Generar cargo PDF en frontend"]
 ```
 
 ## Flujos Alternativos
-- Si el codigo de correo es incorrecto, el sistema muestra advertencia y no permite iniciar el proceso.
-- Si el usuario no resuelve reCAPTCHA, el sistema muestra advertencia y no continua.
-- Si el voucher no fue subido, el sistema muestra validacion y no registra la solicitud.
-- Si el backend no retorna identificador, el sistema muestra error y no genera cargo final.
+- Si el OTP o CAPTCHA no es valido, no se crea la sesion del proceso.
+- Si el monto es cero, los campos de voucher permanecen deshabilitados y el usuario puede continuar.
+- Si el correo falla despues de guardar, se conserva el ID y se permite reintentar solo la notificacion.
+- Si el PDF no puede generarse, la solicitud permanece guardada y la descarga se puede reintentar.
 
 ## Excepciones
-- Si falla el guardado en backend, el sistema debe mostrar un error comprensible y conservar al usuario en el flujo.
-- Si falla el correo de confirmacion, el sistema debe mostrar error de integracion o registrar el problema segun el patron acordado.
-- Si falla la generacion de PDF en frontend, el sistema debe permitir reintentar la descarga del cargo.
+- Una respuesta de estudiante sin ID detiene la creacion de la solicitud.
+- Una respuesta de solicitud sin ID detiene correo, navegacion y PDF final.
+- Un error de carga impide completar un pago mayor que cero.
+- Un acceso directo al proceso sin sesion `CONSTANCIA` redirige a la portada del flujo.
 
 ## Postcondiciones
-- La solicitud queda registrada en backend cuando el flujo termina exitosamente.
-- El usuario puede descargar un cargo PDF generado en frontend.
-- El correo de confirmacion fue solicitado por frontend y enviado server-side por el BFF.
+- La solicitud queda registrada en el endpoint `solicitudes` con tipo `5` o `6`.
+- El usuario obtiene un cargo PDF generado en frontend.
+- La pagina final solo confirma el correo si existe un comprobante server-side valido.
 
 ## Datos Requeridos
-- Correo electronico.
-- Tipo de constancia.
-- Apellidos y nombres.
-- Tipo y numero de documento.
-- Celular.
-- Datos academicos requeridos.
-- Pago.
-- Numero de voucher.
-- Fecha de pago.
-- Imagen o archivo del voucher.
+- Correo, tipo de constancia, idioma y nivel.
+- Apellidos, nombres, tipo y numero de documento y celular.
+- Facultad, escuela y codigo solo cuando se declara Alumno UNAC.
+- Monto y, si es mayor que cero, numero, fecha y archivo del voucher.
 
 ## Reglas Relacionadas
-- RF-001, RF-002, RF-007, RF-010, RF-018, RF-019, RF-020.
-- RN-001, RN-002, RN-003, RN-005, RN-008, RN-011, RN-012.
+- RF-001, RF-002, RF-007, RF-009, RF-010, RF-018, RF-019 y RF-020.
+- RN-001, RN-002, RN-003, RN-005, RN-008, RN-011, RN-012, RN-013 y RN-014.
 
 ## Criterios de Aceptacion
 ```gherkin
-Dado que el usuario valido su correo
-Cuando completa datos, pago y voucher
-Entonces el sistema permite confirmar la solicitud de constancia
+Dado un monto mayor que cero
+Cuando falta el numero, fecha o archivo del voucher
+Entonces el sistema no permite avanzar al registro
 ```
 
 ```gherkin
-Dado que el usuario confirma una solicitud valida
-Cuando el backend guarda la solicitud
-Entonces el frontend solicita al BFF el correo de confirmacion
-Y genera el cargo PDF en frontend
+Dado un monto igual a cero
+Cuando el usuario no adjunta voucher
+Entonces el sistema permite continuar
 ```
 
 ```gherkin
-Dado que falta el voucher de pago
-Cuando el usuario intenta finalizar
-Entonces el sistema muestra validacion
-Y no envia la solicitud al backend
+Dado que la solicitud fue guardada y el correo fallo
+Cuando el usuario reintenta la notificacion
+Entonces el sistema no vuelve a guardar estudiante ni solicitud
 ```
 
 ```gherkin
-Dado que la solicitud fue registrada correctamente
+Dado que el registro y la notificacion fueron aceptados
 Cuando el usuario llega a finalizar
-Entonces puede descargar el cargo PDF
+Entonces puede descargar el cargo PDF generado en frontend
 ```
-

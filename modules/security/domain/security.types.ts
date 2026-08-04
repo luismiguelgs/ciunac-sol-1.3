@@ -12,4 +12,4 @@ export const CONSULTATION_TYPES = ['CERTIFICADO', 'EXAMEN'] as const;
 
 export type ConsultationType = (typeof CONSULTATION_TYPES)[number];
 
-export type NotificationType = 'CERTIFICADO' | 'BECA' | 'UBICACION' | 'REGISTER';
+export type NotificationType = 'CERTIFICADO' | 'CONSTANCIA' | 'BECA' | 'UBICACION' | 'REGISTER';

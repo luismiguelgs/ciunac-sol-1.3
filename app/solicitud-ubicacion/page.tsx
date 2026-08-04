@@ -7,15 +7,22 @@ import { externalRecordArraySchema, parseExternalResponse } from '@/modules/shar
 
 export const dynamic = 'force-dynamic'
 
-const getCertificates = async (): Promise<ITipoSolicitud[]> => {
+const getUbicacionRates = async (): Promise<ITipoSolicitud[]> => {
     const res = await ciunacRequest<unknown>('tipossolicitud')
     if (res === null) return []
-    return parseExternalResponse(externalRecordArraySchema, res, 'La API devolvio tipos de solicitud no validos') as unknown as ITipoSolicitud[]
+
+    const requestTypes = parseExternalResponse(
+        externalRecordArraySchema,
+        res,
+        'La API devolvio tipos de solicitud no validos',
+    ) as unknown as ITipoSolicitud[]
+
+    return requestTypes.filter((item) => Number(item.id) === 7)
 }
 
 export default async function SolicitudUbicacionPage() 
 {
-	const certificados = await getCertificates()
+	const ubicacionRates = await getUbicacionRates()
 	return (
 		<div className="p-4">
              <h2 className="text-2xl font-bold uppercase text-center mb-6">
@@ -24,12 +31,11 @@ export default async function SolicitudUbicacionPage()
 			
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Left Column */}
-				<VerificacionEmail />
+				<VerificacionEmail priceTable={<CertificadosTable data={ubicacionRates} />} />
 
                 {/* Right Column */}
-				<div className="space-y-4">
+				<div>
 					<VerifySchedules />
-					<CertificadosTable data={certificados} />
 				</div>
 				
 			</div>

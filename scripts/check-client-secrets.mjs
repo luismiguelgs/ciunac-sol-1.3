@@ -22,6 +22,14 @@ const candidates = [
   return value && value.length >= 4 ? [{ name, value }] : []
 })
 
+if (
+  process.env.RECAPTCHA_SECRET_KEY
+  && process.env.RECAPTCHA_SECRET_KEY === process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+) {
+  process.stderr.write('Configuracion invalida: RECAPTCHA_SECRET_KEY coincide con la clave publica.\n')
+  process.exit(1)
+}
+
 function listFiles(directory) {
   return readdirSync(directory).flatMap((entry) => {
     const path = join(directory, entry)

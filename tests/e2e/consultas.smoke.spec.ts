@@ -12,7 +12,7 @@ test('consulta una solicitud por documento', async ({ page }) => {
   await page.getByRole('button', { name: 'Buscar' }).click()
 
   await expect(page).toHaveURL(/\/consulta-solicitud\/12345678$/)
-  await expect(page.getByText(/PRUEBA E2E MARIA/i)).toBeVisible()
+  await expect(page.getByText(/PRUEBA E2E MARIA/i).first()).toBeVisible()
   await expect(page.getByText(/CERTIFICADO DE ESTUDIOS/i)).toBeVisible()
 })
 

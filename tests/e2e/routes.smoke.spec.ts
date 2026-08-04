@@ -19,6 +19,7 @@ const routes = [
   { path: '/solicitud-certificados/finalizar?id=1001', content: /Proceso Finalizado/i },
   { path: '/solicitud-certificados/proceso', content: /correo electr/i },
   { path: '/solicitud-constancias', content: /correo electr/i },
+  { path: '/solicitud-constancias/finalizar?id=1003', content: /Proceso finalizado/i },
   { path: '/solicitud-constancias/proceso', content: /correo electr/i },
   { path: '/solicitud-nuevo', content: /Verificaci/i },
   { path: '/solicitud-nuevo/finalizar', content: /Proceso Finalizado/i },

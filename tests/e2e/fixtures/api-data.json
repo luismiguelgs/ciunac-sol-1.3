@@ -99,6 +99,29 @@
       "idioma": { "id": 2, "nombre": "INGLES" },
       "nivel": { "id": 1, "nombre": "BASICO", "orden": 1 },
       "estado": { "id": 2, "nombre": "ASIGNADO", "referencia": "EN PROCESO" }
+    },
+    {
+      "id": 1003,
+      "estudianteId": "student-e2e",
+      "tipoSolicitudId": 5,
+      "idiomaId": 2,
+      "nivelId": 1,
+      "estadoId": 1,
+      "periodo": "2026-1",
+      "alumnoCiunac": false,
+      "fechaPago": "2026-08-01T00:00:00.000Z",
+      "pago": 30,
+      "numeroVoucher": "123456789012345",
+      "imgVoucher": "/images/upload.svg",
+      "imgCertEstudio": "",
+      "digital": true,
+      "creadoEn": "2026-08-01T00:00:00.000Z",
+      "modificadoEn": "2026-08-01T00:00:00.000Z",
+      "estudiante": { "id": "student-e2e", "nombres": "MARIA", "apellidos": "PRUEBA E2E", "numeroDocumento": "12345678" },
+      "tiposSolicitud": { "id": 5, "solicitud": "CONSTANCIA DE ESTUDIOS", "precio": 30 },
+      "idioma": { "id": 2, "nombre": "INGLES" },
+      "nivel": { "id": 1, "nombre": "BASICO", "orden": 1 },
+      "estado": { "id": 1, "nombre": "NUEVO", "referencia": "REGISTRADO" }
     }
   ],
   "certificado": {

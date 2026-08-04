@@ -26,12 +26,11 @@ export default async function SolicitudCertificadoPage() {
 
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 				{/* Left Column */}
-				<VerificacionEmail />
+				<VerificacionEmail priceTable={<CertificadosTable data={certificados} />} />
 
 				{/* Right Column */}
-				<div className="space-y-4">
+				<div>
 					<FormEmailSolicitud path='solicitud-certificados' purpose="CERTIFICADO" />
-					<CertificadosTable data={certificados} />
 				</div>
 			</div>
 		</div>

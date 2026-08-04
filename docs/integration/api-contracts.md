@@ -55,10 +55,12 @@ El `receiptId` permite que una pagina final confirme que el Route Handler obtuvo
 ## Solicitud de Constancia
 | Aspecto | Estado |
 | --- | --- |
-| Guardado backend | Pendiente de confirmacion funcional. |
-| Endpoint candidato | `solicitudes` si constancia es tipo de solicitud. |
-| Respuesta minima esperada | Identificador de solicitud. |
-| Correo | Se dispara por `/api/security/notifications`; `mailer` solo es accesible server-side. |
+| Guardado backend | Implementado con el contrato existente de solicitudes. |
+| Endpoint externo | `POST solicitudes`, mediante `/api/ciunac/solicitudes`. |
+| Tipos | `tipoSolicitudId` `5` o `6`, obtenidos del catalogo `tipossolicitud`. |
+| Respuesta minima | `{ id }`; una respuesta vacia o incompleta detiene correo y navegacion. |
+| Voucher | `POST upload/vouchers`, compartido con certificados y ubicacion. |
+| Correo | Entrada BFF `CONSTANCIA`; adaptacion temporal a `CERTIFICADO` al invocar `mailer`. |
 | Cargo PDF | Generado en frontend con `@react-pdf/renderer`. |
 
-Queda pendiente confirmar un tipo de correo propio para constancias y el contrato backend definitivo antes de completar la Fase 1E.
+El comprobante cifrado conserva el tipo `CONSTANCIA`, por lo que una pagina final no puede validar un recibo emitido para otro flujo. Queda pendiente incorporar una plantilla `CONSTANCIA` nativa en el proveedor de correo.

@@ -7,19 +7,27 @@ function getVersion() {
     return packageJson.version;
 }
 
-export default function Copyright() {
+type Props = {
+    compact?: boolean
+}
+
+export default function Copyright({ compact = false }: Props) {
+    const logoSize = compact ? 220 : 310
+    const logoHeight = Math.round((logoSize * logoCiunac.height) / logoCiunac.width)
+
     return (
-        <div className="mx-4 my-2 flex flex-col items-center">
+        <div className={compact ? 'mx-2 my-1 flex flex-col items-center' : 'mx-4 my-2 flex flex-col items-center'}>
             <Image
                 src={logoCiunac}
                 alt="CIUNAC Logo"
-                style={{ width: 'auto', height: 'auto' }}
-                width={310}
-                height={310}
+                width={logoSize}
+                height={logoHeight}
                 priority
-                className="w-[310px] h-auto"
+                className="h-auto max-w-full"
             />
-            <p className="mt-1 text-sm text-muted-foreground text-center">
+            <p className={compact
+                ? 'mt-1 text-center text-xs text-muted-foreground'
+                : 'mt-1 text-center text-sm text-muted-foreground'}>
                 Copyright © {' '}
                 <Link
                     href="https://ciunac.unac.edu.pe/"

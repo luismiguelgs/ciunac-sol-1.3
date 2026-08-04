@@ -20,9 +20,10 @@ interface FileUploaderCardProps {
   icon: LucideIcon
   dni: string | undefined;
   folder: 'dnis' | 'vouchers' | 'becas';
+  disabled?: boolean;
 }
 
-export const FileUploaderCard = ({ name, label, icon:Icon, dni, folder }: FileUploaderCardProps) => {
+export const FileUploaderCard = ({ name, label, icon:Icon, dni, folder, disabled = false }: FileUploaderCardProps) => {
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const [uploading, setUploading] = useState(false);
 	const [progress, setProgress] = useState(0);
@@ -62,9 +63,9 @@ export const FileUploaderCard = ({ name, label, icon:Icon, dni, folder }: FileUp
 
 	const handleDisabled = ():boolean => {
 		if (folder === 'dnis') {
-		return uploading || String(dni).length < 8
+		return disabled || uploading || String(dni).length < 8
 		}else{
-		return uploading
+		return disabled || uploading
 		}
 	}
 
@@ -90,6 +91,7 @@ export const FileUploaderCard = ({ name, label, icon:Icon, dni, folder }: FileUp
 								if (file) handleUpload(file, onChange);
 							}}
 							className="hidden"
+							disabled={disabled}
 						/>
 
 						<Button type="button" onClick={handleFileSelect} disabled={handleDisabled()}>

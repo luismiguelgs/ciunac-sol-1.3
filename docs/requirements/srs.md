@@ -59,7 +59,7 @@ flowchart LR
 | RF-004 | El sistema debe permitir seleccionar tipo de solicitud, idioma, nivel, datos personales y datos academicos para certificados. |
 | RF-005 | El sistema debe permitir buscar datos de estudiante por documento y precargar apellidos, nombres, celular e identificador cuando existan. |
 | RF-006 | El sistema debe calcular o resolver el precio de una solicitud de certificado segun el tipo de solicitud disponible en catalogo. |
-| RF-007 | El sistema debe capturar datos de pago, voucher y fecha de pago cuando el pago no sea cero. |
+| RF-007 | El sistema debe aplicar una politica comun de pago: para montos mayores que cero exige numero de 15 digitos, fecha y archivo del voucher; para monto cero permite continuar sin ellos. |
 | RF-008 | El sistema debe solicitar documentos adicionales cuando el flujo del certificado o ubicacion lo requiera por condicion del usuario. |
 | RF-009 | El sistema debe guardar o actualizar datos de estudiante antes de crear una solicitud cuando aplique. |
 | RF-010 | El sistema debe crear la solicitud en la API correspondiente y enviar una notificacion por correo al finalizar. |
@@ -93,13 +93,13 @@ flowchart LR
 | RN-002 | Si el tipo de documento es CE o PASAPORTE, el documento debe tener 9 caracteres. |
 | RN-003 | El celular debe tener 9 digitos. |
 | RN-004 | Si el usuario marca que es alumno, los campos facultad, escuela y codigo son obligatorios cuando el schema del flujo lo exige. |
-| RN-005 | En pagos distintos de cero, numero de voucher y fecha de pago son obligatorios. |
+| RN-005 | Cuando el monto es mayor que cero, numero de voucher de 15 digitos, fecha de pago y archivo cargado son obligatorios. |
 | RN-006 | La solicitud de beca requiere constancia de matricula, historial academico, constancia de tercio, carta de compromiso y declaracion jurada. |
 | RN-007 | La solicitud de ubicacion debe bloquear duplicados con estado en proceso para el mismo documento, idioma y tipo de solicitud. |
 | RN-008 | La verificacion por correo usa un OTP generado y validado en servidor, con vigencia de 5 minutos y maximo de 5 intentos. |
 | RN-009 | Pendiente de validacion funcional: el catalogo de tipos de solicitud determina que solicitudes requieren documentos adicionales. |
 | RN-010 | Pendiente de validacion funcional: las reglas exactas de precio dependen del catalogo y reglas configuradas fuera del frontend. |
-| RN-011 | El voucher de pago es obligatorio para registrar una solicitud de constancia. |
+| RN-011 | Las constancias aplican la politica comun de pago; el voucher no es una regla especial del flujo. Los tipos actuales `5` y `6` tienen monto positivo. |
 | RN-012 | La solicitud de constancia no debe reutilizar el flujo de certificados como experiencia principal. |
 
 ## 8. Restricciones

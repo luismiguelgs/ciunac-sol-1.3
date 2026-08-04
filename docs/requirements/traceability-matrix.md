@@ -12,7 +12,7 @@ Relacionar requisitos funcionales con casos de uso, rutas Next.js y modulos prin
 | RF-004 | CU-001 | `app/solicitud-certificados/proceso/page.tsx` | `modules/solicitud-certificado/components/basic-data.tsx` |
 | RF-005 | CU-001, CU-003 | Procesos de certificado y ubicacion | `services/estudiantes.service.ts` |
 | RF-006 | CU-001 | `app/solicitud-certificados/proceso/page.tsx` | `modules/solicitud-certificado/domain/rules` |
-| RF-007 | CU-001, CU-003 | Procesos de certificado y ubicacion | `modules/shared/components/fin-data.tsx` |
+| RF-007 | CU-001, CU-003, CU-008 | Procesos de certificado, ubicacion y constancia | `modules/shared/components/fin-data.tsx`, `modules/shared/schemas/fin-data.schema.ts` |
 | RF-008 | CU-001, CU-003 | Procesos de certificado y ubicacion | `modules/shared/components/documentos-step.tsx` |
 | RF-009 | CU-001, CU-003 | Procesos de certificado y ubicacion | Gateways de estudiante por feature |
 | RF-010 | CU-001, CU-002, CU-003 | Pantallas de registro/finalizacion | Casos de uso y gateways de cada solicitud |
@@ -25,7 +25,7 @@ Relacionar requisitos funcionales con casos de uso, rutas Next.js y modulos prin
 | RF-017 | CU-007 | `app/consulta-ubicacion/page.tsx`, `app/consulta-ubicacion/[dni]/page.tsx` | `modules/consulta-ubicacion` |
 | RF-018 | CU-001, CU-002, CU-003, CU-004, CU-005, CU-006, CU-007 | Todos los flujos principales | Componentes de presentation y dialogs |
 | RF-019 | CU-008 | `app/solicitud-constancias/page.tsx`, `app/solicitud-constancias/proceso/page.tsx` | `modules/solicitud-constancia` |
-| RF-020 | CU-008 | `app/solicitud-constancias/finalizar/page.tsx` | `modules/solicitud-constancia/components/cargo-pdf.tsx`, `modules/solicitud-constancia/components/descarga-cargo.tsx` |
+| RF-020 | CU-008 | `app/solicitud-constancias/finalizar/page.tsx` | `modules/solicitud-constancia/presentation/components/cargo-pdf.tsx`, `modules/solicitud-constancia/presentation/components/descarga-cargo.tsx` |
 
 ## Cobertura de Flujos Visibles
 | Flujo visible | Estado documental |

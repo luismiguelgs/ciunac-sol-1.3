@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import SolicitudConstanciasProcess from '@/modules/solicitud-constancia/solicitud-constancias-process'
+import SolicitudConstanciasProcess from '@/modules/solicitud-constancia/presentation/components/solicitud-constancia-process'
 import { readVerifiedSession } from '@/modules/security/server/session'
 
 export default async function SolicitudConstanciasProcesoPage() {

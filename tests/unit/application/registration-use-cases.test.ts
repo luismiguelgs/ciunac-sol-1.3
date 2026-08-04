@@ -8,6 +8,8 @@ import { RegisterSolicitudBecaUseCase } from '@/modules/solicitud-beca/applicati
 import ISolicitudBeca from '@/modules/solicitud-beca/interfaces/solicitudbeca.interface'
 import { RegisterSolicitudUbicacionUseCase } from '@/modules/solicitud-ubicacion/application/use-cases/register-solicitud-ubicacion.use-case'
 import { RegisterNewStudentUseCase } from '@/modules/solicitud-nuevo/application/use-cases/register-new-student.use-case'
+import { RegisterSolicitudConstanciaUseCase } from '@/modules/solicitud-constancia/application/register-solicitud-constancia.use-case'
+import { SolicitudConstanciaDraft } from '@/modules/solicitud-constancia/domain/solicitud-constancia'
 import IStudent from '@/modules/solicitud-nuevo/interfaces/student.interface'
 import { DocumentType, Gender } from '@/lib/constants'
 
@@ -48,6 +50,60 @@ describe('registration use cases', () => {
       requestId: 'beca-1',
       notificationReceiptId: 'receipt-beca',
     })
+  })
+
+  it('retries only constancia notification after a partial success', async () => {
+    const save = vi.fn().mockResolvedValue({ id: 'student-constancia' })
+    const create = vi.fn().mockResolvedValue('request-constancia')
+    const sendSolicitudCreada = vi.fn()
+      .mockRejectedValueOnce(new AppError({ code: 'EXTERNAL_SERVICE', message: 'Correo no disponible' }))
+      .mockResolvedValueOnce('receipt-constancia')
+    const useCase = new RegisterSolicitudConstanciaUseCase({
+      student: { save },
+      request: { create },
+      notification: { sendSolicitudCreada },
+    })
+
+    await expect(useCase.execute({ solicitud: constanciaDraft() })).resolves.toMatchObject({
+      status: 'saved_notification_failed',
+      requestId: 'request-constancia',
+    })
+    await expect(useCase.retryNotification('request-constancia')).resolves.toBe('receipt-constancia')
+    expect(save).toHaveBeenCalledTimes(1)
+    expect(create).toHaveBeenCalledTimes(1)
+    expect(sendSolicitudCreada).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not notify when constancia creation has no identifier', async () => {
+    const sendSolicitudCreada = vi.fn()
+    const useCase = new RegisterSolicitudConstanciaUseCase({
+      student: { save: vi.fn().mockResolvedValue({ id: 'student-constancia' }) },
+      request: { create: vi.fn().mockResolvedValue(null) },
+      notification: { sendSolicitudCreada },
+    })
+
+    await expect(useCase.execute({ solicitud: constanciaDraft() })).rejects.toMatchObject({
+      code: 'EXTERNAL_SERVICE',
+    })
+    expect(sendSolicitudCreada).not.toHaveBeenCalled()
+  })
+
+  it('rejects an invalid constancia type before calling integrations', async () => {
+    const save = vi.fn()
+    const create = vi.fn()
+    const sendSolicitudCreada = vi.fn()
+    const useCase = new RegisterSolicitudConstanciaUseCase({
+      student: { save },
+      request: { create },
+      notification: { sendSolicitudCreada },
+    })
+
+    await expect(useCase.execute({
+      solicitud: { ...constanciaDraft(), tipoSolicitudId: 1 },
+    })).rejects.toMatchObject({ code: 'VALIDATION' })
+    expect(save).not.toHaveBeenCalled()
+    expect(create).not.toHaveBeenCalled()
+    expect(sendSolicitudCreada).not.toHaveBeenCalled()
   })
 
   it('does not create a location request when the student response is incomplete', async () => {
@@ -124,5 +180,24 @@ function newStudent(): IStudent {
     Telefono: '999888777',
     Celular: '999888777',
     Codigo_programa: 'ING',
+  }
+}
+
+function constanciaDraft(): SolicitudConstanciaDraft {
+  return {
+    email: 'user@example.com',
+    tipoSolicitudId: 5,
+    idiomaId: 2,
+    nivelId: 1,
+    nombres: 'Maria',
+    apellidos: 'Perez',
+    tipoDocumento: 'DNI',
+    numeroDocumento: '12345678',
+    celular: '999888777',
+    alumnoUnac: false,
+    pago: 30,
+    numeroVoucher: '123456789012345',
+    fechaPago: '2026-08-01T00:00:00.000Z',
+    voucherUrl: '/vouchers/fixture.png',
   }
 }

@@ -4,7 +4,7 @@ import React from 'react';
 import Image from 'next/image';
 import { Stepper } from '@/components/stepper';
 import BasicData from '@/modules/solicitud-ubicacion/components/basic-data';
-import FinData from '@/modules/shared/components/fin-data';
+import FinData, { PaymentOption } from '@/modules/shared/components/fin-data';
 import Documentos from '@/modules/shared/components/documentos-step';
 import Register from '@/modules/solicitud-ubicacion/components/register';
 import useSolicitudStore from '@/stores/solicitud.store';
@@ -54,13 +54,17 @@ type Props = {
 };
 
 export default function SolicitudUbicacionProcess({ email, alumno }: Props) {
-  const { setSolicitudField, resetSolicitud } = useSolicitudStore();
+  const { solicitud, setSolicitudField, resetSolicitud } = useSolicitudStore();
   const [activeStep, setActiveStep] = React.useState(0);
   const [precio, setPrecio] = React.useState('0');
   const [bloqueoRep, setBloqueoRep] = React.useState(false);
   const duplicateUseCase = React.useMemo(() => createCheckDuplicateSolicitudUbicacionUseCase(), []);
 
   const steps = React.useMemo(() => buildSteps(alumno), [alumno]);
+  const paymentOptions = React.useMemo<PaymentOption[]>(() => {
+    const amount = Number(precio);
+    return [{ value: String(precio), label: `S/${amount.toFixed(2)} - precio normal` }];
+  }, [precio]);
 
   React.useEffect(() => {
     resetSolicitud();
@@ -150,8 +154,14 @@ export default function SolicitudUbicacionProcess({ email, alumno }: Props) {
                   setActiveStep={setActiveStep}
                   steps={steps}
                   handleNext={handleNext}
-                  precio={precio}
-                  isTrabajador={false}
+                  documentNumber={solicitud.dni ?? ''}
+                  defaultValues={{
+                    pago: String(solicitud.pago ?? '0'),
+                    numero_voucher: solicitud.numero_voucher ?? '',
+                    fecha_pago: solicitud.fecha_pago ? new Date(solicitud.fecha_pago) : undefined,
+                    img_voucher: solicitud.img_voucher ?? '',
+                  }}
+                  paymentOptions={paymentOptions}
                 />
               );
             case 'Documentos':

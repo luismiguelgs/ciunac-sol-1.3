@@ -146,7 +146,8 @@ const server = createServer(async (request, response) => {
       return
     }
     if (scenario.malformedSolicitudResponse) return sendJson(response, 201, {})
-    return sendJson(response, 201, { id: '1001' })
+    const requestId = [5, 6].includes(Number(body?.tipoSolicitudId)) ? '1003' : '1001'
+    return sendJson(response, 201, { id: requestId })
   }
   if (method === 'GET' && /^solicitudes\/\d+$/.test(path)) {
     return sendJson(response, 200, findSolicitud(path.split('/')[1]))

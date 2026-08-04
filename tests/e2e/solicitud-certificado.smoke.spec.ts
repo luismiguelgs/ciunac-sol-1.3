@@ -14,15 +14,21 @@ async function selectOption(page: Page, label: string, option: RegExp) {
 
 async function verifyCertificateEmail(page: Page, request: Parameters<typeof getMockOtp>[0]) {
   await page.goto('/solicitud-certificados')
+  await expect(page.getByRole('heading', { name: 'Tarifario' })).toBeVisible()
+  await expect(page.getByRole('cell', { name: /CERTIFICADO DE ESTUDIOS/i })).toBeVisible()
   await expect(page.locator('[data-e2e-recaptcha="ready"]')).toBeAttached()
-  await page.locator('input[name="email"]').fill('e2e@example.com')
-  await page.getByRole('button', { name: /Comprobar/i }).click()
-  await expect(page.getByText(/Puede solicitar otro c.digo/i)).toBeVisible()
-
   const otp = page.locator('input[data-input-otp]')
+  const verifyButton = page.getByRole('button', { name: /Verificar c.digo y continuar/i })
+  await expect(otp).toBeDisabled()
+  await expect(verifyButton).toBeDisabled()
+  await page.locator('input[name="email"]').fill('e2e@example.com')
+  await page.getByRole('button', { name: /Comprobar correo y enviar c.digo/i }).click()
+  await expect(page.getByText(/C.digo enviado/i)).toBeVisible()
+
   await expect(otp).toBeEnabled()
+  await expect(verifyButton).toBeEnabled()
   await otp.fill(await getMockOtp(request))
-  await page.getByRole('button', { name: /Enviar/i }).click()
+  await verifyButton.click()
   await expect(page).toHaveURL(/\/solicitud-certificados\/proceso$/)
 }
 

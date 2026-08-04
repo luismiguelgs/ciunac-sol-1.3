@@ -1,52 +1,39 @@
-import { z } from "zod";
+import { z } from 'zod'
 
-const msgReq = 'Campo requerido';
+const requiredMessage = 'Campo requerido'
 
-const finInfoSchema = z.object({
-    pago: z.string().min(1, msgReq).trim(),
-    numero_voucher: z.string().trim().optional().nullable(),
-    fecha_pago: z.date().optional().nullable(),
-    img_voucher: z.string().nullable()
+export const finInfoSchema = z.object({
+  pago: z.string().trim().min(1, requiredMessage),
+  numero_voucher: z.string().trim().optional().nullable(),
+  fecha_pago: z.date().optional().nullable(),
+  img_voucher: z.string().trim().optional().nullable(),
 }).superRefine((data, ctx) => {
-    if (data.pago !== '0') {
-        const numeroVoucher = data.numero_voucher?.trim();
+  if (Number(data.pago) <= 0) return
 
-        if (!numeroVoucher) {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: msgReq,
-                path: ['numero_voucher']
-            });
-        } else if (!/^\d+$/.test(numeroVoucher)) {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: 'Ingrese solo números.',
-                path: ['numero_voucher']
-            });
-        } else if (numeroVoucher.length !== 15) {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: 'El número de voucher debe tener exactamente 15 dígitos.',
-                path: ['numero_voucher']
-            });
-        }
-        if (!data.fecha_pago) {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: msgReq,
-                path: ['fecha_pago']
-            });
-        }
-    }
-});
+  const voucherNumber = data.numero_voucher?.trim()
+  if (!voucherNumber) {
+    ctx.addIssue({ code: 'custom', message: requiredMessage, path: ['numero_voucher'] })
+  } else if (!/^\d{15}$/.test(voucherNumber)) {
+    ctx.addIssue({
+      code: 'custom',
+      message: 'El numero de voucher debe tener exactamente 15 digitos.',
+      path: ['numero_voucher'],
+    })
+  }
 
-export type IFinInfoSchema = z.infer<typeof finInfoSchema>;
+  if (!data.fecha_pago) {
+    ctx.addIssue({ code: 'custom', message: requiredMessage, path: ['fecha_pago'] })
+  }
+  if (!data.img_voucher?.trim()) {
+    ctx.addIssue({ code: 'custom', message: 'Debe cargar el voucher de pago.', path: ['img_voucher'] })
+  }
+})
 
-const initialValues:IFinInfoSchema = {
-    pago: '0',
-    numero_voucher: '',
-    fecha_pago: new Date(),
-    img_voucher: ''
-};
+export type IFinInfoSchema = z.infer<typeof finInfoSchema>
 
-export { finInfoSchema, initialValues };
+export const initialValues: IFinInfoSchema = {
+  pago: '0',
+  numero_voucher: '',
+  fecha_pago: new Date(),
+  img_voucher: '',
+}

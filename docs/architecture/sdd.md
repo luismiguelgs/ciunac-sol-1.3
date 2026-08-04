@@ -22,6 +22,7 @@ La vista completa de arquitectura, con diagramas de contexto, contenedores, capa
 
 Quedan dentro del alcance:
 - flujos de solicitud de certificados;
+- solicitud de constancias;
 - solicitud de beca;
 - examen de ubicacion;
 - alumno nuevo;
@@ -88,6 +89,7 @@ Patron ya aplicado en:
 - `modules/solicitud-certificado`
 - `modules/solicitud-beca`
 - `modules/solicitud-ubicacion`
+- `modules/solicitud-constancia`
 
 Infraestructura compartida:
 - `modules/shared/application/errors/app-error.ts`
@@ -104,6 +106,7 @@ Infraestructura compartida:
 Estado compartido y de flujo:
 - `stores/types.stores.ts`: catalogos por sesion.
 - `stores/solicitud.store.ts`: certificados y ubicacion.
+- `modules/solicitud-constancia/presentation/solicitud-constancia.store.ts`: borrador exclusivo de constancias.
 - `modules/solicitud-beca/stores/solicitud-beca.store.ts`: beca.
 - `modules/solicitud-nuevo/stores/student.store.ts`: alumno nuevo.
 
@@ -158,6 +161,7 @@ ADRs vigentes:
 - ADR-005 Definir politica de estado frontend.
 - ADR-006 Separar el flujo de constancias.
 - ADR-007 Introducir BFF seguro, OTP y CAPTCHA server-side.
+- ADR-008 Usar resultados explicitos para operaciones externas.
 
 ## 11. Riesgos y mitigaciones
 - Riesgo: extraer demasiada logica a `shared`.

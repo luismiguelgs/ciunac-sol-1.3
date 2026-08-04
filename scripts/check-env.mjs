@@ -49,4 +49,14 @@ if (isPresent(process.env.NEXT_PUBLIC_API_URL)) {
   process.stdout.write('NEXT_PUBLIC_API_URL: LEGACY_SERVER_ONLY_FALLBACK\n')
 }
 
+if (
+  isPresent(process.env.RECAPTCHA_SECRET_KEY)
+  && process.env.RECAPTCHA_SECRET_KEY === process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+) {
+  process.stdout.write('RECAPTCHA_KEY_PAIR: INVALID_SAME_VALUE\n')
+  failed = true
+} else {
+  process.stdout.write('RECAPTCHA_KEY_PAIR: DISTINCT\n')
+}
+
 if (failed) process.exitCode = 1

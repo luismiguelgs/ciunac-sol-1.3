@@ -79,3 +79,20 @@ El primer intento de build no pudo descargar `Geist` y `Geist Mono` por la restr
 `npm run env:check` continua fallando de manera esperada porque `RECAPTCHA_SECRET_KEY` esta ausente o no es valida. `API_URL`, `API_KEY`, `API_KEY_Q10`, `APP_BASE_URL`, `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` y `OTP_SESSION_SECRET` estan presentes, y `NEXT_PUBLIC_API_KEY` ya no esta configurada. No se mostro ningun valor ni se modifico el `.env` real.
 
 La Fase 1D queda cerrada. La Fase 1E de constancias no se inicio. El riesgo residual principal es que un `2xx` de `mailer` confirma aceptacion HTTP, no entrega SMTP, y el reintento manual no puede garantizar idempotencia sin soporte del backend.
+
+## Resultado de Fase 1E
+
+- Constancias queda implementado como slice independiente para tipos `5` y `6`.
+- Certificados, ubicacion y constancias usan un unico `FinData` y un unico `finInfoSchema`.
+- `npm run lint`: correcto.
+- `npx tsc --noEmit`: correcto.
+- `npm run test:unit`: 30 de 30 pruebas.
+- `npm run test:e2e`: 37 de 37 pruebas funcionales reportadas como aprobadas.
+- `npm run build`: correcto; 21 paginas generadas y rutas de constancias completas.
+- `npm run env:check`: detecta que la secret key y la site key de reCAPTCHA tienen el mismo valor y bloquea el entorno.
+- `npm run security:bundle-check`: confirma aislamiento con una clave efimera distinta, pero rechaza correctamente la configuracion reCAPTCHA local.
+- `git diff --check`: correcto, con advertencias de fin de linea propias de Windows.
+
+El primer build fallo por bloqueo de red al descargar Geist; la repeticion autorizada del mismo comando termino correctamente. Playwright volvio a dejar procesos hijos abiertos en Windows despues de completar todos los escenarios; se detuvieron por PID verificado. No se modifico `.env`; antes de desplegar debe configurarse una `RECAPTCHA_SECRET_KEY` privada distinta de la clave publica.
+
+La Fase 1E queda implementada en codigo. El despliegue permanece bloqueado hasta corregir el par de claves reCAPTCHA; el detalle tecnico se registra en `docs/quality/phase-1e-constancias.md`.

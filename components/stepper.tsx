@@ -64,6 +64,7 @@ interface StepperControlProps {
     disabled?: boolean;
     disabledPrevious?: boolean;
     disabledNext?: boolean;
+    nextLabel?: string;
 }
 
 export function StepperControl({
@@ -74,6 +75,7 @@ export function StepperControl({
     disabled = false,
     disabledPrevious = false,
     disabledNext = false,
+    nextLabel,
 }: StepperControlProps) {
     const handleNext = () => {
         if (type === "button") {
@@ -97,7 +99,7 @@ export function StepperControl({
                 disabled={disabled || disabledNext}
                 type={type}
             >
-                {activeStep === steps.length - 1 ? "Finalizar" : "Siguiente"}
+                {nextLabel ?? (activeStep === steps.length - 1 ? "Finalizar" : "Siguiente")}
             </Button>
         </div>
     )

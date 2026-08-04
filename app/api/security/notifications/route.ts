@@ -14,7 +14,8 @@ import { SecurityError } from '@/modules/security/server/security-error';
 export const runtime = 'nodejs';
 
 const PURPOSES_BY_NOTIFICATION: Record<string, OtpPurpose[]> = {
-  CERTIFICADO: ['CERTIFICADO', 'CONSTANCIA'],
+  CERTIFICADO: ['CERTIFICADO'],
+  CONSTANCIA: ['CONSTANCIA'],
   BECA: ['BECA'],
   UBICACION: ['UBICACION'],
   REGISTER: ['NUEVO'],
@@ -39,7 +40,9 @@ export async function POST(request: NextRequest) {
     await ciunacRequest('mailer', {
       method: 'POST',
       body: {
-        type: input.type,
+        // The external mailer has no CONSTANCIA template yet. Keep that
+        // compatibility detail at the server boundary, not in the feature.
+        type: input.type === 'CONSTANCIA' ? 'CERTIFICADO' : input.type,
         email: session.email,
         user: input.reference,
       },

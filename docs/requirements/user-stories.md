@@ -10,7 +10,7 @@ Como **Usuario solicitante**, quiero registrar una **solicitud de constancia** e
 - El flujo de constancias debe separarse del flujo actual de certificados.
 - El usuario debe verificar su correo antes de iniciar el proceso.
 - El usuario debe ingresar datos personales y academicos.
-- El usuario debe ingresar datos de pago y subir voucher.
+- El usuario debe seleccionar el monto. Cuando es mayor que cero, debe ingresar numero y fecha y subir el voucher.
 - La solicitud debe guardarse en backend.
 - El frontend solicita el correo de confirmacion al BFF; el endpoint externo de correo solo se invoca server-side.
 - El cargo PDF se genera en frontend usando `@react-pdf/renderer`.
@@ -45,7 +45,7 @@ Y solicita al BFF el correo de confirmacion
 ```
 
 ```gherkin
-Dado que falta un dato obligatorio o el voucher de pago
+Dado que falta un dato obligatorio o que un pago mayor que cero no tiene voucher completo
 Cuando el usuario intenta finalizar la solicitud
 Entonces el sistema muestra validaciones
 Y no permite registrar la solicitud

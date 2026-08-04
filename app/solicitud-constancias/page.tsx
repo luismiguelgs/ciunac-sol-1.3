@@ -1,39 +1,43 @@
-import VerificacionEmail from '@/modules/shared/components/verificacion-email-view'
 import FormEmailSolicitud from '@/modules/shared/components/form-email-solicitud'
+import RequestTypesPriceTable from '@/modules/shared/components/request-types-price-table'
+import VerificacionEmail from '@/modules/shared/components/verificacion-email-view'
 import { ITipoSolicitud } from '@/modules/shared/interfaces/types.interface'
-import CertificadosTable from '@/modules/consulta-certificado/components/certificados-table'
 import { ciunacRequest } from '@/modules/security/server/ciunac-client'
 import { externalRecordArraySchema, parseExternalResponse } from '@/modules/shared/infrastructure/validation/external-response'
 
 export const dynamic = 'force-dynamic'
 
-const getCertificates = async (): Promise<ITipoSolicitud[]> => {
-	const res = await ciunacRequest<unknown>('tipossolicitud')
-	if (res === null) return []
-	return parseExternalResponse(externalRecordArraySchema, res, 'La API devolvio tipos de solicitud no validos') as unknown as ITipoSolicitud[]
+async function getConstancias(): Promise<ITipoSolicitud[]> {
+  const response = await ciunacRequest<unknown>('tipossolicitud')
+  if (response === null) return []
+
+  const requestTypes = parseExternalResponse(
+    externalRecordArraySchema,
+    response,
+    'La API devolvio tipos de solicitud no validos',
+  ) as unknown as ITipoSolicitud[]
+
+  return requestTypes.filter((item) => [5, 6].includes(Number(item.id)))
 }
 
 export default async function SolicitudConstanciasPage() {
-	const idsPermitidos: number[] = [5, 6]
-	const tiposSolicitud = await getCertificates()
-	const constancias = tiposSolicitud.filter((item) => idsPermitidos.includes(Number(item.id)))
+  const constancias = await getConstancias()
 
-	return (
-		<div className="p-4">
-			<h2 className="text-2xl font-bold uppercase text-center mb-6">
-				Verificación de correo electrónico
-			</h2>
-
-			<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-				{/* Left Column */}
-				<VerificacionEmail />
-
-				{/* Right Column */}
-				<div className="space-y-4">
-					<FormEmailSolicitud path='solicitud-constancias' purpose="CONSTANCIA" />
-					<CertificadosTable data={constancias} />
-				</div>
-			</div>
-		</div>
-	)
+  return (
+    <div className="p-4">
+      <h2 className="mb-6 text-center text-2xl font-bold uppercase">
+        Verificacion de correo electronico
+      </h2>
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <VerificacionEmail
+          priceTable={(
+            <RequestTypesPriceTable data={constancias} emptyLabel="No hay constancias disponibles." />
+          )}
+        />
+        <div>
+          <FormEmailSolicitud path="solicitud-constancias" purpose="CONSTANCIA" />
+        </div>
+      </div>
+    </div>
+  )
 }

@@ -23,7 +23,7 @@ export const consultationSchema = z.object({
 }).strict();
 
 export const notificationSchema = z.object({
-  type: z.enum(['CERTIFICADO', 'BECA', 'UBICACION', 'REGISTER']),
+  type: z.enum(['CERTIFICADO', 'CONSTANCIA', 'BECA', 'UBICACION', 'REGISTER']),
   reference: z.string().trim().min(1).max(80),
 }).strict();
 
