@@ -1,104 +1,79 @@
 'use client'
 
-import React from 'react';
-import { Stepper } from '@/components/stepper';
-import useSolicitudBecaStore from '@/modules/solicitud-beca/stores/solicitud-beca.store';
-import useFacultades from '@/hooks/useFacultades';
-import useEscuelas from '@/hooks/useEscuelas';
-import BasicData from '@/modules/solicitud-beca/components/basic-data';
-import Documents from '@/modules/solicitud-beca/components/documents';
-import Register from '@/modules/solicitud-beca/components/register';
-import { IBasicInfoSchema } from '@/modules/solicitud-beca/schemas/basic-data.schema';
-import { DocumentsFormValues } from '@/modules/solicitud-beca/schemas/documents.schema';
-import { SolicitudBecaStep, SolicitudBecaStepPayload } from '@/modules/solicitud-beca/presentation/view-models/solicitud-beca-process.view-model';
+import React from 'react'
+import { toast } from 'sonner'
+import { Stepper } from '@/components/stepper'
+import { normalizeAppError } from '@/modules/shared/application/errors/app-error'
+import { ScholarshipCatalogs } from '@/modules/solicitud-beca/domain/solicitud-beca'
+import { IBasicInfoSchema } from '@/modules/solicitud-beca/schemas/basic-data.schema'
+import { DocumentsFormValues } from '@/modules/solicitud-beca/schemas/documents.schema'
+import {
+  toScholarshipBasicData,
+  toScholarshipDocuments,
+} from '@/modules/solicitud-beca/presentation/scholarship-form.mapper'
+import useSolicitudBecaStore from '@/modules/solicitud-beca/presentation/solicitud-beca.store'
+import BasicData from '@/modules/solicitud-beca/presentation/components/basic-data'
+import Documents from '@/modules/solicitud-beca/presentation/components/documents'
+import Register from '@/modules/solicitud-beca/presentation/components/register'
 
-function isBasicInfoSchema(value: SolicitudBecaStepPayload): value is IBasicInfoSchema {
-  return 'apellidos' in value && 'nombres' in value && 'dni' in value;
+const STEPS = ['Solicitud de Beca', 'Documentos Adjuntos', 'Registro']
+
+type Props = {
+  email: string
+  catalogs: ScholarshipCatalogs
 }
 
-function isDocumentsFormValues(value: SolicitudBecaStepPayload): value is DocumentsFormValues {
-  return 'constancia_matricula' in value && 'historial_academico' in value && 'carta_compromiso' in value;
-}
-
-export default function SolicitudBecaProcess({ email }: { email: string }) {
-  const facultades = useFacultades();
-  const escuelas = useEscuelas();
-  const [activeStep, setActiveStep] = React.useState(0);
-  const { setSolicitudField, resetSolicitud } = useSolicitudBecaStore();
-
-  const steps = React.useMemo<SolicitudBecaStep[]>(
-    () => ['Solicitud de Beca', 'Documentos Adjuntos', 'Registro'],
-    []
-  );
+export default function SolicitudBecaProcess({ email, catalogs }: Props) {
+  const workflow = useSolicitudBecaStore((state) => state.workflow)
+  const initialize = useSolicitudBecaStore((state) => state.initialize)
+  const completeBasicData = useSolicitudBecaStore((state) => state.completeBasicData)
+  const completeDocuments = useSolicitudBecaStore((state) => state.completeDocuments)
+  const [activeStep, setActiveStep] = React.useState(0)
 
   React.useEffect(() => {
-    resetSolicitud();
-    setActiveStep(0);
-  }, [email, resetSolicitud]);
+    initialize(email)
+    setActiveStep(0)
+  }, [email, initialize])
 
-  const handleNext = React.useCallback(
-    (values: SolicitudBecaStepPayload) => {
-      switch (steps[activeStep]) {
-        case 'Solicitud de Beca':
-          if (isBasicInfoSchema(values)) {
-            const facultadName = facultades?.find((f) => String(f.id) === values.facultad)?.nombre || '';
-            const escuelaName = escuelas?.find((e) => String(e.id) === values.escuela)?.nombre || '';
+  const handleBasicData = (values: IBasicInfoSchema) => {
+    try {
+      completeBasicData(toScholarshipBasicData(values, catalogs))
+      setActiveStep(1)
+    } catch (error) {
+      toast.error(normalizeAppError(error, 'Los datos académicos no son válidos.').message)
+    }
+  }
 
-            setSolicitudField('email', email);
-            setSolicitudField('apellidos', values.apellidos);
-            setSolicitudField('nombres', values.nombres);
-            setSolicitudField('facultad', facultadName);
-            setSolicitudField('facultadId', values.facultad);
-            setSolicitudField('escuela', escuelaName);
-            setSolicitudField('escuelaId', values.escuela);
-            setSolicitudField('direccion', values.direccion);
-            setSolicitudField('codigo', values.codigo);
-            setSolicitudField('telefono', values.celular);
-            setSolicitudField('tipo_documento', values.tipo_documento);
-            setSolicitudField('numero_documento', values.dni);
-          }
-          break;
-        case 'Documentos Adjuntos':
-          if (isDocumentsFormValues(values)) {
-            setSolicitudField('constancia_matricula', values.constancia_matricula);
-            setSolicitudField('historial_academico', values.historial_academico);
-            setSolicitudField('contancia_tercio', values.constancia_tercio);
-            setSolicitudField('carta_de_compromiso', values.carta_compromiso);
-            setSolicitudField('declaracion_jurada', values.declaracion_jurada);
-          }
-          break;
-        default:
-          break;
-      }
-
-      if (activeStep < steps.length - 1) {
-        setActiveStep((prevActiveStep) => prevActiveStep + 1);
-      }
-    },
-    [activeStep, email, escuelas, facultades, setSolicitudField, steps]
-  );
+  const handleDocuments = (values: DocumentsFormValues) => {
+    try {
+      completeDocuments(toScholarshipDocuments(values))
+      setActiveStep(2)
+    } catch (error) {
+      toast.error(normalizeAppError(error, 'Los documentos adjuntos no son válidos.').message)
+    }
+  }
 
   return (
     <div className="flex items-center justify-center">
-      <Stepper steps={steps} activeStep={activeStep}>
+      <Stepper steps={STEPS} activeStep={activeStep}>
         <BasicData
           activeStep={activeStep}
+          steps={STEPS}
+          catalogs={catalogs}
+          defaultData={workflow.draft.basicData}
           setActiveStep={setActiveStep}
-          handleNext={handleNext}
-          steps={steps}
+          handleNext={handleBasicData}
         />
         <Documents
           activeStep={activeStep}
+          steps={STEPS}
+          documentNumber={workflow.draft.basicData?.documentNumber ?? ''}
+          defaultDocuments={workflow.draft.documents}
           setActiveStep={setActiveStep}
-          handleNext={handleNext}
-          steps={steps}
+          handleNext={handleDocuments}
         />
-        <Register
-          activeStep={activeStep}
-          setActiveStep={setActiveStep}
-          steps={steps}
-        />
+        <Register activeStep={activeStep} steps={STEPS} setActiveStep={setActiveStep} />
       </Stepper>
     </div>
-  );
+  )
 }

@@ -1,5 +1,6 @@
 import Image from 'next/image'
-import { AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { notFound } from 'next/navigation'
+import { CheckCircle2 } from 'lucide-react'
 import NotificationResult from '@/modules/shared/components/notification-result'
 import { readNotificationReceipt } from '@/modules/security/server/session'
 import DescargaCargo from '@/modules/solicitud-constancia/presentation/components/descarga-cargo'
@@ -13,15 +14,7 @@ export default async function FinalizarConstanciaPage({ searchParams }: PageProp
   const { id, receipt: receiptId } = await searchParams
   const solicitudId = Number(id)
   const validId = Number.isFinite(solicitudId) && solicitudId > 0 ? solicitudId : null
-  if (!validId) {
-    return (
-      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center">
-        <AlertTriangle className="h-16 w-16 text-amber-500" />
-        <h1 className="text-2xl font-bold">No se pudo identificar la solicitud</h1>
-        <p className="max-w-lg text-muted-foreground">Regrese al flujo de constancias y verifique el estado antes de intentar nuevamente.</p>
-      </div>
-    )
-  }
+  if (!validId) notFound()
 
   const receipt = await readNotificationReceipt(receiptId, 'CONSTANCIA', String(validId))
 

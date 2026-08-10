@@ -1,25 +1,29 @@
-import EstudiantesService, { IEstudianteFormDTO } from '@/services/estudiantes.service';
-import IEstudiante from '@/modules/shared/interfaces/estudiante.interface';
-import Isolicitud from '@/modules/shared/interfaces/solicitud.interface';
-import { AppError, normalizeAppError } from '@/modules/shared/application/errors/app-error';
-import { StudentUbicacionGateway } from '@/modules/solicitud-ubicacion/application/ports/register-solicitud-ubicacion.ports';
+import { normalizeAppError } from '@/modules/shared/application/errors/app-error'
+import { resourceApiRepository } from '@/modules/shared/infrastructure/api/resource-api.repository'
+import { parseExternalResponse } from '@/modules/shared/infrastructure/validation/external-response'
+import { StudentUbicacionGateway } from '@/modules/solicitud-ubicacion/application/ports/register-solicitud-ubicacion.ports'
+import { SolicitudUbicacion } from '@/modules/solicitud-ubicacion/domain/solicitud-ubicacion'
+import { LocationStudentRequestDto } from '@/modules/solicitud-ubicacion/infrastructure/dto/location-api.dto'
+import { toLocationStudentRequestDto } from '@/modules/solicitud-ubicacion/infrastructure/mappers/location-api.mapper'
+import { locationStudentResponseSchema } from '@/modules/solicitud-ubicacion/infrastructure/validation/location-api.schemas'
 
 export class StudentUbicacionApiGateway implements StudentUbicacionGateway {
-  async saveFromSolicitud(solicitud: Isolicitud): Promise<IEstudiante> {
+  async save(solicitud: SolicitudUbicacion): Promise<string> {
     try {
-      if (solicitud.estudianteId) {
-        return await EstudiantesService.updateItem(solicitud.estudianteId, solicitud as unknown as IEstudianteFormDTO);
-      }
-
-      return await EstudiantesService.newItem(solicitud as unknown as IEstudianteFormDTO);
+      const body = toLocationStudentRequestDto(solicitud)
+      const response = solicitud.basicData.existingStudentId
+        ? await resourceApiRepository.update<unknown, LocationStudentRequestDto>(
+            `estudiantes/${solicitud.basicData.existingStudentId}`,
+            body,
+          )
+        : await resourceApiRepository.create<unknown, LocationStudentRequestDto>('estudiantes', body)
+      return parseExternalResponse(
+        locationStudentResponseSchema,
+        response,
+        'No se pudo confirmar el identificador del estudiante.',
+      ).id
     } catch (error) {
-      const appError = normalizeAppError(error, 'No se pudo guardar la informacion del estudiante');
-      throw new AppError({
-        code: 'EXTERNAL_SERVICE',
-        message: appError.message,
-        status: appError.status,
-        cause: error,
-      });
+      throw normalizeAppError(error, 'No se pudo guardar la informacion del estudiante')
     }
   }
 }

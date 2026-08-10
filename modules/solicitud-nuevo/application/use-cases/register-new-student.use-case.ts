@@ -1,13 +1,14 @@
 import { AppError, normalizeAppError } from '@/modules/shared/application/errors/app-error';
-import IStudent from '@/modules/solicitud-nuevo/interfaces/student.interface';
+import { RegisterNewStudentCommand } from '@/modules/solicitud-nuevo/application/commands/register-new-student.command'
 import {
   NewStudentGateway,
   NewStudentNotificationGateway,
 } from '@/modules/solicitud-nuevo/application/ports/register-new-student.ports';
+import { parseNewStudent } from '@/modules/solicitud-nuevo/schemas/new-student.schema'
 
 export type RegisterNewStudentOutcome =
-  | { status: 'completed'; notificationReceiptId: string }
-  | { status: 'saved_notification_failed'; error: AppError };
+  | { status: 'completed'; documentNumber: string; notificationReceiptId: string }
+  | { status: 'saved_notification_failed'; documentNumber: string; error: AppError };
 
 type Dependencies = {
   studentGateway: NewStudentGateway;
@@ -17,44 +18,31 @@ type Dependencies = {
 export class RegisterNewStudentUseCase {
   constructor(private readonly dependencies: Dependencies) {}
 
-  async execute(student: IStudent): Promise<RegisterNewStudentOutcome> {
-    const normalizedStudent = normalizeStudent(student);
-    const saveResult = await this.dependencies.studentGateway.register(normalizedStudent);
-
-    if (!saveResult.ok) throw saveResult.error;
-    if (saveResult.kind === 'data' && !isRecord(saveResult.data)) {
-      throw new AppError({
-        code: 'EXTERNAL_SERVICE',
-        message: 'Q10 devolvio una respuesta no valida. No vuelva a registrar al estudiante.',
-      });
-    }
+  async execute({ student }: RegisterNewStudentCommand): Promise<RegisterNewStudentOutcome> {
+    const validStudent = parseNewStudent(student)
+    await this.dependencies.studentGateway.register(validStudent)
+    const documentNumber = validStudent.document.number
 
     try {
-      const notificationReceiptId = await this.retryNotification(normalizedStudent);
-      return { status: 'completed', notificationReceiptId };
+      const notificationReceiptId = await this.retryNotification(documentNumber)
+      return { status: 'completed', documentNumber, notificationReceiptId };
     } catch (error) {
       return {
         status: 'saved_notification_failed',
+        documentNumber,
         error: normalizeAppError(error, 'El estudiante se guardo, pero no se pudo procesar el correo.'),
       };
     }
   }
 
-  retryNotification(student: IStudent): Promise<string> {
-    return this.dependencies.notificationGateway.sendRegistration(normalizeStudent(student));
+  retryNotification(documentNumber: string): Promise<string> {
+    if (!/^[A-Za-z0-9]{8,9}$/.test(documentNumber)) {
+      throw new AppError({
+        code: 'VALIDATION',
+        status: 400,
+        message: 'La referencia del estudiante no es valida.',
+      })
+    }
+    return this.dependencies.notificationGateway.sendRegistration(documentNumber)
   }
-}
-
-function normalizeStudent(student: IStudent): IStudent {
-  return {
-    ...student,
-    Primer_apellido: student.Primer_apellido.toLocaleUpperCase(),
-    Segundo_apellido: student.Segundo_apellido.toLocaleUpperCase(),
-    Primer_nombre: student.Primer_nombre.toLocaleUpperCase(),
-    Segundo_nombre: student.Segundo_nombre?.toLocaleUpperCase() || undefined,
-  };
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

@@ -1,5 +1,6 @@
 import { AppError } from '@/modules/shared/application/errors/app-error';
 import { ConsultationType, NotificationType, OtpPurpose } from '@/modules/security/domain/security.types';
+import { consultationCheckResponseSchema } from '@/modules/consultas/infrastructure/validation/consultation.schemas';
 
 type ErrorPayload = {
   error?: {
@@ -66,11 +67,19 @@ export function verifyOtp(email: string, purpose: OtpPurpose, code: string) {
   );
 }
 
-export function consultByDocument(documento: string, type: ConsultationType, captchaToken: string) {
-  return postSecurity<{ ok: true; found: boolean }, { documento: string; type: ConsultationType; captchaToken: string }>(
+export async function consultByDocument(documento: string, type: ConsultationType, captchaToken: string) {
+  const response = await postSecurity<unknown, { documento: string; type: ConsultationType; captchaToken: string }>(
     '/api/security/consulta',
     { documento, type, captchaToken },
   );
+  const result = consultationCheckResponseSchema.safeParse(response);
+  if (!result.success) {
+    throw new AppError({
+      code: 'EXTERNAL_SERVICE',
+      message: 'El servicio de consulta devolvio una respuesta no valida.',
+    });
+  }
+  return result.data;
 }
 
 export function sendSecureNotification(type: NotificationType, reference: string) {

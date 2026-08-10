@@ -1,8 +1,8 @@
 import React from 'react'
 import { Document, Image as PdfImage, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
 import logoCiunac from '@/assets/logo-ciunac-trans.png'
-import { ISolicitudRes } from '@/modules/shared/interfaces/solicitud.interface'
 import { ITexto } from '@/modules/shared/interfaces/types.interface'
+import { ConstanciaCargo } from '@/modules/solicitud-constancia/domain/solicitud-constancia'
 
 const A4_PAGE_SIZE: [number, number] = [595.28, 841.89]
 
@@ -21,7 +21,7 @@ const styles = StyleSheet.create({
 
 type Props = {
   textos: ITexto[]
-  solicitud: ISolicitudRes
+  solicitud: ConstanciaCargo
 }
 
 export default function ConstanciaCargoPdf({ textos, solicitud }: Props) {
@@ -38,16 +38,16 @@ export default function ConstanciaCargoPdf({ textos, solicitud }: Props) {
         <Text style={styles.text}>SE HA COMPLETADO EL PROCEDIMIENTO</Text>
         <Text style={styles.text}>{getText(textos, 'TEXTO_1_FINAL')}</Text>
         <View style={styles.dataBlock}>
-          <Text style={styles.data}>{`Tipo de constancia: ${upper(solicitud.tiposSolicitud?.solicitud)}`}</Text>
-          <Text style={styles.data}>{`Fecha de ingreso: ${solicitud.creadoEn ?? ''}`}</Text>
-          <Text style={styles.data}>{`Apellidos: ${upper(solicitud.estudiante?.apellidos)}`}</Text>
-          <Text style={styles.data}>{`Nombres: ${upper(solicitud.estudiante?.nombres)}`}</Text>
-          <Text style={styles.data}>{`Documento: ${upper(solicitud.estudiante?.numeroDocumento)}`}</Text>
-          <Text style={styles.data}>{`Idioma: ${upper(solicitud.idioma?.nombre)}`}</Text>
-          <Text style={styles.data}>{`Nivel: ${upper(solicitud.nivel?.nombre)}`}</Text>
-          <Text style={styles.data}>{`Pago: S/${solicitud.pago ?? ''}`}</Text>
-          <Text style={styles.data}>{`Numero de voucher: ${solicitud.numeroVoucher ?? 'No aplica'}`}</Text>
-          {solicitud.fechaPago ? <Text style={styles.data}>{`Fecha de pago: ${solicitud.fechaPago}`}</Text> : null}
+          <Text style={styles.data}>{`Tipo de constancia: ${upper(solicitud.typeName)}`}</Text>
+          <Text style={styles.data}>{`Fecha de ingreso: ${solicitud.createdAt}`}</Text>
+          <Text style={styles.data}>{`Apellidos: ${upper(solicitud.student.lastNames)}`}</Text>
+          <Text style={styles.data}>{`Nombres: ${upper(solicitud.student.names)}`}</Text>
+          <Text style={styles.data}>{`Documento: ${upper(solicitud.student.documentNumber)}`}</Text>
+          <Text style={styles.data}>{`Idioma: ${upper(solicitud.languageName)}`}</Text>
+          <Text style={styles.data}>{`Nivel: ${upper(solicitud.levelName)}`}</Text>
+          <Text style={styles.data}>{`Pago: S/${solicitud.amount}`}</Text>
+          <Text style={styles.data}>{`Numero de voucher: ${solicitud.voucherNumber ?? 'No aplica'}`}</Text>
+          {solicitud.paidAt ? <Text style={styles.data}>{`Fecha de pago: ${solicitud.paidAt}`}</Text> : null}
         </View>
         <Text style={styles.text}>Plazo de entrega: 07 dias habiles</Text>
         <Text style={styles.text}>{getText(textos, 'TEXTO_1_DISCLAMER')}</Text>
@@ -61,6 +61,6 @@ function getText(textos: ITexto[], code: string) {
   return textos.find((item) => item.codigo === code)?.contenido ?? ''
 }
 
-function upper(value: string | undefined) {
-  return value?.toLocaleUpperCase() ?? ''
+function upper(value: string) {
+  return value.toLocaleUpperCase()
 }

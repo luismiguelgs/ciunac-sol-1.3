@@ -93,6 +93,13 @@ const server = createServer(async (request, response) => {
     return
   }
 
+  if (path === '__test/q10-programs') {
+    if (scenario.q10ProgramsError) return sendJson(response, 503, { internal: 'hidden Q10 catalog failure' })
+    if (scenario.emptyQ10Programs) return sendJson(response, 200, [])
+    if (scenario.malformedQ10Programs) return sendJson(response, 200, [{ Codigo: 'INVALID' }])
+    return sendJson(response, 200, fixture.q10Programs)
+  }
+
   const rawBody = await readBody(request)
   const contentType = request.headers['content-type'] ?? ''
   let body = null
@@ -110,34 +117,102 @@ const server = createServer(async (request, response) => {
     hasApiKey: typeof request.headers['x-api-key'] === 'string',
   })
 
-  if (method === 'GET' && path === 'tipossolicitud') return sendJson(response, 200, fixture.tiposSolicitud)
-  if (method === 'GET' && path === 'idiomas') return sendJson(response, 200, fixture.idiomas)
-  if (method === 'GET' && path === 'facultades') return sendJson(response, 200, fixture.facultades)
-  if (method === 'GET' && path === 'escuelas') return sendJson(response, 200, fixture.escuelas)
-  if (method === 'GET' && path === 'textos') return sendJson(response, 200, fixture.textos)
-  if (method === 'GET' && path === 'ciclos') return sendJson(response, 200, fixture.ciclos)
+  if (method === 'GET' && path === 'tipossolicitud') {
+    if (scenario.locationCatalogError) return sendJson(response, 503, { internal: 'hidden location catalog failure' })
+    if (scenario.emptyLocationCatalogs) return sendJson(response, 200, fixture.tiposSolicitud.filter((item) => item.id !== 7))
+    if (scenario.malformedLocationCatalogs) {
+      return sendJson(response, 200, fixture.tiposSolicitud.map((item) => item.id === 7 ? { id: 7, solicitud: '' } : item))
+    }
+    if (scenario.locationPriceMismatch) {
+      return sendJson(response, 200, fixture.tiposSolicitud.map((item) => item.id === 7 ? { ...item, precio: 80 } : item))
+    }
+    if (scenario.certificateCatalogError) return sendJson(response, 503, { internal: 'hidden certificate catalog failure' })
+    if (scenario.emptyCertificateCatalogs) return sendJson(response, 200, [])
+    if (scenario.malformedCertificateCatalogs) return sendJson(response, 200, [{ id: 1, solicitud: '' }])
+    return sendJson(response, 200, fixture.tiposSolicitud)
+  }
+  if (method === 'GET' && path === 'idiomas') {
+    if (scenario.certificateCatalogError) return sendJson(response, 503, { internal: 'hidden certificate catalog failure' })
+    if (scenario.emptyCertificateCatalogs) return sendJson(response, 200, [])
+    if (scenario.malformedCertificateCatalogs) return sendJson(response, 200, [{ id: 2 }])
+    return sendJson(response, 200, fixture.idiomas)
+  }
+  if (method === 'GET' && path === 'facultades') {
+    if (scenario.scholarshipCatalogError) return sendJson(response, 503, { internal: 'hidden catalog failure' })
+    if (scenario.emptyScholarshipCatalogs) return sendJson(response, 200, [])
+    if (scenario.malformedScholarshipCatalogs) return sendJson(response, 200, [{ nombre: 'Incompleta' }])
+    return sendJson(response, 200, fixture.facultades)
+  }
+  if (method === 'GET' && path === 'escuelas') {
+    if (scenario.scholarshipCatalogError) return sendJson(response, 503, { internal: 'hidden catalog failure' })
+    if (scenario.emptyScholarshipCatalogs) return sendJson(response, 200, [])
+    if (scenario.malformedScholarshipCatalogs) return sendJson(response, 200, [{ id: 1 }])
+    return sendJson(response, 200, fixture.escuelas)
+  }
+  if (method === 'GET' && path === 'textos') {
+    if (scenario.textsError) return sendJson(response, 503, { internal: 'hidden text provider failure' })
+    if (scenario.emptyCertificateCatalogs) return sendJson(response, 200, [])
+    if (scenario.malformedCertificateCatalogs) return sendJson(response, 200, [{ codigo: 'TEXTO_NOMBREAN' }])
+    return sendJson(response, 200, fixture.textos)
+  }
+  if (method === 'GET' && path === 'ciclos') {
+    if (scenario.locationMissingCycle) return sendJson(response, 200, [])
+    return sendJson(response, 200, fixture.ciclos)
+  }
   if (method === 'GET' && path === 'salones') return sendJson(response, 200, [])
   if (method === 'GET' && path === 'cronogramaubicacion') return sendJson(response, 200, fixture.cronogramas)
-  if (method === 'GET' && path === 'examenesubicacion') return sendJson(response, 200, fixture.examenes)
+  if (method === 'GET' && path === 'examenesubicacion') {
+    if (scenario.locationMissingExam) return sendJson(response, 200, [])
+    return sendJson(response, 200, fixture.examenes)
+  }
   if (method === 'GET' && path.startsWith('detallesubicacion/estudiante/documento/')) {
     if (scenario.locationDetailsError) return sendJson(response, 503, { internal: 'hidden provider failure' })
+    if (scenario.emptyLocationDetails) return sendJson(response, 200, [])
+    if (scenario.malformedLocationDetails) return sendJson(response, 200, [{ id: 601 }])
+    if (scenario.foreignLocationDetails) {
+      return sendJson(response, 200, fixture.detallesUbicacion.map((item) => ({
+        ...item,
+        estudiante: { ...fixture.estudiante, numeroDocumento: '87654321' },
+      })))
+    }
     return sendJson(response, 200, fixture.detallesUbicacion)
   }
 
   if (method === 'GET' && path.startsWith('estudiantes/buscar/')) {
+    if (scenario.studentLookupError) return sendJson(response, 503, { internal: 'hidden student lookup failure' })
+    if (scenario.studentNotFound) return sendJson(response, 404, { error: 'not found' })
+    if (scenario.malformedStudentLookup) return sendJson(response, 200, { id: 'student-e2e' })
     return sendJson(response, 200, fixture.estudiante)
   }
   if (method === 'POST' && path === 'estudiantes') {
+    if (scenario.emptyStudentResponse) {
+      response.writeHead(204, corsHeaders())
+      response.end()
+      return
+    }
+    if (scenario.malformedStudentResponse) return sendJson(response, 201, {})
     return sendJson(response, 201, fixture.estudiante)
   }
   if (method === 'PATCH' && path.startsWith('estudiantes/')) {
+    if (scenario.malformedStudentResponse) return sendJson(response, 200, {})
     return sendJson(response, 200, fixture.estudiante)
   }
 
   if (method === 'GET' && path.startsWith('solicitudes/documento/')) {
     documentRequestReads += 1
     if (scenario.emptyRequestsAfterFirst && documentRequestReads > 1) return sendJson(response, 200, [])
-    return sendJson(response, 200, fixture.solicitudes)
+    if (scenario.malformedRequestsAfterFirst && documentRequestReads > 1) return sendJson(response, 200, [{ id: 1001 }])
+    let requestsResponse = scenario.readyDigitalCertificate
+      ? fixture.solicitudes.map((item) => item.id === 1001
+        ? { ...item, estadoId: 3, digital: true, estado: { id: 3, nombre: 'PARA RECOGER', referencia: 'LISTO' } }
+        : item)
+      : fixture.solicitudes
+    if (scenario.duplicateLocationRequest) {
+      requestsResponse = requestsResponse.map((item) => item.id === 1002
+        ? { ...item, estadoId: 1, estado: { id: 1, nombre: 'NUEVO', referencia: 'REGISTRADO' } }
+        : item)
+    }
+    return sendJson(response, 200, requestsResponse)
   }
   if (method === 'POST' && path === 'solicitudes') {
     if (scenario.emptySolicitudResponse) {
@@ -146,13 +221,24 @@ const server = createServer(async (request, response) => {
       return
     }
     if (scenario.malformedSolicitudResponse) return sendJson(response, 201, {})
-    const requestId = [5, 6].includes(Number(body?.tipoSolicitudId)) ? '1003' : '1001'
+    const requestTypeId = Number(body?.tipoSolicitudId)
+    const requestId = requestTypeId === 7 ? '1002' : [5, 6].includes(requestTypeId) ? '1003' : '1001'
     return sendJson(response, 201, { id: requestId })
   }
   if (method === 'GET' && /^solicitudes\/\d+$/.test(path)) {
+    if (scenario.certificateCargoError) return sendJson(response, 503, { internal: 'hidden cargo failure' })
+    if (scenario.certificateCargoNotFound) return sendJson(response, 404, { error: 'not found' })
+    if (scenario.malformedCertificateCargo) return sendJson(response, 200, { id: Number(path.split('/')[1]) })
     return sendJson(response, 200, findSolicitud(path.split('/')[1]))
   }
   if (method === 'POST' && path === 'solicitudbecas') {
+    if (scenario.scholarshipError) return sendJson(response, 503, { internal: 'hidden scholarship failure' })
+    if (scenario.emptyScholarshipResponse) {
+      response.writeHead(204, corsHeaders())
+      response.end()
+      return
+    }
+    if (scenario.malformedScholarshipResponse) return sendJson(response, 201, {})
     return sendJson(response, 201, { _id: 'BECA-E2E' })
   }
 
@@ -160,6 +246,16 @@ const server = createServer(async (request, response) => {
     return sendJson(response, 200, fixture.certificado)
   }
   if (method === 'GET' && path.startsWith('certificados/')) {
+    if (scenario.certificateNotFound) return sendJson(response, 404, { error: 'not found' })
+    if (scenario.emptyCertificateResponse) {
+      response.writeHead(204, corsHeaders())
+      response.end()
+      return
+    }
+    if (scenario.malformedCertificate) return sendJson(response, 200, { _id: fixture.certificado._id, notas: [] })
+    if (scenario.certificateOwnerMismatch) {
+      return sendJson(response, 200, { ...fixture.certificado, numeroDocumento: '87654321' })
+    }
     if (scenario.certificateWithoutNotes) return sendJson(response, 200, { ...fixture.certificado, notas: [] })
     return sendJson(response, 200, fixture.certificado)
   }
@@ -192,6 +288,13 @@ const server = createServer(async (request, response) => {
     })
   }
   if (method === 'POST' && path === 'q10/estudiantes') {
+    if (scenario.q10RegistrationError) return sendJson(response, 503, { internal: 'hidden Q10 registration failure' })
+    if (scenario.emptyQ10RegistrationResponse) {
+      response.writeHead(204, corsHeaders())
+      response.end()
+      return
+    }
+    if (scenario.malformedQ10RegistrationResponse) return sendJson(response, 201, ['invalid'])
     return sendJson(response, 201, fixture.estudiante)
   }
 

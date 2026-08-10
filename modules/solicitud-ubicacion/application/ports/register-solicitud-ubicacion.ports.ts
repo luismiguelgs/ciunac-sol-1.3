@@ -1,15 +1,15 @@
-import IEstudiante from '@/modules/shared/interfaces/estudiante.interface';
-import Isolicitud, { ISolicitudRes } from '@/modules/shared/interfaces/solicitud.interface';
+import { SolicitudUbicacion } from '@/modules/solicitud-ubicacion/domain/solicitud-ubicacion'
+import { LocationDuplicateResponseDto } from '@/modules/solicitud-ubicacion/infrastructure/dto/location-api.dto'
 
 export interface StudentUbicacionGateway {
-  saveFromSolicitud(solicitud: Isolicitud): Promise<IEstudiante>;
+  save(solicitud: SolicitudUbicacion): Promise<string>
 }
 
 export interface SolicitudUbicacionGateway {
-  create(solicitud: Isolicitud): Promise<string | null>;
-  searchByDni(dni: string): Promise<ISolicitudRes[]>;
+  create(solicitud: SolicitudUbicacion, studentId: string): Promise<string>
+  searchByDocument(documentNumber: string): Promise<LocationDuplicateResponseDto[]>
 }
 
 export interface SolicitudUbicacionNotificationGateway {
-  sendSolicitudCreada(email: string, requestId: string): Promise<string>;
+  sendSolicitudCreada(requestId: string): Promise<string>
 }

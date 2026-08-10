@@ -1,106 +1,19 @@
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
-import { User } from "lucide-react"
-import Copyright from "@/modules/shared/components/copyright"
-import UbicacionDetalle from "@/modules/consulta-ubicacion/components/ubicacion-detalle"
-import { GraduationCap } from "lucide-react"
-import { redirect } from 'next/navigation'
-import { ISolicitudRes } from '@/modules/shared/interfaces/solicitud.interface'
-import { ciunacRequest } from '@/modules/security/server/ciunac-client'
+import { notFound, redirect } from 'next/navigation'
+import { createGetLocationConsultationUseCase } from '@/modules/consulta-ubicacion/infrastructure/server/create-get-location-consultation'
+import LocationConsultationView from '@/modules/consulta-ubicacion/presentation/components/location-consultation-view'
 import { readConsultationSession } from '@/modules/security/server/session'
-import EmptyState from '@/modules/shared/components/empty-state'
-import { externalRecordArraySchema, parseExternalResponse } from '@/modules/shared/infrastructure/validation/external-response'
 
-interface PageProps {
-    params: Promise<{ 
-        dni: string 
-    }>
+type PageProps = {
+  params: Promise<{ dni: string }>
 }
 
-function normalizeText(value: string) {
-    return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase()
-}
+export default async function LocationDetailPage({ params }: PageProps) {
+  const { dni } = await params
+  const consultationSession = await readConsultationSession('EXAMEN', dni)
+  if (!consultationSession) redirect('/consulta-ubicacion')
 
-export default async function UbicationDetailPage({ params }: PageProps)
-{
-    const { dni } = await params
-    const consultation = await readConsultationSession('EXAMEN', dni)
-    if (!consultation) redirect('/consulta-ubicacion')
+  const consultation = await createGetLocationConsultationUseCase().execute(dni)
+  if (!consultation) notFound()
 
-    const response = await ciunacRequest<unknown>(`solicitudes/documento/${dni}`)
-    const solicitudes = response === null
-        ? []
-        : parseExternalResponse(externalRecordArraySchema, response, 'La API devolvio solicitudes no validas') as unknown as ISolicitudRes[]
-    const solicitud = solicitudes.find((item) =>
-        normalizeText(item.tiposSolicitud?.solicitud ?? '').includes('UBICACION')
-    )
-    if (!solicitud) {
-        return (
-            <main className="flex min-h-screen items-center justify-center p-4">
-                <EmptyState
-                    title="Solicitud de ubicacion no disponible"
-                    description="No se encontro una solicitud de examen de ubicacion para el documento consultado."
-                    href="/consulta-ubicacion"
-                    actionLabel="Realizar otra consulta"
-                />
-            </main>
-        )
-    }
-
-    const nombres = solicitud.estudiante?.nombres ?? ''
-    const apellidos = solicitud.estudiante?.apellidos ?? ''
-    const solicitudId = solicitud.id
-
-    return (
-        <main className="container mx-auto p-6 space-y-6">
-            <h1 className="text-3xl font-bold text-primary">
-                Detalle de Ubicación y Notas
-            </h1>
-
-            {/* Student Information */}
-            <Card className="shadow-lg">
-                <CardContent className="p-6">
-                    <div className="flex items-center gap-2 mb-4">
-                        <User className="h-6 w-6 text-primary" />
-                        <h2 className="text-2xl font-semibold">
-                            Datos del Alumno
-                        </h2>
-                    </div>
-                    <Separator className="mb-4" />
-                    <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
-                        <div className="space-y-1 p-3">
-                            <p className="text-sm md:text-base">
-                                <span className="font-semibold">Nombre del Alumno: </span>
-                                {`${nombres.toLocaleUpperCase().trim()} ${apellidos.toLocaleUpperCase().trim()}`}
-                            </p>
-                            <p className="text-sm md:text-base">
-                                <span className="font-semibold">DNI: </span>
-                                {dni}
-                            </p>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* Grades List */}
-            <Card className="shadow-lg">
-                <CardHeader>
-                    <div className="flex items-center gap-2">
-                        <GraduationCap className="h-6 w-6 text-primary" />
-                        <h2 className="text-xl font-semibold">
-                            Notas del Alumno
-                        </h2>
-                    </div>
-                    <Separator className="my-2" />
-                </CardHeader>
-                <CardContent>
-                    <UbicacionDetalle dni={dni} solicitudId={solicitudId} />
-                </CardContent>
-            </Card>
-
-            <div className="mt-auto">
-                <Copyright />
-            </div>
-        </main>
-    )
+  return <LocationConsultationView consultation={consultation} />
 }

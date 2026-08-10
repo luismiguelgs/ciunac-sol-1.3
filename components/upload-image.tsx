@@ -14,9 +14,20 @@ type Props<T extends FieldValues = FieldValues> = {
 	dni: string;
 	folder: 'dnis' | 'vouchers' | 'becas';
 	disabled?: boolean;
+	accept?: string;
+	validateFile?: (file: File) => string | null;
 }
 
-export default function UploadImage<T extends FieldValues>({ form, field, label, dni, folder, disabled = false }: Props<T>) {
+export default function UploadImage<T extends FieldValues>({
+	form,
+	field,
+	label,
+	dni,
+	folder,
+	disabled = false,
+	accept,
+	validateFile,
+}: Props<T>) {
 	const toDrivePreview = (url?: string) => {
 		if (!url) return url
 		try {
@@ -80,6 +91,8 @@ export default function UploadImage<T extends FieldValues>({ form, field, label,
 				folder={folder}
 				icon={CloudUpload}
 				disabled={disabled}
+				accept={accept}
+				validateFile={validateFile}
 			/>
 		</div>
 	)

@@ -125,9 +125,9 @@ Estado actual de los modulos principales:
 | --- | --- | --- |
 | `solicitud-certificado` | Refactorizado por capas | Flujo piloto y referencia principal. |
 | `solicitud-beca` | Refactorizado por capas | Replica del patron con caso de uso y gateways. |
-| `solicitud-ubicacion` | Refactorizado por capas | Incluye validacion de duplicidad y reglas de precio. |
+| `solicitud-ubicacion` | Refactorizado y tipado por capas | Perfil HttpOnly, duplicidad, tarifa S/ 30 y archivos revalidados en BFF. |
 | `solicitud-constancia` | Refactorizado por capas | Slice independiente con pago transversal compartido y cargo PDF propio. |
-| `solicitud-nuevo` | Parcial | Mantiene componentes y store; candidato siguiente para migracion completa. |
+| `solicitud-nuevo` | Refactorizado por capas | Dominio, workflow tipado, catalogo Q10 server-side y validacion BFF. |
 | `consulta-*` | Parcial / legacy controlado | Mantiene componentes de consulta y algunos servicios adaptados. |
 | `modules/shared` | Consolidado inicial | Errores, HTTP, repositories, mappers y componentes compartidos. |
 
@@ -334,7 +334,7 @@ Para crear o migrar un flujo nuevo:
 ## 15. Riesgos actuales
 | Riesgo | Impacto | Mitigacion |
 | --- | --- | --- |
-| `solicitud-nuevo` aun no sigue el patron completo | Inconsistencia entre flujos | Migrarlo como siguiente slice vertical. |
+| Q10 no confirma idempotencia del registro | Riesgo de duplicidad tras una respuesta ambigua | Bloquear reintento automatico y confirmar con CIUNAC. |
 | `services/` sigue existiendo | Puede crecer deuda legacy | Mantenerlo como fachada y no agregar nueva logica ahi. |
 | Falta framework de pruebas | Refactors con menor red de seguridad | Incorporar Vitest y pruebas de mappers/use cases. |
 | Catalogos aun pueden cargarse en cliente por costumbre | Hidratacion y duplicidad de fetches | Revisar cada catalogo y mover a server cuando aplique. |
@@ -342,9 +342,9 @@ Para crear o migrar un flujo nuevo:
 
 ## 16. Roadmap recomendado
 Prioridad inmediata:
-- Migrar `solicitud-nuevo` a capas internas.
-- Agregar Vitest para reglas, mappers y casos de uso.
-- Evaluar catalogos candidatos a Server Components.
+- Validar funcionalmente filtros y paginacion del catalogo Q10.
+- Corregir el teardown de Playwright/Next en Windows.
+- Continuar reduciendo fachadas legacy sin consumidores.
 - Extraer dialogos compartidos solo cuando el contrato este estabilizado.
 
 Prioridad media:

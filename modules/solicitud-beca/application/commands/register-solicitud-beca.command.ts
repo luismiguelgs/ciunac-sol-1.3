@@ -1,5 +1,5 @@
-import ISolicitudBeca from '@/modules/solicitud-beca/interfaces/solicitudbeca.interface';
+import { SolicitudBeca } from '@/modules/solicitud-beca/domain/solicitud-beca'
 
 export interface RegisterSolicitudBecaCommand {
-  solicitud: ISolicitudBeca;
+  solicitud: SolicitudBeca
 }

@@ -25,18 +25,18 @@ import {
   ConstanciaBasicDataValues,
   constanciaBasicDataSchema,
 } from '@/modules/solicitud-constancia/schemas/basic-data.schema'
-import useSolicitudConstanciaStore from '@/modules/solicitud-constancia/presentation/solicitud-constancia.store'
-import EstudiantesService from '@/services/estudiantes.service'
+import { ConstanciaBasicData } from '@/modules/solicitud-constancia/domain/solicitud-constancia'
+import { constanciaStudentRepository } from '@/modules/solicitud-constancia/infrastructure/constancia-student.repository'
 
 type Props = {
   activeStep: number
   steps: string[]
   setActiveStep: React.Dispatch<React.SetStateAction<number>>
   handleNext: (values: ConstanciaBasicDataValues) => void
+  defaultData: ConstanciaBasicData | null
 }
 
-export default function BasicData({ activeStep, steps, setActiveStep, handleNext }: Props) {
-  const draft = useSolicitudConstanciaStore((state) => state.draft)
+export default function BasicData({ activeStep, steps, setActiveStep, handleNext, defaultData }: Props) {
   const escuelas = useEscuelas()
   const textos = useTexts()
   const [searching, setSearching] = React.useState(false)
@@ -48,19 +48,19 @@ export default function BasicData({ activeStep, steps, setActiveStep, handleNext
     resolver: zodResolver(constanciaBasicDataSchema),
     defaultValues: {
       ...constanciaBasicDataInitialValues,
-      tipo_solicitud: draft.tipoSolicitudId ? String(draft.tipoSolicitudId) as '5' | '6' : '5',
-      idioma: draft.idiomaId ? String(draft.idiomaId) : '',
-      nivel: draft.nivelId ? String(draft.nivelId) : '',
-      apellidos: draft.apellidos ?? '',
-      nombres: draft.nombres ?? '',
-      tipo_documento: draft.tipoDocumento ?? 'DNI',
-      celular: draft.celular ?? '',
-      dni: draft.numeroDocumento ?? '',
-      estudianteId: draft.estudianteId ?? '',
-      estudiante: draft.alumnoUnac ?? false,
-      facultad: draft.facultadId ? String(draft.facultadId) : '',
-      escuela: draft.escuelaId ? String(draft.escuelaId) : '',
-      codigo: draft.codigo ?? '',
+      tipo_solicitud: defaultData?.typeId === 6 ? '6' : '5',
+      idioma: defaultData ? String(defaultData.languageId) : '',
+      nivel: defaultData ? String(defaultData.levelId) : '',
+      apellidos: defaultData?.lastNames ?? '',
+      nombres: defaultData?.names ?? '',
+      tipo_documento: defaultData?.documentType ?? 'DNI',
+      celular: defaultData?.phone ?? '',
+      dni: defaultData?.documentNumber ?? '',
+      estudianteId: defaultData?.existingStudentId ?? '',
+      estudiante: defaultData?.isUnacStudent ?? false,
+      facultad: defaultData?.isUnacStudent ? String(defaultData.facultyId) : '',
+      escuela: defaultData?.isUnacStudent ? String(defaultData.schoolId) : '',
+      codigo: defaultData?.isUnacStudent ? defaultData.studentCode : '',
     },
   })
 
@@ -79,11 +79,11 @@ export default function BasicData({ activeStep, steps, setActiveStep, handleNext
 
     setSearching(true)
     try {
-      const student = await EstudiantesService.fetchItemByDNI(documentNumber)
-      form.setValue('apellidos', student.apellidos ?? '')
-      form.setValue('nombres', student.nombres ?? '')
-      form.setValue('celular', student.celular ?? '')
-      form.setValue('estudianteId', student.id ?? '')
+      const student = await constanciaStudentRepository.findByDocument(documentNumber)
+      form.setValue('apellidos', student.lastNames)
+      form.setValue('nombres', student.names)
+      form.setValue('celular', student.phone)
+      form.setValue('estudianteId', student.id)
     } catch {
       toast.error('No se pudieron consultar los datos del estudiante.')
     } finally {

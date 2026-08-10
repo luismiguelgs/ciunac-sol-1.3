@@ -10,6 +10,7 @@ Permitir que un Usuario solicitante consulte informacion de examen de ubicacion 
 ## Precondiciones
 - El usuario conoce el documento usado para la solicitud de ubicacion.
 - API CIUNAC provee informacion de solicitudes, examenes y detalle de notas.
+- Existe una sesion de consulta `EXAMEN` vigente para el documento.
 
 ## Disparador
 El usuario ingresa a `app/consulta-ubicacion/page.tsx` o es redirigido desde consulta por documento.
@@ -18,9 +19,10 @@ El usuario ingresa a `app/consulta-ubicacion/page.tsx` o es redirigido desde con
 1. El sistema muestra formulario de consulta por documento.
 2. El usuario ingresa documento y resuelve reCAPTCHA.
 3. El sistema consulta solicitudes por documento.
-4. Si hay resultados, el sistema redirige a `app/consulta-ubicacion/[dni]/page.tsx` con datos basicos en query string.
-5. El sistema consulta detalle de examen y ciclos.
-6. El sistema muestra informacion disponible y permite descargar constancia cuando aplique.
+4. Si hay resultados, el sistema crea una sesion segura y redirige a `app/consulta-ubicacion/[dni]/page.tsx`.
+5. El sistema consulta en paralelo solicitudes, resultados, examenes, ciclos y textos.
+6. El sistema valida las respuestas y une los datos por sus identificadores.
+7. El sistema muestra informacion disponible y permite descargar constancia cuando el resultado esta completo.
 
 ## Diagrama del Flujo
 ```mermaid
@@ -31,18 +33,23 @@ flowchart TD
     Search --> Found{"Existe solicitud?"}
     Found -->|No| NotFound["Mostrar busqueda no encontrada"]
     Found -->|Si| Redirect["Redirigir a detalle de ubicacion"]
-    Redirect --> Details["Consultar examenes, ciclos y detalle"]
-    Details --> Available{"Hay informacion de ubicacion?"}
-    Available -->|No| Partial["Mostrar informacion disponible"]
-    Available -->|Si| Constancia["Mostrar detalle y permitir descarga"]
+    Redirect --> Details["Consultar solicitudes, resultados, examenes, ciclos y textos"]
+    Details --> Join["Validar y unir contratos"]
+    Join --> Available{"Hay notas?"}
+    Available -->|No| Empty["Mostrar estado vacio y cargo"]
+    Available -->|Si| Complete{"Datos completos para constancia?"}
+    Complete -->|No| Partial["Mostrar nota y bloquear constancia"]
+    Complete -->|Si| Constancia["Mostrar detalle y permitir descarga"]
 ```
 
 ## Flujos Alternativos
 - Si no hay solicitudes para el documento, el sistema muestra mensaje de no encontrado.
-- Si no hay detalle de examen, el sistema muestra la informacion disponible sin constancia. Pendiente de validacion funcional.
+- Si no hay notas, el sistema muestra el cargo de la solicitud mas reciente.
+- Si falta examen, ciclo o nombre del año, el sistema muestra la nota y bloquea la constancia incompleta.
 
 ## Excepciones
-- Si falla la consulta de ciclos o detalle, el sistema registra error y conserva la vista sin datos completos.
+- Si falla un recurso obligatorio, el sistema muestra un error reintentable.
+- Si una respuesta es mal formada, no se presenta como estado vacio.
 
 ## Postcondiciones
 - El usuario visualiza detalle de ubicacion si existe informacion.

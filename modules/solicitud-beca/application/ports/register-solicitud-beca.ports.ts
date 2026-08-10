@@ -1,9 +1,9 @@
-import ISolicitudBeca from '@/modules/solicitud-beca/interfaces/solicitudbeca.interface';
+import { SolicitudBeca } from '@/modules/solicitud-beca/domain/solicitud-beca'
 
 export interface SolicitudBecaGateway {
-  create(solicitud: ISolicitudBeca): Promise<string | undefined>;
+  create(solicitud: SolicitudBeca): Promise<string>
 }
 
 export interface SolicitudBecaNotificationGateway {
-  sendSolicitudCreada(email: string, requestId: string): Promise<string>;
+  sendSolicitudCreada(requestId: string): Promise<string>
 }

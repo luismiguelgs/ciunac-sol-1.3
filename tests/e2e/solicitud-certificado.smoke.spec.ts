@@ -32,15 +32,32 @@ async function verifyCertificateEmail(page: Page, request: Parameters<typeof get
   await expect(page).toHaveURL(/\/solicitud-certificados\/proceso$/)
 }
 
-async function completeCertificateForm(page: Page) {
+type BasicDataOptions = { searchExisting?: boolean; unacStudent?: boolean }
+
+async function completeCertificateBasicData(page: Page, options: BasicDataOptions = {}) {
   await selectOption(page, 'Solicitud', /CERTIFICADO DE ESTUDIOS/i)
   await selectOption(page, 'Programa', /INGLES/i)
   await selectOption(page, 'Nivel', /B.SICO/i)
   await page.locator('input[name="dni"]').fill('12345678')
-  await page.locator('input[name="apellidos"]').fill('PRUEBA E2E')
-  await page.locator('input[name="nombres"]').fill('MARIA')
-  await page.locator('input[name="celular"]').fill('999888777')
+  if (options.searchExisting) {
+    await page.getByRole('button', { name: /Buscar Documento de Identidad/i }).click()
+    await expect(page.locator('input[name="nombres"]')).toHaveValue('MARIA')
+  } else {
+    await page.locator('input[name="apellidos"]').fill('PRUEBA E2E')
+    await page.locator('input[name="nombres"]').fill('MARIA')
+    await page.locator('input[name="celular"]').fill('999888777')
+  }
+  if (options.unacStudent) {
+    await page.getByRole('switch', { name: /Alumno UNAC/i }).click()
+    await selectOption(page, 'Facultad', /INGENIERIA/i)
+    await selectOption(page, 'Escuela', /INGENIERIA DE SISTEMAS/i)
+    await page.locator('input[name="codigo"]').fill('20260001')
+  }
   await page.getByRole('button', { name: 'Siguiente' }).click()
+}
+
+async function completeCertificateForm(page: Page, options: BasicDataOptions = {}) {
+  await completeCertificateBasicData(page, options)
   await selectOption(page, 'Monto pagado', /S\/50\.00/i)
   await page.locator('input[name="numero_voucher"]').fill('123456789012345')
   await page.locator('input[type="file"]').setInputFiles({
@@ -167,4 +184,112 @@ test('no muestra exito de correo sin comprobante valido', async ({ page }) => {
   await page.goto('/solicitud-certificados/finalizar?id=1001')
   await expect(page.getByText(/No se pudo confirmar el estado del correo/i)).toBeVisible()
   await expect(page.getByText(/servicio acepto el correo/i)).toHaveCount(0)
+})
+
+test('actualiza un estudiante existente y envia alumno UNAC sin documento adicional', async ({ page, request }) => {
+  await verifyCertificateEmail(page, request)
+  await completeCertificateForm(page, { searchExisting: true, unacStudent: true })
+  await page.getByRole('button', { name: 'Finalizar' }).click()
+  await expect(page).toHaveURL(/\/solicitud-certificados\/finalizar\?id=1001&receipt=/)
+
+  const requests = await getMockRequests(request)
+  const studentUpdates = requests.filter((item) => item.method === 'PATCH' && item.path === '/estudiantes/student-e2e')
+  const requestCreates = requests.filter((item) => item.method === 'POST' && item.path === '/solicitudes')
+  expect(studentUpdates).toHaveLength(1)
+  expect(studentUpdates[0].body).toMatchObject({ facultadId: 1, escuelaId: 1, codigo: '20260001' })
+  expect(requestCreates).toHaveLength(1)
+  expect(requestCreates[0].body).toMatchObject({ alumnoCiunac: true })
+  expect(requestCreates[0].body).not.toHaveProperty('imgCertEstudio')
+  expect(requests.filter((item) => item.method === 'POST' && item.path === '/estudiantes')).toHaveLength(0)
+})
+
+test('diferencia una respuesta de estudiante mal formada', async ({ page, request }) => {
+  await verifyCertificateEmail(page, request)
+  await setMockScenario(request, { malformedStudentLookup: true })
+  await page.locator('input[name="dni"]').fill('12345678')
+  await page.getByRole('button', { name: /Buscar Documento de Identidad/i }).click()
+  await expect(page.getByText(/No se pudieron consultar los datos del estudiante/i)).toBeVisible()
+})
+
+test('rechaza un voucher falsificado antes de llamar al proveedor', async ({ page, request }) => {
+  await verifyCertificateEmail(page, request)
+  await completeCertificateBasicData(page)
+  await selectOption(page, 'Monto pagado', /S\/50\.00/i)
+  await page.locator('input[name="numero_voucher"]').fill('123456789012345')
+  await page.locator('input[type="file"]').setInputFiles({
+    name: 'voucher.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from('archivo-falsificado'),
+  })
+  await expect(page.getByRole('alert').filter({ hasText: /archivo no es valido/i })).toBeVisible()
+
+  const requests = await getMockRequests(request)
+  expect(requests.filter((item) => item.path === '/upload/vouchers')).toHaveLength(0)
+})
+
+test('rechaza un monto manipulado sin crear la solicitud', async ({ page, request }) => {
+  await verifyCertificateEmail(page, request)
+  const response = await page.evaluate(async () => {
+    const result = await fetch('/api/ciunac/solicitudes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        estudianteId: 'student-e2e', tipoSolicitudId: 1, idiomaId: 2, nivelId: 1,
+        estadoId: 1, periodo: '202602', alumnoCiunac: false,
+        fechaPago: '2026-08-01T00:00:00.000Z', pago: 1, digital: false,
+        numeroVoucher: '123456789012345', imgVoucher: '/images/upload.svg',
+      }),
+    })
+    return { status: result.status, body: await result.json() }
+  })
+  expect(response).toMatchObject({ status: 409, body: { error: { code: 'PRICE_CHANGED' } } })
+  const requests = await getMockRequests(request)
+  expect(requests.filter((item) => item.path === '/solicitudes')).toHaveLength(0)
+})
+
+test('ignora trabajador y antiguo y ofrece solo el precio normal', async ({ page, request }) => {
+  await verifyCertificateEmail(page, request)
+  await page.goto('/solicitud-certificados/proceso?trabajador=true&antiguo=true')
+  await completeCertificateBasicData(page)
+  await page.getByLabel('Monto pagado', { exact: true }).click()
+  await expect(page.getByRole('option', { name: /precio normal/i })).toHaveCount(1)
+  await expect(page.getByText(/descuento.*trabajador/i)).toHaveCount(0)
+})
+
+test('detiene el correo ante una respuesta de solicitud mal formada', async ({ page, request }) => {
+  await verifyCertificateEmail(page, request)
+  await setMockScenario(request, { malformedSolicitudResponse: true })
+  await completeCertificateForm(page)
+  await page.getByRole('button', { name: 'Finalizar' }).click()
+  await expect(page.getByText(/identificador de la solicitud/i)).toBeVisible()
+
+  const requests = await getMockRequests(request)
+  expect(requests.filter((item) => item.path === '/solicitudes')).toHaveLength(1)
+  expect(requests.filter((item) => item.path === '/mailer' && (item.body as { type?: string })?.type === 'CERTIFICADO')).toHaveLength(0)
+})
+
+test('muestra indisponibilidad cuando los catalogos son invalidos', async ({ page, request }) => {
+  await verifyCertificateEmail(page, request)
+  await setMockScenario(request, { malformedCertificateCatalogs: true })
+  await page.reload()
+  await expect(page.getByRole('heading', { name: /No se pudo abrir la solicitud de certificado/i })).toBeVisible()
+})
+
+test('diferencia cargo inexistente y cargo mal formado con reintento', async ({ page, request }) => {
+  await verifyCertificateEmail(page, request)
+  await setMockScenario(request, { certificateCargoNotFound: true })
+  await page.goto('/solicitud-certificados/finalizar?id=1001')
+  await expect(page.getByText(/Cargo aun no disponible/i)).toBeVisible()
+
+  await setMockScenario(request, { certificateCargoNotFound: false, malformedCertificateCargo: true })
+  await page.reload()
+  await expect(page.getByText(/No se pudo cargar el cargo/i)).toBeVisible()
+  await setMockScenario(request, { malformedCertificateCargo: false })
+  await page.getByRole('button', { name: /Reintentar carga/i }).click()
+  await expect(page.getByRole('button', { name: /Descargar Cargo/i })).toBeEnabled()
+})
+
+test('rechaza un identificador final invalido', async ({ page }) => {
+  await page.goto('/solicitud-certificados/finalizar?id=abc')
+  await expect(page.getByRole('heading', { name: /Solicitud de certificado no identificada/i })).toBeVisible()
 })

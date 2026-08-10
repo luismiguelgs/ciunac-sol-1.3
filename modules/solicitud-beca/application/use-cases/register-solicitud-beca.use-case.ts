@@ -5,6 +5,7 @@ import {
   SolicitudBecaNotificationGateway,
 } from '@/modules/solicitud-beca/application/ports/register-solicitud-beca.ports';
 import { RegistrationOutcome } from '@/modules/shared/application/results/registration-outcome';
+import { parseSolicitudBeca } from '@/modules/solicitud-beca/schemas/solicitud-beca.schema'
 
 type Dependencies = {
   solicitudGateway: SolicitudBecaGateway;
@@ -16,14 +17,11 @@ export class RegisterSolicitudBecaUseCase {
 
   async execute({ solicitud }: RegisterSolicitudBecaCommand): Promise<RegistrationOutcome> {
     try {
-      const requestId = await this.dependencies.solicitudGateway.create(solicitud);
-
-      if (!requestId) {
-        throw new Error('No se pudo registrar la solicitud de beca');
-      }
+      const validSolicitud = parseSolicitudBeca(solicitud)
+      const requestId = await this.dependencies.solicitudGateway.create(validSolicitud)
 
       try {
-        const notificationReceiptId = await this.retryNotification(solicitud.email, requestId);
+        const notificationReceiptId = await this.retryNotification(requestId)
         return { status: 'completed', requestId, notificationReceiptId };
       } catch (error) {
         return {
@@ -37,7 +35,7 @@ export class RegisterSolicitudBecaUseCase {
     }
   }
 
-  retryNotification(email: string, requestId: string): Promise<string> {
-    return this.dependencies.notificationGateway.sendSolicitudCreada(email, requestId);
+  retryNotification(requestId: string): Promise<string> {
+    return this.dependencies.notificationGateway.sendSolicitudCreada(requestId)
   }
 }

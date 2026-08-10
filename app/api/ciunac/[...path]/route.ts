@@ -9,6 +9,16 @@ import {
   readVerifiedSessionFromRequest,
 } from '@/modules/security/server/session';
 import { SecurityError } from '@/modules/security/server/security-error';
+import { validateVoucherUpload } from '@/modules/security/server/voucher-upload-validation';
+import { MAX_VOUCHER_FILE_BYTES } from '@/modules/shared/domain/voucher-file-policy';
+import { validateScholarshipDocumentUpload } from '@/modules/solicitud-beca/infrastructure/validation/scholarship-document-upload';
+import { validateCertificateRequestPrice } from '@/modules/solicitud-certificado/infrastructure/server/certificate-price-validation';
+import { validateNewStudentRequest } from '@/modules/solicitud-nuevo/infrastructure/server/new-student-request-validation'
+import { validateIdentityDocumentUpload } from '@/modules/solicitud-ubicacion/infrastructure/validation/identity-document-upload'
+import {
+  validateLocationRequest,
+  validateLocationStudentRequest,
+} from '@/modules/solicitud-ubicacion/infrastructure/server/location-request-validation'
 
 export const runtime = 'nodejs';
 
@@ -29,7 +39,7 @@ const PUBLIC_GET = new Set([
 ]);
 
 const SAFE_SEGMENT = /^[A-Za-z0-9_-]+$/;
-const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
+const MAX_UPLOAD_REQUEST_BYTES = MAX_VOUCHER_FILE_BYTES + (256 * 1024);
 const ALLOWED_UPLOAD_TYPES = new Set(['image/jpeg', 'image/png', 'application/pdf']);
 
 function resolveAccess(method: AllowedMethod, path: string): Access | null {
@@ -82,22 +92,25 @@ function assertAccess(request: NextRequest, access: Access): void {
   if (!allowed) throw new SecurityError('UNAUTHORIZED', 401, 'The required session is missing');
 }
 
-async function readUpload(request: NextRequest): Promise<FormData> {
+async function readUpload(request: NextRequest, path: string): Promise<FormData> {
   const contentType = request.headers.get('content-type') ?? '';
   const contentLength = Number(request.headers.get('content-length') ?? '0');
 
   if (!contentType.toLowerCase().startsWith('multipart/form-data')) {
     throw new SecurityError('INVALID_REQUEST', 415, 'A multipart request is required');
   }
-  if (!Number.isFinite(contentLength) || contentLength <= 0 || contentLength > MAX_UPLOAD_BYTES) {
+  if (!Number.isFinite(contentLength) || contentLength <= 0 || contentLength > MAX_UPLOAD_REQUEST_BYTES) {
     throw new SecurityError('INVALID_REQUEST', 413, 'Upload is too large');
   }
 
   const formData = await request.formData();
   const file = formData.get('file');
-  if (!(file instanceof File) || file.size <= 0 || file.size > MAX_UPLOAD_BYTES || !ALLOWED_UPLOAD_TYPES.has(file.type)) {
+  if (!(file instanceof File) || file.size <= 0 || file.size > MAX_VOUCHER_FILE_BYTES || !ALLOWED_UPLOAD_TYPES.has(file.type)) {
     throw new SecurityError('INVALID_REQUEST', 400, 'Upload file is invalid');
   }
+  if (path === 'upload/vouchers') await validateVoucherUpload(formData);
+  if (path === 'upload/becas') await validateScholarshipDocumentUpload(formData);
+  if (path === 'upload/dnis') await validateIdentityDocumentUpload(formData);
 
   return formData;
 }
@@ -122,9 +135,20 @@ async function handle(request: NextRequest, context: RouteContext, method: Allow
 
     let body: unknown;
     if (method === 'POST' && path.startsWith('upload/')) {
-      body = await readUpload(request);
+      body = await readUpload(request, path);
     } else if (method !== 'GET') {
       body = await parseJsonBody(request, resolveCiunacBodySchema(method, path));
+    }
+
+    if ((method === 'POST' && path === 'estudiantes') || (method === 'PATCH' && path.startsWith('estudiantes/'))) {
+      body = validateLocationStudentRequest(request, body)
+    }
+    if (method === 'POST' && path === 'solicitudes') {
+      body = await validateLocationRequest(request, body)
+      await validateCertificateRequestPrice(body);
+    }
+    if (method === 'POST' && path === 'q10/estudiantes') {
+      body = await validateNewStudentRequest(request, body)
     }
 
     const data = await ciunacRequest<unknown>(path, { method, body });

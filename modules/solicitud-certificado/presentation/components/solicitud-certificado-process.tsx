@@ -1,174 +1,85 @@
 'use client'
 
-import React from 'react';
-import { Stepper } from '@/components/stepper';
-import Documentos from '@/modules/shared/components/documentos-step';
-import FinData, { PaymentOption } from '@/modules/shared/components/fin-data';
-import { useDocumentsStore } from '@/stores/types.stores';
-import useSolicitudStore from '@/stores/solicitud.store';
-import BasicData from '@/modules/solicitud-certificado/components/basic-data';
-import Register from '@/modules/solicitud-certificado/components/register';
-import { isSolicitudCertificadoDigital } from '@/modules/solicitud-certificado/domain/rules/is-solicitud-certificado-digital';
-import { resolveSolicitudCertificadoPrice } from '@/modules/solicitud-certificado/domain/rules/resolve-solicitud-certificado-price';
+import React from 'react'
+import { toast } from 'sonner'
+import { Stepper } from '@/components/stepper'
+import FinData, { PaymentOption } from '@/modules/shared/components/fin-data'
+import { normalizeAppError } from '@/modules/shared/application/errors/app-error'
+import { IFinInfoSchema } from '@/modules/shared/schemas/fin-data.schema'
+import { CertificateCatalogs } from '@/modules/solicitud-certificado/domain/solicitud-certificado'
+import { CertificateBasicDataFormValues } from '@/modules/solicitud-certificado/schemas/basic-data.schema'
 import {
-  SolicitudCertificadoStep,
-  SolicitudCertificadoStepPayload,
-} from '@/modules/solicitud-certificado/presentation/view-models/solicitud-certificado-process.view-model';
+  findCertificatePrice,
+  toCertificateBasicData,
+  toCertificatePayment,
+  toCertificatePaymentFormValues,
+} from '@/modules/solicitud-certificado/presentation/certificate-form.mapper'
+import useSolicitudCertificadoStore from '@/modules/solicitud-certificado/presentation/solicitud-certificado.store'
+import BasicData from '@/modules/solicitud-certificado/presentation/components/basic-data'
+import Register from '@/modules/solicitud-certificado/presentation/components/register'
 
-type BasicStepPayload = Extract<SolicitudCertificadoStepPayload, { tipo_solicitud: string }>;
-type PaymentStepPayload = Extract<SolicitudCertificadoStepPayload, { pago: string }>;
-type DocumentStepPayload = Extract<SolicitudCertificadoStepPayload, { img_cert_trabajo: string }>;
+const STEPS = ['Datos basicos', 'Datos de Pago', 'Finalizar']
 
-function buildSteps(trabajador: boolean): SolicitudCertificadoStep[] {
-  return trabajador
-    ? ['Datos básicos', 'Datos de Pago', 'Documentos', 'Finalizar']
-    : ['Datos básicos', 'Datos de Pago', 'Finalizar'];
-}
+type Props = { email: string; catalogs: CertificateCatalogs }
 
-type Props = {
-  email: string;
-  trabajador: boolean;
-  antiguo: boolean;
-};
-
-export default function SolicitudCertificadoProcess({ email, trabajador, antiguo }: Props) {
-  const { solicitud, setSolicitudField, resetSolicitud } = useSolicitudStore();
-  const certificados = useDocumentsStore((state) => state.data);
-  const [activeStep, setActiveStep] = React.useState(0);
-  const [precio, setPrecio] = React.useState('0');
-
-  const steps = React.useMemo(() => buildSteps(trabajador), [trabajador]);
-  const paymentOptions = React.useMemo<PaymentOption[]>(() => {
-    const amount = Number(precio);
-    if (trabajador) {
-      return [
-        {
-          value: String(amount - amount * 0.8),
-          label: `S/${(amount - amount * 0.8).toFixed(2)} - presentar certificado de trabajo(docente)`,
-        },
-        {
-          value: '0',
-          label: 'S/0.00 - presentar certificado de trabajo(CAS)',
-        },
-      ];
-    }
-    return [{ value: String(precio), label: `S/${amount.toFixed(2)} - precio normal` }];
-  }, [precio, trabajador]);
+export default function SolicitudCertificadoProcess({ email, catalogs }: Props) {
+  const workflow = useSolicitudCertificadoStore((state) => state.workflow)
+  const initialize = useSolicitudCertificadoStore((state) => state.initialize)
+  const completeBasicData = useSolicitudCertificadoStore((state) => state.completeBasicData)
+  const completePayment = useSolicitudCertificadoStore((state) => state.completePayment)
+  const [activeStep, setActiveStep] = React.useState(0)
 
   React.useEffect(() => {
-    resetSolicitud();
-    setActiveStep(0);
-    setPrecio('0');
-  }, [antiguo, email, resetSolicitud, trabajador]);
+    initialize(email)
+    setActiveStep(0)
+  }, [email, initialize])
 
-  const handleNext = React.useCallback(
-    (values: SolicitudCertificadoStepPayload) => {
-      switch (steps[activeStep]) {
-        case 'Datos básicos': {
-          const basicValues = values as BasicStepPayload;
-          setSolicitudField('email', email);
-          setSolicitudField('trabajador', trabajador);
-          setSolicitudField('antiguo', antiguo);
-          setSolicitudField('tipo_solicitud', basicValues.tipo_solicitud);
-          setSolicitudField('apellidos', basicValues.apellidos);
-          setSolicitudField('nombres', basicValues.nombres);
-          setSolicitudField('celular', basicValues.celular);
-          setSolicitudField('idioma', basicValues.idioma);
-          setSolicitudField('nivel', basicValues.nivel);
-          setSolicitudField('estudianteId', basicValues.estudianteId);
-          setSolicitudField('facultad', basicValues.facultad);
-          setSolicitudField('escuela', basicValues.escuela);
-          setSolicitudField('codigo', basicValues.codigo);
-          setSolicitudField('tipo_documento', basicValues.tipo_documento);
-          setSolicitudField('dni', basicValues.dni);
-          setSolicitudField('digital', isSolicitudCertificadoDigital(basicValues.tipo_solicitud));
-          setPrecio(resolveSolicitudCertificadoPrice(basicValues.tipo_solicitud, certificados));
-          break;
-        }
-        case 'Datos de Pago': {
-          const paymentValues = values as PaymentStepPayload;
-          setSolicitudField('pago', paymentValues.pago);
-          setSolicitudField('numero_voucher', paymentValues.numero_voucher);
-          setSolicitudField('fecha_pago', (paymentValues.fecha_pago as Date).toISOString());
-          setSolicitudField('img_voucher', paymentValues.img_voucher);
-          break;
-        }
-        case 'Documentos': {
-          const documentValues = values as DocumentStepPayload;
-          if (trabajador) {
-            setSolicitudField('img_cert_trabajo', documentValues.img_cert_trabajo);
-          }
-          break;
-        }
-        default:
-          break;
-      }
+  const selectedPrice = findCertificatePrice(workflow.draft.basicData?.typeId, catalogs)
+  const paymentOptions: PaymentOption[] = [{
+    value: String(selectedPrice),
+    label: `S/${selectedPrice.toFixed(2)} - precio normal`,
+  }]
 
-      if (activeStep < steps.length - 1) {
-        setActiveStep((prevActiveStep) => prevActiveStep + 1);
-      }
-    },
-    [activeStep, antiguo, certificados, email, setSolicitudField, steps, trabajador]
-  );
+  const handleBasicData = (values: CertificateBasicDataFormValues) => {
+    try {
+      completeBasicData(toCertificateBasicData(values, catalogs))
+      setActiveStep(1)
+    } catch (error) {
+      toast.error(normalizeAppError(error, 'Los datos del certificado no son validos.').message)
+    }
+  }
+
+  const handlePayment = (values: IFinInfoSchema) => {
+    try {
+      completePayment(toCertificatePayment(values, selectedPrice))
+      setActiveStep(2)
+    } catch (error) {
+      toast.error(normalizeAppError(error, 'Los datos de pago no son validos.').message)
+    }
+  }
 
   return (
     <div className="flex items-center justify-center">
-      <Stepper steps={steps} activeStep={activeStep}>
-        {steps.map((step, index) => {
-          switch (step) {
-            case 'Datos básicos':
-              return (
-                <BasicData
-                  key={index}
-                  activeStep={activeStep}
-                  setActiveStep={setActiveStep}
-                  handleNext={handleNext}
-                  steps={steps}
-                  tipoSolicitud="certificado"
-                />
-              );
-            case 'Datos de Pago':
-              return (
-                <FinData
-                  key={index}
-                  activeStep={activeStep}
-                  setActiveStep={setActiveStep}
-                  steps={steps}
-                  handleNext={handleNext}
-                  documentNumber={solicitud.dni ?? ''}
-                  defaultValues={{
-                    pago: String(solicitud.pago ?? '0'),
-                    numero_voucher: solicitud.numero_voucher ?? '',
-                    fecha_pago: solicitud.fecha_pago ? new Date(solicitud.fecha_pago) : undefined,
-                    img_voucher: solicitud.img_voucher ?? '',
-                  }}
-                  paymentOptions={paymentOptions}
-                />
-              );
-            case 'Documentos':
-              return (
-                <Documentos
-                  key={index}
-                  activeStep={activeStep}
-                  setActiveStep={setActiveStep}
-                  steps={steps}
-                  handleNext={handleNext}
-                />
-              );
-            case 'Finalizar':
-              return (
-                <Register
-                  key={index}
-                  activeStep={activeStep}
-                  setActiveStep={setActiveStep}
-                  steps={steps}
-                />
-              );
-            default:
-              return null;
-          }
-        })}
+      <Stepper steps={STEPS} activeStep={activeStep}>
+        <BasicData
+          activeStep={activeStep}
+          steps={STEPS}
+          catalogs={catalogs}
+          defaultData={workflow.draft.basicData}
+          setActiveStep={setActiveStep}
+          handleNext={handleBasicData}
+        />
+        <FinData
+          activeStep={activeStep}
+          setActiveStep={setActiveStep}
+          steps={STEPS}
+          handleNext={handlePayment}
+          documentNumber={workflow.draft.basicData?.documentNumber ?? ''}
+          defaultValues={toCertificatePaymentFormValues(workflow.draft.payment)}
+          paymentOptions={paymentOptions}
+        />
+        <Register activeStep={activeStep} steps={STEPS} catalogs={catalogs} setActiveStep={setActiveStep} />
       </Stepper>
     </div>
-  );
+  )
 }

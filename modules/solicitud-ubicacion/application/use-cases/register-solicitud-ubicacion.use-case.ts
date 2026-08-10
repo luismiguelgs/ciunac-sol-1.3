@@ -6,6 +6,7 @@ import {
   StudentUbicacionGateway,
 } from '@/modules/solicitud-ubicacion/application/ports/register-solicitud-ubicacion.ports';
 import { RegistrationOutcome } from '@/modules/shared/application/results/registration-outcome';
+import { parseSolicitudUbicacion } from '@/modules/solicitud-ubicacion/schemas/solicitud-ubicacion-domain.schema'
 
 type Dependencies = {
   studentGateway: StudentUbicacionGateway;
@@ -18,21 +19,12 @@ export class RegisterSolicitudUbicacionUseCase {
 
   async execute({ solicitud }: RegisterSolicitudUbicacionCommand): Promise<RegistrationOutcome> {
     try {
-      const student = await this.dependencies.studentGateway.saveFromSolicitud(solicitud);
-      if (!student?.id) {
-        throw new Error('Student response is incomplete');
-      }
-      const requestId = await this.dependencies.solicitudGateway.create({
-        ...solicitud,
-        estudianteId: student.id,
-      });
-
-      if (!requestId) {
-        throw new Error('No se pudo registrar la solicitud de ubicacion');
-      }
+      const request = parseSolicitudUbicacion(solicitud)
+      const studentId = await this.dependencies.studentGateway.save(request)
+      const requestId = await this.dependencies.solicitudGateway.create(request, studentId)
 
       try {
-        const notificationReceiptId = await this.retryNotification(solicitud.email, requestId);
+        const notificationReceiptId = await this.retryNotification(requestId);
         return { status: 'completed', requestId, notificationReceiptId };
       } catch (error) {
         return {
@@ -46,7 +38,7 @@ export class RegisterSolicitudUbicacionUseCase {
     }
   }
 
-  retryNotification(email: string, requestId: string): Promise<string> {
-    return this.dependencies.notificationGateway.sendSolicitudCreada(email, requestId);
+  retryNotification(requestId: string): Promise<string> {
+    return this.dependencies.notificationGateway.sendSolicitudCreada(requestId)
   }
 }

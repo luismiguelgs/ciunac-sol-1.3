@@ -3,7 +3,9 @@ import RequestTypesPriceTable from '@/modules/shared/components/request-types-pr
 import VerificacionEmail from '@/modules/shared/components/verificacion-email-view'
 import { ITipoSolicitud } from '@/modules/shared/interfaces/types.interface'
 import { ciunacRequest } from '@/modules/security/server/ciunac-client'
-import { externalRecordArraySchema, parseExternalResponse } from '@/modules/shared/infrastructure/validation/external-response'
+import { parseExternalResponse } from '@/modules/shared/infrastructure/validation/external-response'
+import { isConstanciaType } from '@/modules/solicitud-constancia/domain/solicitud-constancia'
+import { constanciaTypeCatalogResponseSchema } from '@/modules/solicitud-constancia/infrastructure/validation/constancia-api.schemas'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,12 +14,12 @@ async function getConstancias(): Promise<ITipoSolicitud[]> {
   if (response === null) return []
 
   const requestTypes = parseExternalResponse(
-    externalRecordArraySchema,
+    constanciaTypeCatalogResponseSchema,
     response,
     'La API devolvio tipos de solicitud no validos',
-  ) as unknown as ITipoSolicitud[]
+  )
 
-  return requestTypes.filter((item) => [5, 6].includes(Number(item.id)))
+  return requestTypes.filter((item) => isConstanciaType(item.id))
 }
 
 export default async function SolicitudConstanciasPage() {

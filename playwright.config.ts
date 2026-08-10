@@ -5,6 +5,7 @@ import { defineConfig, devices } from '@playwright/test'
 const appUrl = 'http://127.0.0.1:3100'
 const mockApiUrl = 'http://127.0.0.1:4100'
 const serverFetchMock = pathToFileURL(path.resolve('tests/e2e/support/server-fetch-mock.mjs')).href
+const googleFontResponses = path.resolve('tests/e2e/fixtures/google-font-responses.cjs')
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -39,7 +40,7 @@ export default defineConfig({
       timeout: 30_000,
     },
     {
-      command: 'npm run dev -- --hostname 127.0.0.1 --port 3100',
+      command: 'npm run dev -- --webpack --hostname 127.0.0.1 --port 3100',
       url: appUrl,
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
@@ -53,6 +54,7 @@ export default defineConfig({
         APP_BASE_URL: appUrl,
         API_KEY_Q10: 'e2e-q10-key',
         CIUNAC_E2E: '1',
+        NEXT_FONT_GOOGLE_MOCKED_RESPONSES: googleFontResponses,
         NODE_OPTIONS: `--import=${serverFetchMock}`,
       },
     },

@@ -1,5 +1,5 @@
-import Isolicitud from '@/modules/shared/interfaces/solicitud.interface';
+import { SolicitudCertificado } from '@/modules/solicitud-certificado/domain/solicitud-certificado'
 
 export interface RegisterSolicitudCertificadoCommand {
-  solicitud: Isolicitud;
+  solicitud: SolicitudCertificado
 }

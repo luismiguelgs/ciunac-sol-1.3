@@ -16,7 +16,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Control, FieldValues, Path } from "react-hook-form"
-import IProgram from "@/modules/solicitud-nuevo/interfaces/programs.interface"
 import useSubjects from "@/hooks/useSubjects"
 import React from "react"
 import { Skeleton } from "../ui/skeleton"
@@ -24,12 +23,11 @@ import { getIconByCode } from "@/components/icons/flags"
 
 type Props<T extends FieldValues> = {
     control: Control<T>
-    programs? : IProgram[]
     name: Path<T>
     ubicacion?: boolean
 }
 
-export function SelectLanguage<T extends FieldValues>({name, control, programs=[], ubicacion=false}:Props<T>) 
+export function SelectLanguage<T extends FieldValues>({name, control, ubicacion=false}:Props<T>)
 {
     const {data, loading} = useSubjects()
 
@@ -65,39 +63,16 @@ export function SelectLanguage<T extends FieldValues>({name, control, programs=[
                             </SelectTrigger>
                         </FormControl>
                         <SelectContent className="w-full min-w-[300px]">
-                            {
-                                programs.length === 0 ? (
-                                    <React.Fragment>
-                                        {
-                                            filteredData?.map((program, index) => (
-                                                <SelectItem key={index} value={String(program.id)} className="py-2">
-                                                    <div className="flex items-center gap-3 w-full pl-0.5">
-                                                        <div className="flex-shrink-0 transform origin-center scale-150 w-7 h-7 flex items-center justify-center">
-                                                            {getIconByCode(String(program.id))}
-                                                        </div>
-                                                        <span className="flex-1">{program.nombre}</span>
-                                                    </div>
-                                                </SelectItem>
-                                            ))
-                                        }
-                                    </React.Fragment>
-                                ) : (
-                                    <React.Fragment>
-                                        {
-                                            programs?.map((program, index) => (
-                                                <SelectItem key={index} value={program.Codigo} className="py-2">
-                                                    <div className="flex items-center gap-3 w-full pl-0.5">
-                                                        <div className="flex-shrink-0 transform origin-center scale-150 w-7 h-7 flex items-center justify-center">
-                                                            {getIconByCode(program.Codigo)}
-                                                        </div>
-                                                        <span className="flex-1">{program.Nombre}</span>
-                                                    </div>
-                                                </SelectItem>
-                                            ))
-                                        }
-                                    </React.Fragment>
-                                )
-                            }
+                            {filteredData?.map((program, index) => (
+                                <SelectItem key={index} value={String(program.id)} className="py-2">
+                                    <div className="flex items-center gap-3 w-full pl-0.5">
+                                        <div className="flex-shrink-0 transform origin-center scale-150 w-7 h-7 flex items-center justify-center">
+                                            {getIconByCode(String(program.id))}
+                                        </div>
+                                        <span className="flex-1">{program.nombre}</span>
+                                    </div>
+                                </SelectItem>
+                            ))}
                         </SelectContent>
                     </Select>
                     <FormDescription>

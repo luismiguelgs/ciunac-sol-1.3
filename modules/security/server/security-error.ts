@@ -1,5 +1,6 @@
 export type SecurityErrorCode =
   | 'INVALID_REQUEST'
+  | 'INVALID_FILE'
   | 'INVALID_ORIGIN'
   | 'CAPTCHA_FAILED'
   | 'VERIFICATION_FAILED'
@@ -8,6 +9,8 @@ export type SecurityErrorCode =
   | 'MAX_ATTEMPTS'
   | 'RESEND_TOO_SOON'
   | 'RATE_LIMITED'
+  | 'PRICE_CHANGED'
+  | 'DUPLICATE_REQUEST'
   | 'UNAUTHORIZED'
   | 'FORBIDDEN'
   | 'UPSTREAM_ERROR'

@@ -13,10 +13,10 @@ import SwithField from '@/components/forms/switch.field'
 import MyAlert from '@/components/forms/myAlert'
 import GeneralDialog from '@/components/dialogs/general-dialog'
 import { finalSchema, IFinalSchema, initialValues } from '@/modules/shared/schemas/final.schema'
-import { SolicitudConstanciaDraft } from '@/modules/solicitud-constancia/domain/solicitud-constancia'
 import useSolicitudConstanciaStore from '@/modules/solicitud-constancia/presentation/solicitud-constancia.store'
 import { useRegisterSolicitudConstancia } from '@/modules/solicitud-constancia/presentation/use-register-solicitud-constancia'
 import SolicitudSummary from '@/modules/solicitud-constancia/presentation/components/solicitud-summary'
+import { solicitudConstanciaSchema } from '@/modules/solicitud-constancia/schemas/solicitud-constancia.schema'
 
 type Props = {
   activeStep: number
@@ -26,23 +26,34 @@ type Props = {
 
 export default function Register({ activeStep, steps, setActiveStep }: Props) {
   const router = useRouter()
-  const draft = useSolicitudConstanciaStore((state) => state.draft)
-  const completeDraft = toCompleteDraft(draft)
+  const workflow = useSolicitudConstanciaStore((state) => state.workflow)
+  const requestResult = solicitudConstanciaSchema.safeParse({
+    email: workflow.draft.email,
+    basicData: workflow.draft.basicData,
+    payment: workflow.draft.payment,
+  })
+  const solicitud = requestResult.success ? requestResult.data : null
   const registration = useRegisterSolicitudConstancia((requestId, receiptId) => {
     router.push(`/solicitud-constancias/finalizar?id=${requestId}&receipt=${receiptId}`)
   })
   const form = useForm<IFinalSchema>({ resolver: zodResolver(finalSchema), defaultValues: initialValues })
+
+  const handleDialogOpenChange: React.Dispatch<React.SetStateAction<boolean>> = (nextValue) => {
+    const nextOpen = typeof nextValue === 'function' ? nextValue(registration.open) : nextValue
+    if (!nextOpen && (registration.loading || registration.dialogState === 'EMAIL_ERROR')) return
+    registration.setOpen(nextOpen)
+  }
 
   const onSubmit = async (values: IFinalSchema) => {
     if (!values.info || !values.terminos) {
       toast.error('Confirme los datos y acepte los terminos para continuar.')
       return
     }
-    if (!completeDraft) {
+    if (!solicitud) {
       toast.error('La solicitud no contiene todos los datos requeridos.')
       return
     }
-    await registration.submit(completeDraft)
+    await registration.submit(solicitud)
   }
 
   return (
@@ -52,7 +63,13 @@ export default function Register({ activeStep, steps, setActiveStep }: Props) {
         description="Revise la informacion antes de registrar su solicitud de constancia."
         type="warning"
       />
-      {completeDraft ? <SolicitudSummary draft={completeDraft} /> : null}
+      {solicitud ? <SolicitudSummary solicitud={solicitud} /> : (
+        <MyAlert
+          title="Solicitud incompleta"
+          description="Complete los datos basicos y de pago antes de finalizar."
+          type="warning"
+        />
+      )}
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-4">
           <SwithField
@@ -87,20 +104,20 @@ export default function Register({ activeStep, steps, setActiveStep }: Props) {
       </Form>
       <GeneralDialog
         open={registration.open}
-        setOpen={registration.setOpen}
+        setOpen={handleDialogOpenChange}
         title="Procesando solicitud de constancia"
-        description={registration.state === 'EMAIL_ERROR' ? 'Solicitud guardada; correo pendiente' : 'Espere por favor'}
+        description={registration.dialogState === 'EMAIL_ERROR' ? 'Solicitud guardada; correo pendiente' : 'Espere por favor'}
       >
         <div className="flex items-center justify-between gap-6 p-4">
           <Image
-            src={registration.state === 'ERROR' || registration.state === 'EMAIL_ERROR' ? '/images/error.png' : '/images/save-student.png'}
+            src={registration.dialogState === 'ERROR' || registration.dialogState === 'EMAIL_ERROR' ? '/images/error.png' : '/images/save-student.png'}
             alt="Estado del proceso"
             width={100}
             height={100}
           />
           <div className="flex flex-col items-center gap-4">
             {registration.loading ? <Loader2 className="h-12 w-12 animate-spin text-primary" /> : <p>{registration.message}</p>}
-            {registration.state === 'EMAIL_ERROR' ? (
+            {registration.dialogState === 'EMAIL_ERROR' ? (
               <Button type="button" onClick={registration.retryEmail} disabled={registration.loading}>Reintentar correo</Button>
             ) : null}
           </div>
@@ -108,16 +125,4 @@ export default function Register({ activeStep, steps, setActiveStep }: Props) {
       </GeneralDialog>
     </div>
   )
-}
-
-function toCompleteDraft(draft: Partial<SolicitudConstanciaDraft>): SolicitudConstanciaDraft | null {
-  if (
-    !draft.email || !draft.tipoSolicitudId || !draft.idiomaId || !draft.nivelId
-    || !draft.nombres || !draft.apellidos || !draft.tipoDocumento
-    || !draft.numeroDocumento || !draft.celular || draft.pago === undefined
-  ) return null
-
-  if (draft.pago > 0 && (!draft.numeroVoucher || !draft.fechaPago || !draft.voucherUrl)) return null
-  if (draft.alumnoUnac && (!draft.facultadId || !draft.escuelaId || !draft.codigo)) return null
-  return draft as SolicitudConstanciaDraft
 }

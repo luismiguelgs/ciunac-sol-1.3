@@ -58,21 +58,24 @@ flowchart LR
 | RF-003 | El sistema debe permitir registrar una solicitud de certificado mediante un flujo por pasos. |
 | RF-004 | El sistema debe permitir seleccionar tipo de solicitud, idioma, nivel, datos personales y datos academicos para certificados. |
 | RF-005 | El sistema debe permitir buscar datos de estudiante por documento y precargar apellidos, nombres, celular e identificador cuando existan. |
-| RF-006 | El sistema debe calcular o resolver el precio de una solicitud de certificado segun el tipo de solicitud disponible en catalogo. |
+| RF-006 | El sistema debe resolver el precio normal de una solicitud de certificado segun el catalogo y revalidarlo en servidor antes de crearla. |
 | RF-007 | El sistema debe aplicar una politica comun de pago: para montos mayores que cero exige numero de 15 digitos, fecha y archivo del voucher; para monto cero permite continuar sin ellos. |
-| RF-008 | El sistema debe solicitar documentos adicionales cuando el flujo del certificado o ubicacion lo requiera por condicion del usuario. |
+| RF-008 | El sistema debe solicitar documentos adicionales en ubicacion cuando sus reglas vigentes lo requieran. Certificados solo carga el voucher de pago. |
 | RF-009 | El sistema debe guardar o actualizar datos de estudiante antes de crear una solicitud cuando aplique. |
 | RF-010 | El sistema debe crear la solicitud en la API correspondiente y enviar una notificacion por correo al finalizar. |
 | RF-011 | El sistema debe permitir registrar una solicitud de beca con datos academicos y documentos obligatorios. |
 | RF-012 | El sistema debe permitir registrar una solicitud de examen de ubicacion mediante un flujo por pasos. |
 | RF-013 | El sistema debe bloquear una nueva solicitud de ubicacion si ya existe una solicitud en proceso para el mismo documento, idioma y tipo de solicitud. |
-| RF-014 | El sistema debe permitir registrar un alumno nuevo usando programas obtenidos desde API Q10. |
+| RF-014 | El sistema debe permitir registrar un alumno nuevo con correo verificado y un programa vigente obtenido desde API Q10. |
 | RF-015 | El sistema debe permitir consultar solicitudes por documento y redirigir a detalle si existen resultados. |
 | RF-016 | El sistema debe permitir consultar certificados y descargar o visualizar informacion asociada cuando exista. |
 | RF-017 | El sistema debe permitir consultar informacion de examen de ubicacion por documento. |
 | RF-018 | El sistema debe mostrar mensajes de error, carga, bloqueo y finalizacion en los flujos principales. |
 | RF-019 | El sistema debe permitir registrar una solicitud de constancia mediante un flujo independiente al de certificados. |
 | RF-020 | El sistema debe generar un cargo PDF desde frontend al finalizar exitosamente una solicitud de constancia. |
+| RF-021 | El sistema debe mostrar S/ 30.00 como tarifa del examen de ubicacion y revalidarla en servidor antes del registro. |
+| RF-022 | El sistema debe conservar server-side el perfil CIUNAC declarado y rechazar un payload que no coincida con dicho perfil. |
+| RF-023 | El sistema debe validar en servidor el formato real de los archivos de identidad, voucher y certificado academico de ubicacion. |
 
 ## 6. Requisitos No Funcionales
 | ID | Requisito |
@@ -94,18 +97,30 @@ flowchart LR
 | RN-003 | El celular debe tener 9 digitos. |
 | RN-004 | Si el usuario marca que es alumno, los campos facultad, escuela y codigo son obligatorios cuando el schema del flujo lo exige. |
 | RN-005 | Cuando el monto es mayor que cero, numero de voucher de 15 digitos, fecha de pago y archivo cargado son obligatorios. |
-| RN-006 | La solicitud de beca requiere constancia de matricula, historial academico, constancia de tercio, carta de compromiso y declaracion jurada. |
+| RN-006 | La solicitud de beca requiere constancia de matricula, historial academico, constancia de tercio, carta de compromiso y declaracion jurada; cada documento debe ser PDF y no superar 8 MiB. |
 | RN-007 | La solicitud de ubicacion debe bloquear duplicados con estado en proceso para el mismo documento, idioma y tipo de solicitud. |
 | RN-008 | La verificacion por correo usa un OTP generado y validado en servidor, con vigencia de 5 minutos y maximo de 5 intentos. |
-| RN-009 | Pendiente de validacion funcional: el catalogo de tipos de solicitud determina que solicitudes requieren documentos adicionales. |
-| RN-010 | Pendiente de validacion funcional: las reglas exactas de precio dependen del catalogo y reglas configuradas fuera del frontend. |
+| RN-009 | En ubicacion, un alumno CIUNAC debe adjuntar certificado de estudios PDF; un usuario no CIUNAC no debe adjuntarlo. |
+| RN-010 | El precio normal depende del catalogo externo vigente y debe verificarse nuevamente en el BFF antes del registro. |
 | RN-011 | Las constancias aplican la politica comun de pago; el voucher no es una regla especial del flujo. Los tipos actuales `5` y `6` tienen monto positivo. |
 | RN-012 | La solicitud de constancia no debe reutilizar el flujo de certificados como experiencia principal. |
+| RN-015 | Certificados acepta tipos `1` a `4` y rechaza con `409 PRICE_CHANGED` un monto distinto del precio normal vigente. |
+| RN-016 | Los tipos de certificado `2` y `4` se registran como digitales. |
+| RN-017 | Certificados no solicita documentos adicionales distintos del voucher. |
+| RN-018 | No se aplican descuentos de trabajador sin una validacion backend; `trabajador` y `antiguo` no alteran el flujo mediante URL. |
+| RN-019 | Alumno nuevo debe validar DNI de 8 digitos o CE de 9 caracteres alfanumericos, telefono de 9 digitos y fecha de nacimiento no futura. |
+| RN-020 | El BFF debe exigir que email y programa del registro de alumno nuevo coincidan con la sesion OTP y el catalogo Q10 vigente. |
+| RN-021 | Q10 puede confirmar el registro con `204` o un objeto; una respuesta mal formada no debe continuar al correo. |
+| RN-022 | Ubicacion usa tipo `7` y tarifa oficial S/ 30.00; un monto o catalogo diferente bloquea el registro. |
+| RN-023 | El perfil CIUNAC debe coincidir con la sesion server-side y no puede determinarse por query string. |
+| RN-024 | No CIUNAC usa nivel basico; CIUNAC puede elegir nivel y debe adjuntar certificado de estudios PDF de hasta 8 MiB. |
+| RN-025 | El documento de identidad de ubicacion es obligatorio, se envia como `imgDoc` y admite PDF, PNG o JPEG de hasta 8 MiB. |
+| RN-026 | Las solicitudes de ubicacion se registran con `digital: false`. |
 
 ## 8. Restricciones
 - El frontend depende de disponibilidad de API CIUNAC, API Q10, servicio de correo, archivos y reCAPTCHA.
 - El backend se trata como sistema externo; sus validaciones internas no se redefinen aqui.
-- El flujo de alumno nuevo conserva una implementacion menos modular que los flujos principales refactorizados.
+- El catalogo Q10 de alumno nuevo conserva un limite de 30 programas y filtros por nombre pendientes de validacion funcional.
 - Algunos textos funcionales provienen de catalogos remotos y pueden variar sin cambio de codigo.
 
 ## 9. Supuestos

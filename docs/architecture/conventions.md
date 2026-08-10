@@ -21,9 +21,11 @@
 
 ## Mapa de estado
 - `stores/types.stores.ts`: cache de catalogos por sesion.
-- `stores/solicitud.store.ts`: estado efimero de certificados y ubicacion.
-- `modules/solicitud-beca/stores/solicitud-beca.store.ts`: estado efimero del flujo de beca.
-- `modules/solicitud-nuevo/stores/student.store.ts`: estado efimero del flujo de alumno nuevo.
+- `modules/solicitud-certificado/presentation/solicitud-certificado.store.ts`: workflow tipado de certificados.
+- `modules/solicitud-constancia/presentation/solicitud-constancia.store.ts`: workflow tipado de constancias.
+- `modules/solicitud-beca/presentation/solicitud-beca.store.ts`: workflow tipado del flujo de beca.
+- `modules/solicitud-nuevo/presentation/new-student.store.ts`: workflow tipado del flujo de alumno nuevo.
+- `modules/solicitud-ubicacion/presentation/solicitud-ubicacion.store.ts`: workflow tipado del flujo de ubicacion.
 - Estados de submit, dialogos y loading: vivir en componentes o hooks de `presentation`.
 
 ## Criterios de extraccion a shared

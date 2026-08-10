@@ -1,41 +1,37 @@
 import { describe, expect, it, vi } from 'vitest'
 import { AppError } from '@/modules/shared/application/errors/app-error'
-import { emptyResult, dataResult, errorResult } from '@/modules/shared/application/results/app-result'
-import IEstudiante from '@/modules/shared/interfaces/estudiante.interface'
-import Isolicitud from '@/modules/shared/interfaces/solicitud.interface'
 import { RegisterSolicitudCertificadoUseCase } from '@/modules/solicitud-certificado/application/use-cases/register-solicitud-certificado.use-case'
+import { SolicitudCertificado } from '@/modules/solicitud-certificado/domain/solicitud-certificado'
 import { RegisterSolicitudBecaUseCase } from '@/modules/solicitud-beca/application/use-cases/register-solicitud-beca.use-case'
-import ISolicitudBeca from '@/modules/solicitud-beca/interfaces/solicitudbeca.interface'
+import { SolicitudBeca } from '@/modules/solicitud-beca/domain/solicitud-beca'
 import { RegisterSolicitudUbicacionUseCase } from '@/modules/solicitud-ubicacion/application/use-cases/register-solicitud-ubicacion.use-case'
+import { SolicitudUbicacion } from '@/modules/solicitud-ubicacion/domain/solicitud-ubicacion'
 import { RegisterNewStudentUseCase } from '@/modules/solicitud-nuevo/application/use-cases/register-new-student.use-case'
 import { RegisterSolicitudConstanciaUseCase } from '@/modules/solicitud-constancia/application/register-solicitud-constancia.use-case'
-import { SolicitudConstanciaDraft } from '@/modules/solicitud-constancia/domain/solicitud-constancia'
-import IStudent from '@/modules/solicitud-nuevo/interfaces/student.interface'
-import { DocumentType, Gender } from '@/lib/constants'
-
-const solicitud = { email: 'user@example.com', estudianteId: '' } as Isolicitud
-const student = { id: 'student-1' } as IEstudiante
+import { SolicitudConstancia } from '@/modules/solicitud-constancia/domain/solicitud-constancia'
+import { NewStudent } from '@/modules/solicitud-nuevo/domain/new-student'
 
 describe('registration use cases', () => {
   it('returns partial success and retries only the certificate email', async () => {
-    const saveFromSolicitud = vi.fn().mockResolvedValue(student)
+    const save = vi.fn().mockResolvedValue('student-1')
     const create = vi.fn().mockResolvedValue('request-1')
     const sendSolicitudCreada = vi.fn()
       .mockRejectedValueOnce(new AppError({ code: 'EXTERNAL_SERVICE', message: 'Correo temporalmente no disponible' }))
       .mockResolvedValueOnce('receipt-1')
     const useCase = new RegisterSolicitudCertificadoUseCase({
-      studentGateway: { saveFromSolicitud },
+      studentGateway: { save },
       solicitudGateway: { create },
       notificationGateway: { sendSolicitudCreada },
     })
+    const certificate = certificateDraft()
 
-    await expect(useCase.execute({ solicitud })).resolves.toMatchObject({
+    await expect(useCase.execute({ solicitud: certificate })).resolves.toMatchObject({
       status: 'saved_notification_failed',
       requestId: 'request-1',
     })
-    await expect(useCase.retryNotification(solicitud.email, 'request-1')).resolves.toBe('receipt-1')
-    expect(saveFromSolicitud).toHaveBeenCalledTimes(1)
-    expect(create).toHaveBeenCalledTimes(1)
+    await expect(useCase.retryNotification('request-1')).resolves.toBe('receipt-1')
+    expect(save).toHaveBeenCalledTimes(1)
+    expect(create).toHaveBeenCalledWith(certificate, 'student-1')
     expect(sendSolicitudCreada).toHaveBeenCalledTimes(2)
   })
 
@@ -44,7 +40,7 @@ describe('registration use cases', () => {
       solicitudGateway: { create: vi.fn().mockResolvedValue('beca-1') },
       notificationGateway: { sendSolicitudCreada: vi.fn().mockResolvedValue('receipt-beca') },
     })
-    const beca = { email: 'user@example.com' } as ISolicitudBeca
+    const beca = scholarshipDraft()
     await expect(useCase.execute({ solicitud: beca })).resolves.toEqual({
       status: 'completed',
       requestId: 'beca-1',
@@ -53,7 +49,7 @@ describe('registration use cases', () => {
   })
 
   it('retries only constancia notification after a partial success', async () => {
-    const save = vi.fn().mockResolvedValue({ id: 'student-constancia' })
+    const save = vi.fn().mockResolvedValue('student-constancia')
     const create = vi.fn().mockResolvedValue('request-constancia')
     const sendSolicitudCreada = vi.fn()
       .mockRejectedValueOnce(new AppError({ code: 'EXTERNAL_SERVICE', message: 'Correo no disponible' }))
@@ -77,8 +73,13 @@ describe('registration use cases', () => {
   it('does not notify when constancia creation has no identifier', async () => {
     const sendSolicitudCreada = vi.fn()
     const useCase = new RegisterSolicitudConstanciaUseCase({
-      student: { save: vi.fn().mockResolvedValue({ id: 'student-constancia' }) },
-      request: { create: vi.fn().mockResolvedValue(null) },
+      student: { save: vi.fn().mockResolvedValue('student-constancia') },
+      request: {
+        create: vi.fn().mockRejectedValue(new AppError({
+          code: 'EXTERNAL_SERVICE',
+          message: 'La API no devolvio un identificador valido',
+        })),
+      },
       notification: { sendSolicitudCreada },
     })
 
@@ -99,50 +100,42 @@ describe('registration use cases', () => {
     })
 
     await expect(useCase.execute({
-      solicitud: { ...constanciaDraft(), tipoSolicitudId: 1 },
+      solicitud: {
+        ...constanciaDraft(),
+        basicData: { ...constanciaDraft().basicData, typeId: 1 },
+      } as unknown as SolicitudConstancia,
     })).rejects.toMatchObject({ code: 'VALIDATION' })
     expect(save).not.toHaveBeenCalled()
     expect(create).not.toHaveBeenCalled()
     expect(sendSolicitudCreada).not.toHaveBeenCalled()
   })
 
-  it('does not create a location request when the student response is incomplete', async () => {
+  it('does not create a location request when saving the student fails', async () => {
     const create = vi.fn()
     const notify = vi.fn()
     const useCase = new RegisterSolicitudUbicacionUseCase({
-      studentGateway: { saveFromSolicitud: vi.fn().mockResolvedValue({} as IEstudiante) },
-      solicitudGateway: { create, searchByDni: vi.fn() },
+      studentGateway: { save: vi.fn().mockRejectedValue(new AppError({ code: 'EXTERNAL_SERVICE', message: 'Student response invalid' })) },
+      solicitudGateway: { create, searchByDocument: vi.fn() },
       notificationGateway: { sendSolicitudCreada: notify },
     })
 
-    await expect(useCase.execute({ solicitud })).rejects.toMatchObject({ code: 'UNEXPECTED' })
+    await expect(useCase.execute({ solicitud: locationDraft() })).rejects.toMatchObject({ code: 'EXTERNAL_SERVICE' })
     expect(create).not.toHaveBeenCalled()
     expect(notify).not.toHaveBeenCalled()
   })
 
-  it('accepts an empty Q10 success and stops on mail failure', async () => {
-    const register = vi.fn().mockResolvedValue(emptyResult())
+  it('accepts a Q10 command success and stops on mail failure', async () => {
+    const register = vi.fn().mockResolvedValue(undefined)
     const sendRegistration = vi.fn().mockRejectedValue(new Error('provider detail'))
     const useCase = new RegisterNewStudentUseCase({
       studentGateway: { register },
       notificationGateway: { sendRegistration },
     })
 
-    const result = await useCase.execute(newStudent())
+    const result = await useCase.execute({ student: newStudent() })
     expect(result).toMatchObject({ status: 'saved_notification_failed' })
     expect(register).toHaveBeenCalledTimes(1)
     expect(sendRegistration).toHaveBeenCalledTimes(1)
-  })
-
-  it('rejects a malformed Q10 success before sending mail', async () => {
-    const sendRegistration = vi.fn()
-    const useCase = new RegisterNewStudentUseCase({
-      studentGateway: { register: vi.fn().mockResolvedValue(dataResult('invalid')) },
-      notificationGateway: { sendRegistration },
-    })
-
-    await expect(useCase.execute(newStudent())).rejects.toMatchObject({ code: 'EXTERNAL_SERVICE' })
-    expect(sendRegistration).not.toHaveBeenCalled()
   })
 
   it.each([
@@ -152,52 +145,135 @@ describe('registration use cases', () => {
     const sendRegistration = vi.fn()
     const useCase = new RegisterNewStudentUseCase({
       studentGateway: {
-        register: vi.fn().mockResolvedValue(errorResult(new AppError({
+        register: vi.fn().mockRejectedValue(new AppError({
           code,
           status,
           message: 'Respuesta Q10 normalizada',
           retryable: status >= 500,
-        }))),
+        })),
       },
       notificationGateway: { sendRegistration },
     })
 
-    await expect(useCase.execute(newStudent())).rejects.toMatchObject({ code, status })
+    await expect(useCase.execute({ student: newStudent() })).rejects.toMatchObject({ code, status })
     expect(sendRegistration).not.toHaveBeenCalled()
   })
 })
 
-function newStudent(): IStudent {
+function newStudent(): NewStudent {
   return {
-    Primer_apellido: 'Perez',
-    Segundo_apellido: 'Lopez',
-    Primer_nombre: 'Maria',
-    Email: 'user@example.com',
-    Codigo_tipo_identificacion: DocumentType.PE01,
-    Numero_identificacion: '12345678',
-    Genero: Gender.F,
-    Fecha_nacimiento: '2000-01-01',
-    Telefono: '999888777',
-    Celular: '999888777',
-    Codigo_programa: 'ING',
+    email: 'user@example.com',
+    firstLastName: 'Perez',
+    secondLastName: 'Lopez',
+    firstName: 'Maria',
+    secondName: null,
+    gender: 'F',
+    birthDate: '2000-01-01',
+    phone: '999888777',
+    document: { type: 'DNI', number: '12345678' },
+    program: { code: 'ING', name: 'Ingles' },
   }
 }
 
-function constanciaDraft(): SolicitudConstanciaDraft {
+function constanciaDraft(): SolicitudConstancia {
   return {
     email: 'user@example.com',
-    tipoSolicitudId: 5,
-    idiomaId: 2,
-    nivelId: 1,
-    nombres: 'Maria',
-    apellidos: 'Perez',
-    tipoDocumento: 'DNI',
-    numeroDocumento: '12345678',
-    celular: '999888777',
-    alumnoUnac: false,
-    pago: 30,
-    numeroVoucher: '123456789012345',
-    fechaPago: '2026-08-01T00:00:00.000Z',
-    voucherUrl: '/vouchers/fixture.png',
+    basicData: {
+      typeId: 5,
+      languageId: 2,
+      levelId: 1,
+      names: 'Maria',
+      lastNames: 'Perez',
+      documentType: 'DNI',
+      documentNumber: '12345678',
+      phone: '999888777',
+      existingStudentId: null,
+      isUnacStudent: false,
+    },
+    payment: {
+      amount: 30,
+      voucher: {
+        number: '123456789012345',
+        paidAt: '2026-08-01T00:00:00.000Z',
+        url: '/vouchers/fixture.png',
+      },
+    },
+  }
+}
+
+function certificateDraft(): SolicitudCertificado {
+  return {
+    email: 'user@example.com',
+    basicData: {
+      typeId: 1,
+      languageId: 2,
+      levelId: 1,
+      names: 'Maria',
+      lastNames: 'Perez',
+      documentType: 'DNI',
+      documentNumber: '12345678',
+      phone: '999888777',
+      existingStudentId: null,
+      isUnacStudent: false,
+    },
+    payment: {
+      amount: 30,
+      voucher: {
+        number: '123456789012345',
+        paidAt: '2026-08-01T00:00:00.000Z',
+        url: '/vouchers/fixture.png',
+      },
+    },
+  }
+}
+
+function locationDraft(): SolicitudUbicacion {
+  return {
+    email: 'user@example.com',
+    isCiunacStudent: false,
+    basicData: {
+      languageId: 2,
+      levelId: 1,
+      names: 'Maria',
+      lastNames: 'Perez',
+      documentType: 'DNI',
+      documentNumber: '12345678',
+      phone: '999888777',
+      identityDocumentUrl: '/documents/dni.pdf',
+      existingStudentId: null,
+    },
+    payment: {
+      amount: 30,
+      voucher: {
+        number: '123456789012345',
+        paidAt: '2026-08-01T00:00:00.000Z',
+        url: '/vouchers/fixture.pdf',
+      },
+    },
+    studyCertificateUrl: null,
+  }
+}
+
+function scholarshipDraft(): SolicitudBeca {
+  return {
+    email: 'user@example.com',
+    basicData: {
+      names: 'Maria',
+      lastNames: 'Perez',
+      phone: '999888777',
+      documentType: 'DNI',
+      documentNumber: '12345678',
+      address: 'Callao',
+      studentCode: '20260001',
+      faculty: { id: 1, name: 'Ingenieria' },
+      school: { id: 2, name: 'Sistemas' },
+    },
+    documents: {
+      enrollmentCertificateUrl: '/files/matricula.pdf',
+      academicHistoryUrl: '/files/historial.pdf',
+      meritCertificateUrl: '/files/tercio.pdf',
+      commitmentLetterUrl: '/files/compromiso.pdf',
+      swornDeclarationUrl: '/files/declaracion.pdf',
+    },
   }
 }

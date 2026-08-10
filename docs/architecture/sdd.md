@@ -90,6 +90,9 @@ Patron ya aplicado en:
 - `modules/solicitud-beca`
 - `modules/solicitud-ubicacion`
 - `modules/solicitud-constancia`
+- `modules/consultas`
+- `modules/consulta-solicitud`
+- `modules/consulta-certificado`
 
 Infraestructura compartida:
 - `modules/shared/application/errors/app-error.ts`
@@ -105,10 +108,11 @@ Infraestructura compartida:
 
 Estado compartido y de flujo:
 - `stores/types.stores.ts`: catalogos por sesion.
-- `stores/solicitud.store.ts`: certificados y ubicacion.
+- `modules/solicitud-certificado/presentation/solicitud-certificado.store.ts`: workflow tipado de certificados.
 - `modules/solicitud-constancia/presentation/solicitud-constancia.store.ts`: borrador exclusivo de constancias.
-- `modules/solicitud-beca/stores/solicitud-beca.store.ts`: beca.
-- `modules/solicitud-nuevo/stores/student.store.ts`: alumno nuevo.
+- `modules/solicitud-beca/presentation/solicitud-beca.store.ts`: workflow tipado de beca.
+- `modules/solicitud-nuevo/presentation/new-student.store.ts`: workflow tipado de alumno nuevo.
+- `modules/solicitud-ubicacion/presentation/solicitud-ubicacion.store.ts`: workflow tipado de ubicacion.
 
 ## 7. Vista de datos
 Se distinguen estos modelos:
@@ -162,6 +166,14 @@ ADRs vigentes:
 - ADR-006 Separar el flujo de constancias.
 - ADR-007 Introducir BFF seguro, OTP y CAPTCHA server-side.
 - ADR-008 Usar resultados explicitos para operaciones externas.
+- ADR-009 Adoptar dominio, workflow y fronteras runtime tipadas para constancias.
+- ADR-010 Adoptar un contexto tipado comun para consultas por documento.
+- ADR-011 Tipar el detalle de certificado y asociarlo al documento consultado.
+- ADR-012 Ejecutar en servidor el join tipado de consulta de ubicacion.
+- ADR-013 Adoptar dominio, workflow y documentos PDF seguros para solicitud de beca.
+- ADR-014 Adoptar dominio, workflow y validacion server-side de precio para certificados.
+- ADR-015 Adoptar dominio, workflow y validacion server-side para alumno nuevo.
+- ADR-016 Adoptar dominio, workflow, perfil y tarifa server-side para solicitud de ubicacion.
 
 ## 11. Riesgos y mitigaciones
 - Riesgo: extraer demasiada logica a `shared`.

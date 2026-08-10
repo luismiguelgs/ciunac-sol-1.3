@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { LucideIcon, Upload } from "lucide-react";
+import { validateVoucherFileMetadata } from "@/modules/shared/domain/voucher-file-policy";
 import { uploadFile } from "@/services/storage.service";
 
 interface FileUploaderCardProps {
@@ -21,12 +22,24 @@ interface FileUploaderCardProps {
   dni: string | undefined;
   folder: 'dnis' | 'vouchers' | 'becas';
   disabled?: boolean;
+  accept?: string;
+  validateFile?: (file: File) => string | null;
 }
 
-export const FileUploaderCard = ({ name, label, icon:Icon, dni, folder, disabled = false }: FileUploaderCardProps) => {
+export const FileUploaderCard = ({
+	name,
+	label,
+	icon: Icon,
+	dni,
+	folder,
+	disabled = false,
+	accept,
+	validateFile,
+}: FileUploaderCardProps) => {
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const [uploading, setUploading] = useState(false);
 	const [progress, setProgress] = useState(0);
+	const [uploadError, setUploadError] = useState<string | null>(null);
 	const { control, setValue } = useFormContext();
 
 	const handleFileSelect = () => {
@@ -35,16 +48,29 @@ export const FileUploaderCard = ({ name, label, icon:Icon, dni, folder, disabled
 
 	const handleUpload = async (file: File, onChange: (url: string) => void) => {
 		try{
+			setUploadError(null);
 			setUploading(true);
 			setProgress(20);
 
-			if (folder === 'becas' && file.type !== "application/pdf") {
-				alert("Solo se permiten archivos PDF.");
+			const customValidationError = validateFile?.(file);
+			if (customValidationError) {
+				setUploadError(customValidationError);
 				return;
 			}
 
-			if (folder !== 'becas' && !["application/pdf", "image/jpeg", "image/png"].includes(file.type)) {
-				alert("Solo se permiten archivos PDF, JPG y PNG.");
+			if (!validateFile && folder === 'becas' && file.type !== "application/pdf") {
+				setUploadError("Solo se permiten archivos PDF.");
+				return;
+			}
+
+			const voucherError = !validateFile && folder === 'vouchers' ? validateVoucherFileMetadata(file) : null;
+			if (voucherError) {
+				setUploadError(voucherError);
+				return;
+			}
+
+			if (!validateFile && folder === 'dnis' && !["application/pdf", "image/jpeg", "image/png"].includes(file.type)) {
+				setUploadError("Solo se permiten archivos PDF, JPG y PNG.");
 				return;
 			}
 			setProgress(40);
@@ -54,8 +80,8 @@ export const FileUploaderCard = ({ name, label, icon:Icon, dni, folder, disabled
 			onChange(url);
 			setValue(name, url);
 			setProgress(100);
-		} catch {
-			alert('Error al subir archivo');
+		} catch (cause) {
+			setUploadError(cause instanceof Error ? cause.message : 'Error al subir archivo');
 		} finally {
 			setUploading(false);
 		}
@@ -85,10 +111,11 @@ export const FileUploaderCard = ({ name, label, icon:Icon, dni, folder, disabled
 						<input
 							type="file"
 							ref={fileInputRef}
-							accept={folder === 'becas' ? ".pdf" : ".pdf, .jpg, .jpeg, .png"}
+							accept={accept ?? (folder === 'becas' ? ".pdf" : ".pdf, .jpg, .jpeg, .png")}
 							onChange={(e) => {
 								const file = e.target.files?.[0];
 								if (file) handleUpload(file, onChange);
+								e.target.value = '';
 							}}
 							className="hidden"
 							disabled={disabled}
@@ -111,6 +138,7 @@ export const FileUploaderCard = ({ name, label, icon:Icon, dni, folder, disabled
 						)}
 
 						{error && <p className="text-sm text-red-600">{error.message}</p>}
+						{uploadError && <p className="text-sm text-red-600" role="alert">{uploadError}</p>}
 					</CardContent>
 				</Card>
 			)}

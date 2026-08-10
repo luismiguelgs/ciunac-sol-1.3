@@ -1,10 +1,9 @@
-import IStudent from '@/modules/solicitud-nuevo/interfaces/student.interface';
-import { AppResult } from '@/modules/shared/application/results/app-result';
+import { NewStudent } from '@/modules/solicitud-nuevo/domain/new-student'
 
 export interface NewStudentGateway {
-  register(student: IStudent): Promise<AppResult<unknown>>;
+  register(student: NewStudent): Promise<void>
 }
 
 export interface NewStudentNotificationGateway {
-  sendRegistration(student: IStudent): Promise<string>;
+  sendRegistration(documentNumber: string): Promise<string>
 }

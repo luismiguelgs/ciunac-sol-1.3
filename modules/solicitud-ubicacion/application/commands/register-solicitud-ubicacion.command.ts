@@ -1,5 +1,5 @@
-import Isolicitud from '@/modules/shared/interfaces/solicitud.interface';
+import { SolicitudUbicacion } from '@/modules/solicitud-ubicacion/domain/solicitud-ubicacion'
 
 export interface RegisterSolicitudUbicacionCommand {
-  solicitud: Isolicitud;
+  solicitud: SolicitudUbicacion
 }

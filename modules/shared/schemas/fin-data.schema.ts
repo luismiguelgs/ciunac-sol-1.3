@@ -8,7 +8,12 @@ export const finInfoSchema = z.object({
   fecha_pago: z.date().optional().nullable(),
   img_voucher: z.string().trim().optional().nullable(),
 }).superRefine((data, ctx) => {
-  if (Number(data.pago) <= 0) return
+  const amount = Number(data.pago)
+  if (!Number.isFinite(amount) || amount < 0) {
+    ctx.addIssue({ code: 'custom', message: 'El monto de pago no es valido.', path: ['pago'] })
+    return
+  }
+  if (amount === 0) return
 
   const voucherNumber = data.numero_voucher?.trim()
   if (!voucherNumber) {

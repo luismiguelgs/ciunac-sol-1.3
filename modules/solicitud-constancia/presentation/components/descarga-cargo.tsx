@@ -8,38 +8,46 @@ import pdfImage from '@/assets/pdf.png'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { useCatalogStore } from '@/hooks/useCatalogStore'
-import { normalizeAppError } from '@/modules/shared/application/errors/app-error'
-import { ISolicitudRes } from '@/modules/shared/interfaces/solicitud.interface'
+import { AppError, normalizeAppError } from '@/modules/shared/application/errors/app-error'
 import { ITexto } from '@/modules/shared/interfaces/types.interface'
+import { ConstanciaCargo } from '@/modules/solicitud-constancia/domain/solicitud-constancia'
+import { constanciaCargoRepository } from '@/modules/solicitud-constancia/infrastructure/constancia-cargo.repository'
 import ConstanciaCargoPdf from '@/modules/solicitud-constancia/presentation/components/cargo-pdf'
-import SolicitudesService from '@/services/solicitudes.service'
 import { useTextsStore } from '@/stores/types.stores'
+
+type CargoLoadState =
+  | { status: 'loading' }
+  | { status: 'data'; data: ConstanciaCargo }
+  | { status: 'empty' }
+  | { status: 'error'; error: AppError }
 
 export default function DescargaCargo({ solicitudId }: { solicitudId: number | null }) {
   const { data: textos } = useCatalogStore(useTextsStore)
-  const [data, setData] = React.useState<ISolicitudRes | null>(null)
-  const [loading, setLoading] = React.useState(true)
-  const [error, setError] = React.useState<string | null>(null)
+  const [state, setState] = React.useState<CargoLoadState>({ status: 'loading' })
+  const [pdfError, setPdfError] = React.useState<string | null>(null)
   const [attempt, setAttempt] = React.useState(0)
 
   React.useEffect(() => {
     let mounted = true
     if (!solicitudId || solicitudId <= 0) {
-      setLoading(false)
-      setError('El identificador de la solicitud no es valido.')
+      setState({
+        status: 'error',
+        error: new AppError({ code: 'VALIDATION', message: 'El identificador de la solicitud no es valido.' }),
+      })
       return
     }
 
     const load = async () => {
-      setLoading(true)
-      setError(null)
+      setState({ status: 'loading' })
+      setPdfError(null)
       try {
-        const result = await SolicitudesService.getItemId(solicitudId)
-        if (mounted) setData(result)
+        const result = await constanciaCargoRepository.findById(solicitudId)
+        if (!mounted) return
+        setState(result ? { status: 'data', data: result } : { status: 'empty' })
       } catch (cause) {
-        if (mounted) setError(normalizeAppError(cause, 'No se pudo cargar el cargo').message)
-      } finally {
-        if (mounted) setLoading(false)
+        if (mounted) {
+          setState({ status: 'error', error: normalizeAppError(cause, 'No se pudo cargar el cargo') })
+        }
       }
     }
 
@@ -48,57 +56,67 @@ export default function DescargaCargo({ solicitudId }: { solicitudId: number | n
   }, [attempt, solicitudId])
 
   const exportPdf = async () => {
-    if (!hasCargoData(data)) {
-      setError('La solicitud no tiene todos los datos necesarios para generar el cargo.')
-      return
-    }
+    if (state.status !== 'data') return
 
     try {
-      setError(null)
+      setPdfError(null)
       const blob = await pdf(
-        <ConstanciaCargoPdf textos={(textos ?? []) as ITexto[]} solicitud={data} />,
+        <ConstanciaCargoPdf textos={(textos ?? []) as ITexto[]} solicitud={state.data} />,
       ).toBlob()
-      downloadBlob(blob, `CONSTANCIA-${data.estudiante.numeroDocumento}-${data.id}.pdf`)
+      downloadBlob(blob, `CONSTANCIA-${state.data.student.documentNumber}-${state.data.id}.pdf`)
     } catch (cause) {
-      setError(normalizeAppError(cause, 'No se pudo generar el cargo PDF').message)
+      setPdfError(normalizeAppError(cause, 'No se pudo generar el cargo PDF').message)
     }
   }
 
-  if (loading) {
+  if (state.status === 'loading') {
     return <Button disabled><Loader2 className="mr-2 h-4 w-4 animate-spin" />Cargando cargo...</Button>
+  }
+
+  if (state.status === 'empty') {
+    return (
+      <Alert>
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Cargo aun no disponible</AlertTitle>
+        <AlertDescription>No se encontraron datos para generar el cargo de esta solicitud.</AlertDescription>
+      </Alert>
+    )
+  }
+
+  if (state.status === 'error') {
+    return (
+      <div className="flex flex-col items-center gap-3">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>No se pudo cargar el cargo</AlertTitle>
+          <AlertDescription>{state.error.message}</AlertDescription>
+        </Alert>
+        {solicitudId ? (
+          <Button type="button" variant="outline" onClick={() => setAttempt((value) => value + 1)}>
+            Reintentar carga
+          </Button>
+        ) : null}
+      </div>
+    )
   }
 
   return (
     <div className="flex flex-col items-center gap-3">
-      {error ? (
+      {pdfError ? (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Cargo no disponible</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
+          <AlertTitle>No se pudo generar el PDF</AlertTitle>
+          <AlertDescription>{pdfError}</AlertDescription>
         </Alert>
       ) : null}
       <div className="flex items-center gap-10">
         <Image src={pdfImage.src} alt="Documento PDF" width={50} height={50} />
-        <Button onClick={exportPdf} disabled={!hasCargoData(data)}>
+        <Button onClick={exportPdf}>
           Descargar cargo <CloudDownloadIcon className="ml-2" />
         </Button>
       </div>
-      {error && solicitudId ? (
-        <Button type="button" variant="outline" onClick={() => setAttempt((value) => value + 1)}>
-          Reintentar carga
-        </Button>
-      ) : null}
     </div>
   )
-}
-
-function hasCargoData(data: ISolicitudRes | null): data is ISolicitudRes & {
-  id: number
-  estudiante: NonNullable<ISolicitudRes['estudiante']>
-  idioma: NonNullable<ISolicitudRes['idioma']>
-  nivel: NonNullable<ISolicitudRes['nivel']>
-} {
-  return Boolean(data?.id && data.estudiante?.numeroDocumento && data.idioma?.nombre && data.nivel?.nombre)
 }
 
 function downloadBlob(blob: Blob, fileName: string) {

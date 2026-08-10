@@ -15,7 +15,9 @@ Constancias ya no importa componentes, schemas, view-models, reglas de precio, r
 - `modules/shared/components/fin-data.tsx`.
 - `modules/shared/schemas/fin-data.schema.ts`.
 - Cliente HTTP, errores, catalogos, tabla de precios y carga a `upload/vouchers`.
-- Servicios fachada de estudiantes y solicitudes, usados desde adaptadores del slice.
+- Repositorio HTTP, errores normalizados y catalogos compartidos.
+
+Desde Fase 2A, los adaptadores de constancias ya no dependen de las fachadas genericas de estudiantes y solicitudes; usan DTOs, schemas runtime y mappers propios sobre el repositorio HTTP compartido.
 
 ```mermaid
 flowchart TD

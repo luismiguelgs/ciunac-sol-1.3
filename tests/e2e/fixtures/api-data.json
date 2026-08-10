@@ -6,7 +6,7 @@
     { "id": 4, "solicitud": "CERTIFICADO DIGITAL", "precio": 45 },
     { "id": 5, "solicitud": "CONSTANCIA DE ESTUDIOS", "precio": 30 },
     { "id": 6, "solicitud": "CONSTANCIA DE NOTAS", "precio": 30 },
-    { "id": 7, "solicitud": "EXAMEN DE UBICACION", "precio": 80 }
+    { "id": 7, "solicitud": "EXAMEN DE UBICACION", "precio": 30 }
   ],
   "idiomas": [
     { "id": 2, "nombre": "INGLES" },
@@ -23,9 +23,14 @@
     { "id": "2", "codigo": "TEXTO_1_PAGO", "contenido": "Registre los datos exactos del pago." },
     { "id": "3", "codigo": "TEXTO_1_FINAL", "contenido": "Verifique la informacion antes de finalizar." },
     { "id": "4", "codigo": "TEXTO_1_DISCLAMER", "contenido": "El cargo acredita el registro de la solicitud." },
+    { "id": "9", "codigo": "TEXTO_UBICACION_1", "contenido": "Complete los datos del examen de ubicacion." },
+    { "id": "10", "codigo": "TEXTO_UBICACION_2", "contenido": "Adjunte el certificado de estudios CIUNAC en formato PDF." },
+    { "id": "11", "codigo": "TEXTO_UBICACION_3", "contenido": "Revise los datos antes de registrar la solicitud." },
+    { "id": "12", "codigo": "TEXTO_UBICACION_4", "contenido": "Conserve el cargo del examen de ubicacion." },
     { "id": "5", "codigo": "TEXTO_UBICACION_5", "contenido": "Su solicitud se encuentra EN PROCESO hasta que sea marcada PARA RECOGER." },
     { "id": "6", "codigo": "TEXTO_NOMBREAN", "contenido": "ANO ACADEMICO 2026" },
-    { "id": "7", "codigo": "TEXTO_UBICACION_6", "contenido": "Conserve su cargo de examen de ubicacion." }
+    { "id": "7", "codigo": "TEXTO_UBICACION_6", "contenido": "Conserve su cargo de examen de ubicacion." },
+    { "id": "8", "codigo": "TEXTO_2_DISCLAMER", "contenido": "El cargo debe conservarse hasta la entrega del certificado." }
   ],
   "cronogramas": [
     {
@@ -87,7 +92,7 @@
       "periodo": "2026-1",
       "alumnoCiunac": false,
       "fechaPago": "2026-08-01T00:00:00.000Z",
-      "pago": 80,
+      "pago": 30,
       "numeroVoucher": "123456789012345",
       "imgVoucher": "/images/upload.svg",
       "imgCertEstudio": "",
@@ -95,7 +100,7 @@
       "creadoEn": "2026-08-01T00:00:00.000Z",
       "modificadoEn": "2026-08-01T00:00:00.000Z",
       "estudiante": { "id": "student-e2e", "nombres": "MARIA", "apellidos": "PRUEBA E2E", "numeroDocumento": "12345678" },
-      "tiposSolicitud": { "id": 7, "solicitud": "EXAMEN DE UBICACION", "precio": 80 },
+      "tiposSolicitud": { "id": 7, "solicitud": "EXAMEN DE UBICACION", "precio": 30 },
       "idioma": { "id": 2, "nombre": "INGLES" },
       "nivel": { "id": 1, "nombre": "BASICO", "orden": 1 },
       "estado": { "id": 2, "nombre": "ASIGNADO", "referencia": "EN PROCESO" }

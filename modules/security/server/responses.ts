@@ -4,6 +4,7 @@ import { SecurityError, SecurityErrorCode } from '@/modules/security/server/secu
 
 const PUBLIC_MESSAGES: Record<SecurityErrorCode, string> = {
   INVALID_REQUEST: 'La solicitud no es valida.',
+  INVALID_FILE: 'El archivo no es valido. Use PDF, JPG o PNG de hasta 8 MB.',
   INVALID_ORIGIN: 'La solicitud no esta permitida.',
   CAPTCHA_FAILED: 'No se pudo validar el CAPTCHA.',
   VERIFICATION_FAILED: 'El codigo de verificacion es incorrecto.',
@@ -12,6 +13,8 @@ const PUBLIC_MESSAGES: Record<SecurityErrorCode, string> = {
   MAX_ATTEMPTS: 'Se alcanzo el maximo de intentos permitidos.',
   RESEND_TOO_SOON: 'Espere antes de solicitar un nuevo codigo.',
   RATE_LIMITED: 'Se alcanzo el limite temporal de solicitudes.',
+  PRICE_CHANGED: 'El tarifario cambio. Revise nuevamente el monto antes de continuar.',
+  DUPLICATE_REQUEST: 'Ya existe una solicitud de ubicacion en proceso para estos datos.',
   UNAUTHORIZED: 'Debe verificar su correo antes de continuar.',
   FORBIDDEN: 'La operacion no esta permitida.',
   UPSTREAM_ERROR: 'No se pudo completar la operacion solicitada.',

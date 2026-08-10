@@ -13,7 +13,7 @@ const routes = [
     content: /Consulta de Solicitud/i,
   },
   { path: '/solicitud-beca', content: /correo electr/i },
-  { path: '/solicitud-beca/finalizar', content: /Proceso Finalizado/i },
+  { path: '/solicitud-beca/finalizar?id=BECA-E2E', content: /Proceso Finalizado/i },
   { path: '/solicitud-beca/proceso', content: /correo electr/i },
   { path: '/solicitud-certificados', content: /correo electr/i },
   { path: '/solicitud-certificados/finalizar?id=1001', content: /Proceso Finalizado/i },
@@ -22,11 +22,11 @@ const routes = [
   { path: '/solicitud-constancias/finalizar?id=1003', content: /Proceso finalizado/i },
   { path: '/solicitud-constancias/proceso', content: /correo electr/i },
   { path: '/solicitud-nuevo', content: /Verificaci/i },
-  { path: '/solicitud-nuevo/finalizar', content: /Proceso Finalizado/i },
+  { path: '/solicitud-nuevo/finalizar', content: /Estado no confirmado/i },
   { path: '/solicitud-ubicacion', content: /correo electr/i },
   { path: '/solicitud-ubicacion/finalizar?id=1002', content: /Proceso Finalizado/i },
   {
-    path: '/solicitud-ubicacion/proceso?alumno_ciunac=false',
+    path: '/solicitud-ubicacion/proceso',
     content: /correo electr/i,
   },
 ]

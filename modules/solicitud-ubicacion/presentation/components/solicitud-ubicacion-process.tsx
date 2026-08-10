@@ -1,196 +1,140 @@
 'use client'
 
-import React from 'react';
-import Image from 'next/image';
-import { Stepper } from '@/components/stepper';
-import BasicData from '@/modules/solicitud-ubicacion/components/basic-data';
-import FinData, { PaymentOption } from '@/modules/shared/components/fin-data';
-import Documentos from '@/modules/shared/components/documentos-step';
-import Register from '@/modules/solicitud-ubicacion/components/register';
-import useSolicitudStore from '@/stores/solicitud.store';
-import GeneralDialog from '@/components/dialogs/general-dialog';
-import { createCheckDuplicateSolicitudUbicacionUseCase } from '@/modules/solicitud-ubicacion/application/factories/create-check-duplicate-solicitud-ubicacion-use-case';
-import { resolveSolicitudUbicacionPrice } from '@/modules/solicitud-ubicacion/domain/rules/resolve-solicitud-ubicacion-price';
+import React from 'react'
+import Image from 'next/image'
+import { toast } from 'sonner'
+import { Stepper } from '@/components/stepper'
+import GeneralDialog from '@/components/dialogs/general-dialog'
+import FinData, { PaymentOption } from '@/modules/shared/components/fin-data'
+import { normalizeAppError } from '@/modules/shared/application/errors/app-error'
+import { IFinInfoSchema } from '@/modules/shared/schemas/fin-data.schema'
+import { LOCATION_EXAM_PRICE, LocationCatalogs } from '@/modules/solicitud-ubicacion/domain/solicitud-ubicacion'
+import { createCheckDuplicateSolicitudUbicacionUseCase } from '@/modules/solicitud-ubicacion/application/factories/create-check-duplicate-solicitud-ubicacion-use-case'
+import { LocationBasicDataFormValues } from '@/modules/solicitud-ubicacion/schemas/location-basic-data.schema'
+import { LocationDocumentsFormValues } from '@/modules/solicitud-ubicacion/schemas/location-documents.schema'
 import {
-  SolicitudUbicacionStep,
-  SolicitudUbicacionStepPayload,
-} from '@/modules/solicitud-ubicacion/presentation/view-models/solicitud-ubicacion-process.view-model';
+  toLocationBasicData,
+  toLocationPayment,
+  toLocationPaymentFormValues,
+} from '@/modules/solicitud-ubicacion/presentation/location-form.mapper'
+import useSolicitudUbicacionStore from '@/modules/solicitud-ubicacion/presentation/solicitud-ubicacion.store'
+import BasicData from '@/modules/solicitud-ubicacion/presentation/components/basic-data'
+import StudyCertificate from '@/modules/solicitud-ubicacion/presentation/components/study-certificate'
+import Register from '@/modules/solicitud-ubicacion/presentation/components/register'
 
-type BasicStepPayload = Extract<SolicitudUbicacionStepPayload, { tipo_solicitud: string }>;
-type PaymentStepPayload = Extract<SolicitudUbicacionStepPayload, { pago: string }>;
-type DocumentStepPayload = Extract<SolicitudUbicacionStepPayload, { img_cert_estudio: string }>;
+type Props = { email: string; isCiunacStudent: boolean; catalogs: LocationCatalogs }
 
-function buildSteps(alumno: boolean): SolicitudUbicacionStep[] {
-  return alumno
-    ? ['Datos Básicos', 'Datos de Pago', 'Documentos', 'Finalizar']
-    : ['Datos Básicos', 'Datos de Pago', 'Finalizar'];
-}
-
-function BlockDialog() {
-  return (
-    <>
-      <Image
-        src={'/images/error.png'}
-        alt="Advertencia"
-        width={100}
-        height={100}
-        style={{
-          margin: '0 auto 20px',
-          display: 'block'
-        }}
-      />
-      <span>
-        Ya hay una solicitud en proceso. Por favor, espera a que termine
-        la operación actual antes de realizar una nueva solicitud. Si tiene
-        alguna duda, comuníquese con nosotros a través del teléfono: <strong>014291931</strong>
-      </span>
-    </>
-  );
-}
-
-type Props = {
-  email: string;
-  alumno: boolean;
-};
-
-export default function SolicitudUbicacionProcess({ email, alumno }: Props) {
-  const { solicitud, setSolicitudField, resetSolicitud } = useSolicitudStore();
-  const [activeStep, setActiveStep] = React.useState(0);
-  const [precio, setPrecio] = React.useState('0');
-  const [bloqueoRep, setBloqueoRep] = React.useState(false);
-  const duplicateUseCase = React.useMemo(() => createCheckDuplicateSolicitudUbicacionUseCase(), []);
-
-  const steps = React.useMemo(() => buildSteps(alumno), [alumno]);
-  const paymentOptions = React.useMemo<PaymentOption[]>(() => {
-    const amount = Number(precio);
-    return [{ value: String(precio), label: `S/${amount.toFixed(2)} - precio normal` }];
-  }, [precio]);
+export default function SolicitudUbicacionProcess({ email, isCiunacStudent, catalogs }: Props) {
+  const workflow = useSolicitudUbicacionStore((state) => state.workflow)
+  const initialize = useSolicitudUbicacionStore((state) => state.initialize)
+  const completeBasicData = useSolicitudUbicacionStore((state) => state.completeBasicData)
+  const completePayment = useSolicitudUbicacionStore((state) => state.completePayment)
+  const completeStudyCertificate = useSolicitudUbicacionStore((state) => state.completeStudyCertificate)
+  const [activeStep, setActiveStep] = React.useState(0)
+  const [duplicateDialog, setDuplicateDialog] = React.useState(false)
+  const [duplicateUseCase] = React.useState(() => createCheckDuplicateSolicitudUbicacionUseCase())
+  const steps = isCiunacStudent
+    ? ['Datos basicos', 'Datos de pago', 'Documentos', 'Finalizar']
+    : ['Datos basicos', 'Datos de pago', 'Finalizar']
+  const paymentOptions: PaymentOption[] = [{
+    value: String(LOCATION_EXAM_PRICE),
+    label: `S/${LOCATION_EXAM_PRICE.toFixed(2)} - precio normal`,
+  }]
 
   React.useEffect(() => {
-    resetSolicitud();
-    setActiveStep(0);
-    setPrecio('0');
-    setBloqueoRep(false);
-  }, [alumno, email, resetSolicitud]);
+    initialize(email, isCiunacStudent)
+    setActiveStep(0)
+  }, [email, initialize, isCiunacStudent])
 
-  const handleNext = React.useCallback(
-    async (values: SolicitudUbicacionStepPayload) => {
-      switch (steps[activeStep]) {
-        case 'Datos Básicos': {
-          const basicValues = values as BasicStepPayload;
-          setSolicitudField('email', email);
-          setSolicitudField('alumno_ciunac', alumno);
-          setSolicitudField('tipo_solicitud', basicValues.tipo_solicitud);
-          setSolicitudField('nombres', basicValues.nombres);
-          setSolicitudField('apellidos', basicValues.apellidos);
-          setSolicitudField('idioma', basicValues.idioma);
-          setSolicitudField('nivel', basicValues.nivel);
-          setSolicitudField('img_dni', basicValues.img_dni);
-          setSolicitudField('tipo_documento', basicValues.tipo_documento);
-          setSolicitudField('dni', basicValues.dni);
-          setSolicitudField('celular', basicValues.celular);
-          setSolicitudField('estudianteId', basicValues.estudianteId);
-          setPrecio(resolveSolicitudUbicacionPrice());
-
-          const duplicado = await duplicateUseCase.execute({
-            dni: basicValues.dni,
-            idioma: basicValues.idioma,
-            tipoSolicitud: basicValues.tipo_solicitud,
-          });
-
-          if (duplicado) {
-            setBloqueoRep(true);
-            return;
-          }
-          break;
-        }
-        case 'Datos de Pago': {
-          const paymentValues = values as PaymentStepPayload;
-          setSolicitudField('pago', paymentValues.pago);
-          setSolicitudField('numero_voucher', paymentValues.numero_voucher);
-          setSolicitudField('fecha_pago', (paymentValues.fecha_pago as Date).toISOString());
-          setSolicitudField('img_voucher', paymentValues.img_voucher);
-          break;
-        }
-        case 'Documentos': {
-          const documentValues = values as DocumentStepPayload;
-          if (alumno) {
-            setSolicitudField('img_cert_estudio', documentValues.img_cert_estudio);
-          }
-          break;
-        }
-        default:
-          break;
+  const handleBasicData = async (values: LocationBasicDataFormValues) => {
+    try {
+      const basicData = toLocationBasicData(values, catalogs, isCiunacStudent)
+      const duplicate = await duplicateUseCase.execute({
+        documentNumber: basicData.documentNumber,
+        languageId: basicData.languageId,
+      })
+      if (duplicate) {
+        setDuplicateDialog(true)
+        return
       }
+      completeBasicData(basicData)
+      setActiveStep(1)
+    } catch (error) {
+      toast.error(normalizeAppError(error, 'No se pudo verificar la solicitud de ubicacion.').message)
+    }
+  }
 
-      if (activeStep < steps.length - 1) {
-        setActiveStep((prevActiveStep) => prevActiveStep + 1);
-      }
-    },
-    [activeStep, alumno, duplicateUseCase, email, setSolicitudField, steps]
-  );
+  const handlePayment = (values: IFinInfoSchema) => {
+    try {
+      completePayment(toLocationPayment(values))
+      setActiveStep(2)
+    } catch (error) {
+      toast.error(normalizeAppError(error, 'Los datos de pago no son validos.').message)
+    }
+  }
+
+  const handleStudyCertificate = (values: LocationDocumentsFormValues) => {
+    completeStudyCertificate(values.studyCertificateUrl)
+    setActiveStep(3)
+  }
+
+  const stepContent: React.ReactNode[] = [
+    <BasicData
+      key="basic-data"
+      activeStep={activeStep}
+      steps={steps}
+      catalogs={catalogs}
+      defaultData={workflow.draft.basicData}
+      isCiunacStudent={isCiunacStudent}
+      setActiveStep={setActiveStep}
+      handleNext={handleBasicData}
+    />,
+    <FinData
+      key="payment"
+      activeStep={activeStep}
+      setActiveStep={setActiveStep}
+      steps={steps}
+      handleNext={handlePayment}
+      documentNumber={workflow.draft.basicData?.documentNumber ?? ''}
+      defaultValues={toLocationPaymentFormValues(workflow.draft.payment)}
+      paymentOptions={paymentOptions}
+    />,
+  ]
+  if (isCiunacStudent) {
+    stepContent.push(
+      <StudyCertificate
+        key="study-certificate"
+        activeStep={activeStep}
+        steps={steps}
+        documentNumber={workflow.draft.basicData?.documentNumber ?? ''}
+        defaultUrl={workflow.draft.studyCertificateUrl}
+        texts={catalogs.texts}
+        setActiveStep={setActiveStep}
+        handleNext={handleStudyCertificate}
+      />,
+    )
+  }
+  stepContent.push(
+    <Register
+      key="register"
+      activeStep={activeStep}
+      steps={steps}
+      catalogs={catalogs}
+      setActiveStep={setActiveStep}
+    />,
+  )
 
   return (
     <div className="flex items-center justify-center">
       <Stepper steps={steps} activeStep={activeStep}>
-        {steps.map((step, index) => {
-          switch (step) {
-            case 'Datos Básicos':
-              return (
-                <BasicData
-                  key={index}
-                  activeStep={activeStep}
-                  setActiveStep={setActiveStep}
-                  handleNext={handleNext}
-                  steps={steps}
-                  alumno={alumno}
-                />
-              );
-            case 'Datos de Pago':
-              return (
-                <FinData
-                  key={index}
-                  activeStep={activeStep}
-                  setActiveStep={setActiveStep}
-                  steps={steps}
-                  handleNext={handleNext}
-                  documentNumber={solicitud.dni ?? ''}
-                  defaultValues={{
-                    pago: String(solicitud.pago ?? '0'),
-                    numero_voucher: solicitud.numero_voucher ?? '',
-                    fecha_pago: solicitud.fecha_pago ? new Date(solicitud.fecha_pago) : undefined,
-                    img_voucher: solicitud.img_voucher ?? '',
-                  }}
-                  paymentOptions={paymentOptions}
-                />
-              );
-            case 'Documentos':
-              return (
-                <Documentos
-                  key={index}
-                  activeStep={activeStep}
-                  setActiveStep={setActiveStep}
-                  steps={steps}
-                  handleNext={handleNext}
-                />
-              );
-            case 'Finalizar':
-              return (
-                <Register
-                  key={index}
-                  activeStep={activeStep}
-                  setActiveStep={setActiveStep}
-                  steps={steps}
-                />
-              );
-            default:
-              return null;
-          }
-        })}
+        {stepContent}
       </Stepper>
-      <GeneralDialog open={bloqueoRep} setOpen={setBloqueoRep} title="Solicitud en proceso" >
-        <BlockDialog />
+      <GeneralDialog open={duplicateDialog} setOpen={setDuplicateDialog} title="Solicitud en proceso">
+        <div className="space-y-4 text-center">
+          <Image src="/images/error.png" alt="Advertencia" width={90} height={90} className="mx-auto" />
+          <p>Ya existe una solicitud en proceso para el mismo documento e idioma. Espere su finalizacion antes de registrar otra.</p>
+        </div>
       </GeneralDialog>
     </div>
-  );
+  )
 }

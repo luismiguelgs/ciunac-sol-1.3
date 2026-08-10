@@ -31,7 +31,7 @@ async function verifyConstanciaEmail(page: Page, request: Parameters<typeof getM
   await expect(page).toHaveURL(/\/solicitud-constancias\/proceso$/)
 }
 
-async function completeConstanciaForm(page: Page) {
+async function completeConstanciaBasicData(page: Page) {
   await selectOption(page, 'Solicitud', /CONSTANCIA DE ESTUDIOS/i)
   await selectOption(page, 'Programa', /INGLES/i)
   await selectOption(page, 'Nivel', /B.SICO/i)
@@ -40,7 +40,10 @@ async function completeConstanciaForm(page: Page) {
   await page.locator('input[name="nombres"]').fill('MARIA')
   await page.locator('input[name="celular"]').fill('999888777')
   await page.getByRole('button', { name: 'Siguiente' }).click()
+}
 
+async function completeConstanciaForm(page: Page) {
+  await completeConstanciaBasicData(page)
   await selectOption(page, 'Monto pagado', /S\/30\.00/i)
   await page.locator('input[name="numero_voucher"]').fill('123456789012345')
   await page.locator('input[type="file"]').setInputFiles({
@@ -94,6 +97,30 @@ test('registra constancia como slice independiente con pago compartido', async (
 test('rechaza acceso directo al proceso de constancias sin sesion', async ({ page }) => {
   await page.goto('/solicitud-constancias/proceso')
   await expect(page).toHaveURL(/\/solicitud-constancias$/)
+})
+
+test('rechaza un voucher con firma binaria falsificada', async ({ page, request }) => {
+  await verifyConstanciaEmail(page, request)
+  await completeConstanciaBasicData(page)
+  await selectOption(page, 'Monto pagado', /S\/30\.00/i)
+  await page.locator('input[name="numero_voucher"]').fill('123456789012345')
+  await page.locator('input[type="file"]').setInputFiles({
+    name: 'voucher.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from('this-is-not-a-png'),
+  })
+
+  await expect(page.getByText(/El archivo no es valido\. Use PDF, JPG o PNG/i)).toBeVisible()
+  await expect(page.getByText(/Archivo cargado/i)).toHaveCount(0)
+
+  const requests = await getMockRequests(request)
+  expect(requests.filter((item) => item.path === '/upload/vouchers')).toHaveLength(0)
+})
+
+test('muestra el estado not found para un identificador final invalido', async ({ page }) => {
+  await page.goto('/solicitud-constancias/finalizar?id=invalido')
+  await expect(page.getByRole('heading', { name: /Solicitud no identificada/i })).toBeVisible()
+  await expect(page.getByRole('link', { name: /Volver a constancias/i })).toBeVisible()
 })
 
 test('reintenta solo el correo de constancia', async ({ page, request }) => {

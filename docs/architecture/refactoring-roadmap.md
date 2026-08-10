@@ -7,13 +7,12 @@
 - Fase 4: replicacion del patron en `solicitud-beca` y `solicitud-ubicacion`.
 - Fase 5: politica de estado y catalogos.
 - Fase 6: gobierno tecnico, ADRs, SDD y checklist.
+- Fase 2G: tipado y confiabilidad de `solicitud-nuevo`.
 
 ## Pendiente recomendado
-- Migrar `solicitud-nuevo` al mismo patron de capas.
 - Extraer dialogos comunes de procesamiento cuando haya contrato estable.
 - Separar generacion de PDF en una capa dedicada por feature.
-- Evaluar carga de catalogos en server components.
-- Agregar pruebas unitarias a reglas, mappers y casos de uso.
+- Validar paginacion y reglas de visibilidad del catalogo Q10.
 - Automatizar reglas arquitectonicas mas estrictas si el equipo acepta una dependencia especializada.
 
 ## Regla de avance

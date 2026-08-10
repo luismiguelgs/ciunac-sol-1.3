@@ -1,86 +1,83 @@
-import React from 'react';
-import Isolicitud from '@/modules/shared/interfaces/solicitud.interface';
-import { normalizeAppError } from '@/modules/shared/application/errors/app-error';
-import { createRegisterSolicitudCertificadoUseCase } from '@/modules/solicitud-certificado/application/factories/create-register-solicitud-certificado-use-case';
-import { RegisterSolicitudDialogState } from '@/modules/solicitud-certificado/domain/types/register-solicitud-dialog-state';
+import React from 'react'
+import { normalizeAppError } from '@/modules/shared/application/errors/app-error'
+import { createRegisterSolicitudCertificadoUseCase } from '@/modules/solicitud-certificado/application/factories/create-register-solicitud-certificado-use-case'
+import { SolicitudCertificado } from '@/modules/solicitud-certificado/domain/solicitud-certificado'
+import useSolicitudCertificadoStore from '@/modules/solicitud-certificado/presentation/solicitud-certificado.store'
 
-type UseRegisterSolicitudCertificadoParams = {
-  onSuccess: (requestId: string, receiptId: string) => void;
-};
+export type CertificateRegisterDialogState = 'SAVE' | 'EMAIL' | 'EMAIL_ERROR' | 'ERROR'
 
-export function useRegisterSolicitudCertificado({ onSuccess }: UseRegisterSolicitudCertificadoParams) {
-  const registerSolicitudCertificado = React.useMemo(
-    () => createRegisterSolicitudCertificadoUseCase(),
-    []
-  );
-  const [loading, setLoading] = React.useState(false);
-  const [open, setOpen] = React.useState(false);
-  const [state, setState] = React.useState<RegisterSolicitudDialogState>('SAVE');
-  const [message, setMessage] = React.useState<React.ReactNode>('');
-  const [savedRequest, setSavedRequest] = React.useState<{ requestId: string; email: string } | null>(null);
+export function useRegisterSolicitudCertificado(onSuccess: (requestId: string, receiptId: string) => void) {
+  const useCase = React.useMemo(() => createRegisterSolicitudCertificadoUseCase(), [])
+  const workflow = useSolicitudCertificadoStore((state) => state.workflow)
+  const beginRegistration = useSolicitudCertificadoStore((state) => state.beginRegistration)
+  const completeRegistration = useSolicitudCertificadoStore((state) => state.completeRegistration)
+  const markNotificationFailed = useSolicitudCertificadoStore((state) => state.markNotificationFailed)
+  const beginNotificationRetry = useSolicitudCertificadoStore((state) => state.beginNotificationRetry)
+  const markRegistrationFailed = useSolicitudCertificadoStore((state) => state.markRegistrationFailed)
+  const [open, setOpen] = React.useState(false)
 
-  const retryEmail = React.useCallback(async () => {
-    if (!savedRequest) return;
-
-    setLoading(true);
-    setState('EMAIL');
-    setOpen(true);
+  const submit = async (solicitud: SolicitudCertificado) => {
+    if (workflow.status === 'submitting' || workflow.status === 'saved_notification_failed') return
+    beginRegistration(solicitud)
+    setOpen(true)
     try {
-      const receiptId = await registerSolicitudCertificado.retryNotification(
-        savedRequest.email,
-        savedRequest.requestId,
-      );
-      setOpen(false);
-      onSuccess(savedRequest.requestId, receiptId);
-    } catch (error) {
-      const appError = normalizeAppError(error, 'No se pudo procesar el correo de confirmacion.');
-      setState('EMAIL_ERROR');
-      setMessage(`${appError.message} Su solicitud ${savedRequest.requestId} ya esta guardada.`);
-      setOpen(true);
-    } finally {
-      setLoading(false);
-    }
-  }, [onSuccess, registerSolicitudCertificado, savedRequest]);
-
-  const submit = React.useCallback(
-    async (solicitud: Isolicitud) => {
-      if (savedRequest) return;
-      setLoading(true);
-      setState('SAVE');
-      setOpen(true);
-
-      try {
-        const result = await registerSolicitudCertificado.execute({ solicitud });
-        if (result.status === 'saved_notification_failed') {
-          setSavedRequest({ requestId: result.requestId, email: solicitud.email });
-          setState('EMAIL_ERROR');
-          setMessage(`${result.error.message} Su solicitud ${result.requestId} ya esta guardada.`);
-          setOpen(true);
-          return;
-        }
-
-        setOpen(false);
-        onSuccess(result.requestId, result.notificationReceiptId);
-      } catch (error) {
-        const appError = normalizeAppError(error, 'Error al procesar la solicitud');
-        setState('ERROR');
-        setMessage(appError.message);
-        setOpen(true);
-      } finally {
-        setLoading(false);
+      const result = await useCase.execute({ solicitud })
+      if (result.status === 'saved_notification_failed') {
+        markNotificationFailed(result.requestId, result.error)
+        return
       }
-    },
-    [onSuccess, registerSolicitudCertificado, savedRequest]
-  );
+      completeRegistration(result.requestId, result.notificationReceiptId)
+      setOpen(false)
+      onSuccess(result.requestId, result.notificationReceiptId)
+    } catch (error) {
+      markRegistrationFailed(normalizeAppError(error, 'No se pudo registrar la solicitud de certificado.'))
+    }
+  }
+
+  const retryEmail = async () => {
+    if (workflow.status !== 'saved_notification_failed') return
+    const requestId = workflow.requestId
+    beginNotificationRetry(requestId)
+    setOpen(true)
+    try {
+      const receiptId = await useCase.retryNotification(requestId)
+      completeRegistration(requestId, receiptId)
+      setOpen(false)
+      onSuccess(requestId, receiptId)
+    } catch (error) {
+      markNotificationFailed(
+        requestId,
+        normalizeAppError(error, 'No se pudo procesar el correo de confirmacion.'),
+      )
+    }
+  }
+
+  const loading = workflow.status === 'submitting'
+  const savedRequestId = workflow.status === 'saved_notification_failed'
+    || (workflow.status === 'submitting' && workflow.operation === 'notification')
+    ? workflow.requestId
+    : null
+  const dialogState: CertificateRegisterDialogState = workflow.status === 'submitting'
+    ? workflow.operation === 'notification' ? 'EMAIL' : 'SAVE'
+    : workflow.status === 'saved_notification_failed'
+      ? 'EMAIL_ERROR'
+      : workflow.status === 'error'
+        ? 'ERROR'
+        : 'SAVE'
+  const message = workflow.status === 'saved_notification_failed'
+    ? `${workflow.error.message} Su solicitud ${workflow.requestId} ya esta guardada.`
+    : workflow.status === 'error'
+      ? workflow.error.message
+      : ''
 
   return {
     loading,
     open,
     setOpen,
-    state,
+    dialogState,
     message,
-    savedRequestId: savedRequest?.requestId,
-    retryEmail,
+    savedRequestId,
     submit,
-  };
+    retryEmail,
+  }
 }

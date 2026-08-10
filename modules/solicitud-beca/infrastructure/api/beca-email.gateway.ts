@@ -1,11 +1,11 @@
 import { AppError, normalizeAppError } from '@/modules/shared/application/errors/app-error';
 import { SolicitudBecaNotificationGateway } from '@/modules/solicitud-beca/application/ports/register-solicitud-beca.ports';
-import EmailService from '@/services/email.service';
+import { mailApiRepository } from '@/modules/shared/infrastructure/api/mail-api.repository'
 
 export class BecaEmailGateway implements SolicitudBecaNotificationGateway {
-  async sendSolicitudCreada(email: string, requestId: string): Promise<string> {
+  async sendSolicitudCreada(requestId: string): Promise<string> {
     try {
-      return await EmailService.sendEmailBeca(email, requestId);
+      return await mailApiRepository.send({ type: 'BECA', reference: requestId })
     } catch (error) {
       const appError = normalizeAppError(error, 'La solicitud de beca se guardo, pero el correo no pudo enviarse');
       throw new AppError({

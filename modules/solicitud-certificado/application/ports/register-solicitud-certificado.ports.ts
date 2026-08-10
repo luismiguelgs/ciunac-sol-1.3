@@ -1,14 +1,13 @@
-import IEstudiante from '@/modules/shared/interfaces/estudiante.interface';
-import Isolicitud from '@/modules/shared/interfaces/solicitud.interface';
+import { SolicitudCertificado } from '@/modules/solicitud-certificado/domain/solicitud-certificado'
 
 export interface StudentGateway {
-  saveFromSolicitud(solicitud: Isolicitud): Promise<IEstudiante>;
+  save(solicitud: SolicitudCertificado): Promise<string>
 }
 
 export interface SolicitudGateway {
-  create(solicitud: Isolicitud): Promise<string | null>;
+  create(solicitud: SolicitudCertificado, studentId: string): Promise<string>
 }
 
 export interface NotificationGateway {
-  sendSolicitudCreada(email: string, requestId: string): Promise<string>;
+  sendSolicitudCreada(requestId: string): Promise<string>
 }
