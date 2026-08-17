@@ -14,12 +14,12 @@ import { MySelect } from '@/components/forms/myselect.field'
 import SwithField from '@/components/forms/switch.field'
 import MyAlert from '@/components/forms/myAlert'
 import { NIVEL } from '@/lib/constants'
+import { findCertificateStudent } from '@/modules/solicitud-certificado/client'
 import { CertificateBasicData, CertificateCatalogs } from '@/modules/solicitud-certificado/domain/solicitud-certificado'
-import { certificateStudentRepository } from '@/modules/solicitud-certificado/infrastructure/certificate-student.repository'
 import {
   CertificateBasicDataFormValues,
   certificateBasicDataFormSchema,
-} from '@/modules/solicitud-certificado/schemas/basic-data.schema'
+} from '@/modules/solicitud-certificado/presentation/schemas/basic-data.schema'
 import { toCertificateBasicFormValues } from '@/modules/solicitud-certificado/presentation/certificate-form.mapper'
 
 type Props = {
@@ -72,7 +72,7 @@ export default function BasicData({ activeStep, steps, catalogs, defaultData, se
 
     setSearching(true)
     try {
-      const student = await certificateStudentRepository.findByDocument(document)
+      const student = await findCertificateStudent(document)
       if (!student) {
         form.setValue('estudianteId', '')
         identifiedDocument.current = ''

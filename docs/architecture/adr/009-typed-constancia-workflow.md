@@ -4,6 +4,8 @@
 
 Aceptado e implementado en Fase 2A.
 
+Complementado por ADR-022 para composicion, APIs publicas y limites automatizados.
+
 ## Contexto
 
 El slice de constancias usaba `Partial<SolicitudConstanciaDraft>` como estado principal. El mismo objeto representaba formulario incompleto, modelo de negocio y datos de integracion. `updateDraft(Partial<...>)` permitia combinaciones invalidas, mientras `toCompleteDraft` reconstruia el modelo mediante comprobaciones y un cast.
@@ -29,7 +31,7 @@ flowchart LR
 
 El dominio completo contiene `email`, `basicData` y `payment`. Los datos basicos discriminan alumno UNAC y no UNAC. El pago discrimina monto cero sin voucher y monto positivo con voucher completo.
 
-Zustand conserva un workflow discriminado con estados `initial`, `editing`, `submitting`, `success`, `saved_notification_failed` y `error`. Las mutaciones genericas se sustituyen por commands que expresan transiciones de negocio. Completar nuevamente los datos basicos invalida el pago anterior.
+Zustand conserva un workflow discriminado con estados `initial`, `editing`, `submitting`, `success`, `saved_notification_failed` y `error`. Las mutaciones genericas se sustituyen por commands que expresan transiciones de negocio. El pago se invalida cuando cambian el documento o el tipo de constancia; las ediciones que no alteran precio ni identidad lo conservan.
 
 Los adaptadores reciben respuestas `unknown`, las validan con Zod y solo entonces cumplen sus puertos tipados. Crear estudiante o solicitud debe devolver un ID valido. El cargo usa un modelo completo y distingue `loading`, `data`, `empty` y `error`.
 

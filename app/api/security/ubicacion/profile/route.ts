@@ -4,8 +4,10 @@ import { assertTrustedOrigin, parseJsonBody } from '@/modules/security/server/re
 import { securityErrorResponse } from '@/modules/security/server/responses'
 import { readVerifiedSessionFromRequest } from '@/modules/security/server/session'
 import { SecurityError } from '@/modules/security/server/security-error'
-import { writeLocationProfile } from '@/modules/solicitud-ubicacion/infrastructure/server/location-profile-session'
-import { locationProfileCommandSchema } from '@/modules/solicitud-ubicacion/infrastructure/validation/location-api.schemas'
+import {
+  locationProfileCommandSchema,
+  writeLocationProfile,
+} from '@/modules/solicitud-ubicacion/server'
 
 export const runtime = 'nodejs'
 
@@ -23,4 +25,3 @@ export async function POST(request: NextRequest) {
     return securityErrorResponse('security.location.profile.failed', correlationId, error)
   }
 }
-

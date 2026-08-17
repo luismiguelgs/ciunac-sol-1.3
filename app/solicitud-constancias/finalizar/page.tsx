@@ -3,8 +3,8 @@ import { notFound } from 'next/navigation'
 import { CheckCircle2 } from 'lucide-react'
 import NotificationResult from '@/modules/shared/components/notification-result'
 import { readNotificationReceipt } from '@/modules/security/server/session'
-import DescargaCargo from '@/modules/solicitud-constancia/presentation/components/descarga-cargo'
-import FinalNotices from '@/modules/solicitud-constancia/presentation/components/final-notices'
+import { ConstanciaCargoDownload, ConstanciaFinalNotices } from '@/modules/solicitud-constancia'
+import { getConstanciaTexts } from '@/modules/solicitud-constancia/server'
 
 type PageProps = {
   searchParams: Promise<{ id?: string; receipt?: string }>
@@ -12,11 +12,14 @@ type PageProps = {
 
 export default async function FinalizarConstanciaPage({ searchParams }: PageProps) {
   const { id, receipt: receiptId } = await searchParams
+  if (!id || !/^[1-9]\d*$/.test(id)) notFound()
   const solicitudId = Number(id)
-  const validId = Number.isFinite(solicitudId) && solicitudId > 0 ? solicitudId : null
-  if (!validId) notFound()
+  if (!Number.isSafeInteger(solicitudId)) notFound()
 
-  const receipt = await readNotificationReceipt(receiptId, 'CONSTANCIA', String(validId))
+  const [receipt, texts] = await Promise.all([
+    readNotificationReceipt(receiptId, 'CONSTANCIA', id),
+    getConstanciaTexts().catch(() => []),
+  ])
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-gradient-to-br from-blue-50 via-white to-blue-100">
@@ -32,8 +35,8 @@ export default async function FinalizarConstanciaPage({ searchParams }: PageProp
         </div>
         <div className="my-2 w-full border-t border-gray-200" />
         <div className="flex w-full flex-col gap-3">
-          <DescargaCargo solicitudId={validId} />
-          <FinalNotices />
+          <ConstanciaCargoDownload solicitudId={solicitudId} texts={texts} />
+          <ConstanciaFinalNotices texts={texts} />
         </div>
       </div>
     </div>

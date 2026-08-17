@@ -15,6 +15,7 @@ import {
   locationScheduleArraySchema,
   locationTextArraySchema,
   locationTypeArraySchema,
+  filterLocationTypeResponse,
 } from '@/modules/solicitud-ubicacion/infrastructure/validation/location-api.schemas'
 
 export async function getLocationCatalogs(): Promise<LocationCatalogs> {
@@ -25,7 +26,7 @@ export async function getLocationCatalogs(): Promise<LocationCatalogs> {
   ])
   const types = parseExternalResponse(
     locationTypeArraySchema,
-    filterLocationType(typesResponse),
+    filterLocationTypeResponse(typesResponse),
     'La API devolvio un tarifario de ubicacion vacio o invalido.',
   )
   assertOfficialPrice(types[0].precio)
@@ -72,9 +73,4 @@ function assertOfficialPrice(price: number): void {
       message: 'El tarifario del examen de ubicacion no coincide con la tarifa oficial.',
     })
   }
-}
-
-function filterLocationType(value: unknown): unknown {
-  if (!Array.isArray(value)) return value
-  return value.filter((item) => item && typeof item === 'object' && Number((item as { id?: unknown }).id) === 7)
 }

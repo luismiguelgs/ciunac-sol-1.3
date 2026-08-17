@@ -1,16 +1,5 @@
 import { z } from 'zod'
-import {
-  CertificateCargoResponseDto,
-  CertificateCreateResponseDto,
-  CertificateFacultyResponseDto,
-  CertificateLanguageResponseDto,
-  CertificateRequestDto,
-  CertificateSchoolResponseDto,
-  CertificateStudentLookupResponseDto,
-  CertificateStudentResponseDto,
-  CertificateTextResponseDto,
-  CertificateTypeResponseDto,
-} from '@/modules/solicitud-certificado/infrastructure/dto/certificate-api.dto'
+import type { CertificateRequestDto } from '@/modules/solicitud-certificado/infrastructure/dto/certificate-request.dto'
 
 const stringId = z.union([
   z.string().trim().min(1).refine((value) => !/^\d+$/.test(value) || Number(value) > 0),
@@ -29,18 +18,18 @@ const documentReference = z.string().trim().min(1).max(2048).refine(
   (value) => value.startsWith('/') || /^https?:\/\//i.test(value),
 )
 
-export const certificateStudentResponseSchema: z.ZodType<CertificateStudentResponseDto> = z.object({
+export const certificateStudentResponseSchema = z.object({
   id: stringId,
 }).passthrough()
 
-export const certificateStudentLookupResponseSchema: z.ZodType<CertificateStudentLookupResponseDto> = z.object({
+export const certificateStudentLookupResponseSchema = z.object({
   id: stringId,
   nombres: z.string().trim().min(1),
   apellidos: z.string().trim().min(1),
   celular: z.string().trim().regex(/^\d{9}$/),
 }).passthrough()
 
-export const certificateCreateResponseSchema: z.ZodType<CertificateCreateResponseDto> = z.object({
+export const certificateCreateResponseSchema = z.object({
   id: stringId,
 }).passthrough()
 
@@ -64,35 +53,38 @@ export const certificateRequestDtoSchema: z.ZodType<CertificateRequestDto> = z.o
   if (!data.imgVoucher) context.addIssue({ code: 'custom', path: ['imgVoucher'], message: 'Voucher file is required' })
 })
 
-export const certificateTypeArraySchema: z.ZodType<CertificateTypeResponseDto[]> = z.array(z.object({
-  id: numericId.pipe(certificateTypeId),
-  solicitud: z.string().trim().min(1),
-  precio: amount,
-}).passthrough()).min(1)
+export const certificateTypeArraySchema = z.preprocess(
+  filterCertificateTypes,
+  z.array(z.object({
+    id: numericId.pipe(certificateTypeId),
+    solicitud: z.string().trim().min(1),
+    precio: amount,
+  }).passthrough()).min(1),
+)
 
-export const certificateLanguageArraySchema: z.ZodType<CertificateLanguageResponseDto[]> = z.array(z.object({
+export const certificateLanguageArraySchema = z.array(z.object({
   id: numericId,
   nombre: z.string().trim().min(1),
 }).passthrough()).min(1)
 
-export const certificateFacultyArraySchema: z.ZodType<CertificateFacultyResponseDto[]> = z.array(z.object({
+export const certificateFacultyArraySchema = z.array(z.object({
   id: numericId,
   nombre: z.string().trim().min(1),
   codigo: z.string().trim().min(1),
 }).passthrough()).min(1)
 
-export const certificateSchoolArraySchema: z.ZodType<CertificateSchoolResponseDto[]> = z.array(z.object({
+export const certificateSchoolArraySchema = z.array(z.object({
   id: numericId,
   nombre: z.string().trim().min(1),
   facultadId: numericId,
 }).passthrough()).min(1)
 
-export const certificateTextArraySchema: z.ZodType<CertificateTextResponseDto[]> = z.array(z.object({
+export const certificateTextArraySchema = z.array(z.object({
   codigo: z.string().trim().min(1),
   contenido: z.string().trim().min(1),
 }).passthrough()).min(1)
 
-export const certificateCargoResponseSchema: z.ZodType<CertificateCargoResponseDto> = z.object({
+export const certificateCargoResponseSchema = z.object({
   id: numericId,
   creadoEn: z.string().trim().min(1),
   pago: amount,
@@ -110,3 +102,22 @@ export const certificateCargoResponseSchema: z.ZodType<CertificateCargoResponseD
   idioma: z.object({ nombre: z.string().trim().min(1) }).passthrough(),
   nivel: z.object({ nombre: z.string().trim().min(1) }).passthrough(),
 }).passthrough()
+
+export type CertificateStudentResponseDto = z.output<typeof certificateStudentResponseSchema>
+export type CertificateStudentLookupResponseDto = z.output<typeof certificateStudentLookupResponseSchema>
+export type CertificateCreateResponseDto = z.output<typeof certificateCreateResponseSchema>
+export type CertificateTypeResponseDto = z.output<typeof certificateTypeArraySchema>[number]
+export type CertificateLanguageResponseDto = z.output<typeof certificateLanguageArraySchema>[number]
+export type CertificateFacultyResponseDto = z.output<typeof certificateFacultyArraySchema>[number]
+export type CertificateSchoolResponseDto = z.output<typeof certificateSchoolArraySchema>[number]
+export type CertificateTextResponseDto = z.output<typeof certificateTextArraySchema>[number]
+export type CertificateCargoResponseDto = z.output<typeof certificateCargoResponseSchema>
+
+function filterCertificateTypes(value: unknown): unknown {
+  if (!Array.isArray(value)) return value
+  return value.filter((item) => {
+    if (!item || typeof item !== 'object') return false
+    const id = Number((item as { id?: unknown }).id)
+    return id >= 1 && id <= 4
+  })
+}

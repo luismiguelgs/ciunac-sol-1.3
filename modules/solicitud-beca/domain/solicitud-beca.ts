@@ -43,3 +43,8 @@ export type SolicitudBeca = {
   basicData: ScholarshipBasicData
   documents: ScholarshipDocuments
 }
+
+export function hasConsistentScholarshipCatalogs(catalogs: ScholarshipCatalogs): boolean {
+  const facultyIds = new Set(catalogs.faculties.map((faculty) => faculty.id))
+  return catalogs.schools.every((school) => facultyIds.has(school.facultyId))
+}

@@ -3,8 +3,8 @@ import { installBrowserMocks } from './support/browser-mocks'
 
 const routes = [
   { path: '/', content: /Solicitud de Certificados/i },
-  { path: '/consulta-certificado', content: /CIUNAC/i },
-  { path: '/consulta-certificado/CERT-E2E', content: /Consulta de Solicitud/i },
+  { path: '/consulta-certificado', content: /Escanee el código QR/i },
+  { path: '/consulta-certificado/CERT-E2E', content: /Detalle de Certificado/i },
   { path: '/consulta-solicitud', content: /Consulta de Solicitud/i },
   { path: '/consulta-solicitud/12345678', content: /Consulta de Solicitud/i },
   { path: '/consulta-ubicacion', content: /Consulta de Solicitud/i },

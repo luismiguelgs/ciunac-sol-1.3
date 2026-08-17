@@ -2,6 +2,7 @@
 
 - Estado: Aceptado.
 - Fecha: 2026-08-05.
+- Complementado por: ADR-024 Limites modulares y APIs publicas para alumno nuevo.
 
 ## Contexto
 

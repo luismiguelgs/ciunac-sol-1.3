@@ -1,7 +1,7 @@
 import 'server-only'
 
-import { CertificateDetailPort } from '@/modules/consulta-certificado/application/get-certificate-detail.use-case'
-import { CertificateDetail } from '@/modules/consulta-certificado/domain/certificate-detail'
+import type { CertificateDetailPort } from '@/modules/consulta-certificado/application/get-certificate-detail.use-case'
+import type { CertificateDetail } from '@/modules/consulta-certificado/domain/certificate-detail'
 import { toCertificateDetail } from '@/modules/consulta-certificado/infrastructure/mappers/certificate-detail.mapper'
 import { certificateDetailResponseSchema } from '@/modules/consulta-certificado/infrastructure/validation/certificate-detail.schemas'
 import { ciunacRequest } from '@/modules/security/server/ciunac-client'

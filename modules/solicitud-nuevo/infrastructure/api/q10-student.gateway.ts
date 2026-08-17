@@ -1,7 +1,7 @@
 import { AppError } from '@/modules/shared/application/errors/app-error'
 import { NewStudentGateway } from '@/modules/solicitud-nuevo/application/ports/register-new-student.ports';
 import { NewStudent } from '@/modules/solicitud-nuevo/domain/new-student'
-import { Q10StudentRequestDto } from '@/modules/solicitud-nuevo/infrastructure/dto/q10-api.dto'
+import { Q10StudentRequestDto } from '@/modules/solicitud-nuevo/infrastructure/dto/q10-student-request.dto'
 import { toQ10StudentRequestDto } from '@/modules/solicitud-nuevo/infrastructure/mappers/q10-api.mapper'
 import { q10RegistrationResponseSchema } from '@/modules/solicitud-nuevo/infrastructure/validation/q10-api.schemas'
 import { resourceApiRepository } from '@/modules/shared/infrastructure/api/resource-api.repository'

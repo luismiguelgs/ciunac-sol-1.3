@@ -1,7 +1,5 @@
 import { z } from 'zod';
 import { CONSULTATION_TYPES, OTP_PURPOSES } from '@/modules/security/domain/security.types';
-import { q10StudentRequestSchema } from '@/modules/solicitud-nuevo/infrastructure/validation/q10-api.schemas'
-import { locationCreateCommandDtoSchema } from '@/modules/solicitud-ubicacion/infrastructure/validation/location-api.schemas'
 
 const emailSchema = z.string().trim().email().max(254).transform((email) => email.toLowerCase());
 const captchaTokenSchema = z.string().trim().min(10).max(4096);
@@ -104,9 +102,8 @@ export function resolveCiunacBodySchema(method: 'POST' | 'PATCH', path: string):
   if (path === 'estudiantes' || (method === 'PATCH' && path.startsWith('estudiantes/'))) {
     return studentApiSchema;
   }
-  if (path === 'solicitudes') return z.union([solicitudApiSchema, locationCreateCommandDtoSchema]);
+  if (path === 'solicitudes') return solicitudApiSchema;
   if (path === 'solicitudbecas') return solicitudBecaApiSchema;
-  if (path === 'q10/estudiantes') return q10StudentRequestSchema;
   if (method === 'PATCH' && /^(certificados|constancias)\//.test(path)) return statusApiSchema;
 
   return z.never();

@@ -1,14 +1,14 @@
 import { obtenerPeriodo } from '@/lib/utils'
-import {
+import type {
   ScholarshipFaculty,
   ScholarshipSchool,
   SolicitudBeca,
 } from '@/modules/solicitud-beca/domain/solicitud-beca'
-import {
+import type { ScholarshipRequestDto } from '@/modules/solicitud-beca/infrastructure/dto/scholarship-request.dto'
+import type {
   ScholarshipFacultyResponseDto,
-  ScholarshipRequestDto,
   ScholarshipSchoolResponseDto,
-} from '@/modules/solicitud-beca/infrastructure/dto/scholarship-api.dto'
+} from '@/modules/solicitud-beca/infrastructure/validation/scholarship-api.schemas'
 
 export function toScholarshipRequestDto(solicitud: SolicitudBeca): ScholarshipRequestDto {
   return {

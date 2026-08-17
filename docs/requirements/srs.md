@@ -68,7 +68,7 @@ flowchart LR
 | RF-013 | El sistema debe bloquear una nueva solicitud de ubicacion si ya existe una solicitud en proceso para el mismo documento, idioma y tipo de solicitud. |
 | RF-014 | El sistema debe permitir registrar un alumno nuevo con correo verificado y un programa vigente obtenido desde API Q10. |
 | RF-015 | El sistema debe permitir consultar solicitudes por documento y redirigir a detalle si existen resultados. |
-| RF-016 | El sistema debe permitir consultar certificados y descargar o visualizar informacion asociada cuando exista. |
+| RF-016 | El sistema debe permitir verificar en modo de solo lectura un certificado mediante el identificador opaco incluido en su QR. |
 | RF-017 | El sistema debe permitir consultar informacion de examen de ubicacion por documento. |
 | RF-018 | El sistema debe mostrar mensajes de error, carga, bloqueo y finalizacion en los flujos principales. |
 | RF-019 | El sistema debe permitir registrar una solicitud de constancia mediante un flujo independiente al de certificados. |

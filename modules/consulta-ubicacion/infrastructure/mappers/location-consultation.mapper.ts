@@ -1,13 +1,37 @@
-import {
+import type {
   LocationCycle,
   LocationExam,
   LocationPlacementRecord,
+  LocationRequest,
+  LocationText,
 } from '@/modules/consulta-ubicacion/domain/location-consultation'
-import {
+import type {
   LocationCycleResponseDto,
   LocationExamResponseDto,
   LocationPlacementResponseDto,
-} from '@/modules/consulta-ubicacion/infrastructure/dto/location-consultation.dto'
+} from '@/modules/consulta-ubicacion/infrastructure/validation/location-consultation.schemas'
+import type { ConsultedRequest, ConsultationText } from '@/modules/consultas'
+
+export function toLocationRequest(request: ConsultedRequest): LocationRequest | null {
+  if (request.requestType.kind !== 'location') return null
+
+  return {
+    id: request.id,
+    student: { ...request.student },
+    requestType: {
+      id: request.requestType.id,
+      name: request.requestType.name,
+    },
+    language: { ...request.language },
+    level: { ...request.level },
+    createdAt: request.createdAt,
+    payment: { ...request.payment },
+  }
+}
+
+export function toLocationText(text: ConsultationText): LocationText {
+  return { code: text.code, content: text.content }
+}
 
 export function toLocationExam(dto: LocationExamResponseDto): LocationExam {
   return { id: dto.id, occurredAt: dto.fecha }

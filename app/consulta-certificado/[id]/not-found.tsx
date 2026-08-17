@@ -6,8 +6,8 @@ export default function CertificateNotFound() {
       <EmptyState
         title="Certificado no disponible"
         description="No se encontraron datos para el certificado consultado."
-        href="/consulta-solicitud"
-        actionLabel="Volver a consultar"
+        href="/consulta-certificado"
+        actionLabel="Volver"
       />
     </main>
   )

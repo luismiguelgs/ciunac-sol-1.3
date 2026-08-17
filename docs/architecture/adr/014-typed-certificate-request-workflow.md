@@ -53,3 +53,8 @@ flowchart LR
 - La validacion BFF evita manipulacion desde el navegador, pero el backend externo
   sigue siendo responsable ultimo de aplicar sus reglas comerciales.
 
+## Evolucion
+
+ADR-021 complementa esta decision con limites modulares ejecutables. El dominio y
+workflow definidos aqui se conservan; las rutas consumen APIs publicas y la
+composicion de gateways deja de residir en application.

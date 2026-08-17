@@ -3,9 +3,11 @@ import { notFound } from 'next/navigation'
 import { CheckCircle2 } from 'lucide-react'
 import NotificationResult from '@/modules/shared/components/notification-result'
 import { readNotificationReceipt } from '@/modules/security/server/session'
-import { getCertificateTexts } from '@/modules/solicitud-certificado/infrastructure/server/certificate-catalog.repository'
-import DescargaCargo from '@/modules/solicitud-certificado/presentation/components/descarga-cargo'
-import FinalNotices from '@/modules/solicitud-certificado/presentation/components/final-notices'
+import {
+  CertificateCargoDownload,
+  CertificateFinalNotices,
+} from '@/modules/solicitud-certificado'
+import { getCertificateTexts } from '@/modules/solicitud-certificado/server'
 
 type PageProps = { searchParams: Promise<{ id?: string; receipt?: string }> }
 
@@ -34,8 +36,8 @@ export default async function FinalizarPage({ searchParams }: PageProps) {
         </div>
         <div className="my-2 w-full border-t border-gray-200" />
         <div className="flex w-full flex-col gap-3">
-          <DescargaCargo solicitudId={solicitudId} texts={texts} />
-          <FinalNotices texts={texts} />
+          <CertificateCargoDownload solicitudId={solicitudId} texts={texts} />
+          <CertificateFinalNotices texts={texts} />
         </div>
       </div>
     </div>

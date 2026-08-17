@@ -1,7 +1,7 @@
 import VerificacionEmail from '@/modules/shared/components/verificacion-email-view'
 import RequestTypesPriceTable from '@/modules/shared/components/request-types-price-table'
-import { getLocationEntryData } from '@/modules/solicitud-ubicacion/infrastructure/server/location-catalog.repository'
-import VerifySchedules from '@/modules/solicitud-ubicacion/presentation/components/verify-schedules'
+import { LocationScheduleVerification } from '@/modules/solicitud-ubicacion'
+import { getLocationEntryData } from '@/modules/solicitud-ubicacion/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,9 +19,8 @@ export default async function SolicitudUbicacionPage() {
         <VerificacionEmail
           priceTable={<RequestTypesPriceTable data={priceRows} emptyLabel="Examen de ubicacion no disponible." />}
         />
-        <VerifySchedules schedules={schedules} texts={catalogs.texts} />
+        <LocationScheduleVerification schedules={schedules} texts={catalogs.texts} />
       </div>
     </div>
   )
 }
-

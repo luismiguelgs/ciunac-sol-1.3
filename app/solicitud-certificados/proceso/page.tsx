@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { readVerifiedSession } from '@/modules/security/server/session'
-import { getCertificateCatalogs } from '@/modules/solicitud-certificado/infrastructure/server/certificate-catalog.repository'
-import SolicitudCertificadoProcess from '@/modules/solicitud-certificado/presentation/components/solicitud-certificado-process'
+import { SolicitudCertificadoProcess } from '@/modules/solicitud-certificado'
+import { getCertificateCatalogs } from '@/modules/solicitud-certificado/server'
 
 export default async function SolicitudCertificadosPage() {
   const session = await readVerifiedSession('CERTIFICADO')

@@ -4,7 +4,10 @@ import { parseExternalResponse } from '@/modules/shared/infrastructure/validatio
 import { SolicitudUbicacionGateway } from '@/modules/solicitud-ubicacion/application/ports/register-solicitud-ubicacion.ports'
 import { SolicitudUbicacion } from '@/modules/solicitud-ubicacion/domain/solicitud-ubicacion'
 import { LocationCreateCommandDto } from '@/modules/solicitud-ubicacion/infrastructure/dto/location-api.dto'
-import { toLocationRequestDto } from '@/modules/solicitud-ubicacion/infrastructure/mappers/location-api.mapper'
+import {
+  toExistingLocationRequest,
+  toLocationRequestDto,
+} from '@/modules/solicitud-ubicacion/infrastructure/mappers/location-api.mapper'
 import {
   locationCreateResponseSchema,
   locationDuplicateResponseArraySchema,
@@ -35,7 +38,7 @@ export class SolicitudUbicacionApiGateway implements SolicitudUbicacionGateway {
         locationDuplicateResponseArraySchema,
         response,
         'La API devolvio solicitudes existentes incompletas.',
-      )
+      ).map(toExistingLocationRequest)
     } catch (error) {
       throw normalizeAppError(error, 'No se pudo consultar solicitudes existentes')
     }

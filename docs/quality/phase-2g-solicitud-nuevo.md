@@ -71,3 +71,11 @@ pruebas. Este problema transversal no afecta el resultado individual de los
 escenarios y permanece documentado como deuda tecnica.
 
 Los resultados finales se registran tambien en `docs/quality/baseline.md`.
+
+## Refactor Modular Posterior
+
+ADR-024 consolida el feature con APIs publicas `index.ts`, `client.ts` y
+`server.ts`. La factory que componia infraestructura desde aplicacion fue retirada;
+los schemas quedaron en la capa correspondiente y el BFF dejo de importar internals.
+El detalle y las verificaciones se registran en
+`docs/quality/solicitud-nuevo-modular-refactor.md`.

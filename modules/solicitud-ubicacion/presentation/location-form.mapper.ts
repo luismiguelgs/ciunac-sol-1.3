@@ -10,7 +10,7 @@ import {
 import {
   LocationBasicDataFormValues,
   locationBasicDataInitialValues,
-} from '@/modules/solicitud-ubicacion/schemas/location-basic-data.schema'
+} from '@/modules/solicitud-ubicacion/presentation/schemas/location-basic-data.schema'
 
 export function toLocationBasicData(
   values: LocationBasicDataFormValues,
@@ -82,4 +82,3 @@ export function toLocationPaymentFormValues(payment: LocationPayment | null): Pa
 function sameMoney(left: number, right: number): boolean {
   return Number.isFinite(left) && Math.round(left * 100) === Math.round(right * 100)
 }
-

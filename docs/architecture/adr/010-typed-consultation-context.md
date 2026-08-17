@@ -2,7 +2,7 @@
 
 ## Estado
 
-Aceptado e implementado en Fase 2B.
+Aceptado e implementado en Fase 2B. Ampliado por ADR-018.
 
 ## Contexto
 
@@ -26,6 +26,7 @@ consulta por documento:
 - mappers DTO a dominio;
 - caso de uso para consultar, filtrar y cargar textos auxiliares;
 - repository server-only para comunicarse con CIUNAC.
+- API publica browser-safe y entrada `server-only` para evitar imports profundos.
 
 `consulta-solicitud` conserva exclusivamente su presentacion de resultados,
 generacion de cargo y documentos digitales.
@@ -62,6 +63,7 @@ interpreta como ausencia.
   como estados diferentes.
 - El formulario compartido queda ubicado en el contexto que realmente lo posee.
 - Se eliminan fachadas y componentes sin uso vinculados a documentos digitales.
+- Los DTOs se infieren desde los schemas Zod y dejan de duplicarse manualmente.
 
 ## Limites
 

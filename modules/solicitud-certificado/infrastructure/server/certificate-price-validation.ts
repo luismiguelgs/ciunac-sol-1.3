@@ -18,7 +18,7 @@ export async function validateCertificateRequestPrice(value: unknown): Promise<v
   }
 
   const catalogResponse = await ciunacRequest<unknown>('tipossolicitud')
-  const catalogResult = certificateTypeArraySchema.safeParse(filterCertificateTypes(catalogResponse))
+  const catalogResult = certificateTypeArraySchema.safeParse(catalogResponse)
   if (!catalogResult.success) {
     throw new SecurityError('SERVICE_UNAVAILABLE', 503, 'Certificate price catalog is unavailable')
   }
@@ -35,11 +35,6 @@ export async function validateCertificateRequestPrice(value: unknown): Promise<v
 function readTypeId(value: unknown): number {
   if (!value || typeof value !== 'object') return Number.NaN
   return Number((value as { tipoSolicitudId?: unknown }).tipoSolicitudId)
-}
-
-function filterCertificateTypes(value: unknown): unknown {
-  if (!Array.isArray(value)) return value
-  return value.filter((item) => isCertificateType(Number((item as { id?: unknown })?.id)))
 }
 
 function sameMoney(left: number, right: number): boolean {

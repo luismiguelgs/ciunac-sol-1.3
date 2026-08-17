@@ -1,6 +1,7 @@
 import { obtenerPeriodo } from '@/lib/utils'
 import {
   LOCATION_REQUEST_TYPE_ID,
+  ExistingLocationRequest,
   LocationCargo,
   LocationCatalogs,
   LocationSchedule,
@@ -8,15 +9,18 @@ import {
   SolicitudUbicacion,
 } from '@/modules/solicitud-ubicacion/domain/solicitud-ubicacion'
 import {
-  LocationCargoResponseDto,
-  LocationLanguageResponseDto,
   LocationRequestDto,
+  LocationStudentRequestDto,
+} from '@/modules/solicitud-ubicacion/infrastructure/dto/location-api.dto'
+import type {
+  LocationCargoResponseDto,
+  LocationDuplicateResponseDto,
+  LocationLanguageResponseDto,
   LocationScheduleResponseDto,
   LocationStudentLookupResponseDto,
-  LocationStudentRequestDto,
   LocationTextResponseDto,
   LocationTypeResponseDto,
-} from '@/modules/solicitud-ubicacion/infrastructure/dto/location-api.dto'
+} from '@/modules/solicitud-ubicacion/infrastructure/validation/location-api.schemas'
 
 export function toLocationStudentRequestDto(solicitud: SolicitudUbicacion): LocationStudentRequestDto {
   return {
@@ -50,6 +54,14 @@ export function toLocationRequestDto(solicitud: SolicitudUbicacion, studentId: s
 
 export function toLocationStudentLookup(dto: LocationStudentLookupResponseDto): LocationStudentLookup {
   return { id: dto.id, names: dto.nombres, lastNames: dto.apellidos, phone: dto.celular }
+}
+
+export function toExistingLocationRequest(dto: LocationDuplicateResponseDto): ExistingLocationRequest {
+  return {
+    statusId: dto.estadoId,
+    languageId: dto.idiomaId,
+    requestTypeId: dto.tipoSolicitudId,
+  }
 }
 
 export function toLocationCatalogs(
@@ -91,4 +103,3 @@ export function toLocationCargo(dto: LocationCargoResponseDto): LocationCargo {
     paidAt: dto.fechaPago,
   }
 }
-

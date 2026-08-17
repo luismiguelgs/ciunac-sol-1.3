@@ -6,7 +6,7 @@ import {
   StudentGateway,
 } from '@/modules/solicitud-certificado/application/ports/register-solicitud-certificado.ports';
 import { RegistrationOutcome } from '@/modules/shared/application/results/registration-outcome';
-import { parseSolicitudCertificado } from '@/modules/solicitud-certificado/schemas/solicitud-certificado.schema'
+import { parseSolicitudCertificado } from '@/modules/solicitud-certificado/application/validation/solicitud-certificado.schema'
 
 type Dependencies = {
   studentGateway: StudentGateway;

@@ -93,6 +93,74 @@ Patron ya aplicado en:
 - `modules/consultas`
 - `modules/consulta-solicitud`
 - `modules/consulta-certificado`
+- `modules/consulta-ubicacion`
+
+API publica de `consulta-certificado`:
+- `@/modules/consulta-certificado`: contrato de presentacion.
+- `@/modules/consulta-certificado/server`: caso de consulta compuesto y marcado
+  `server-only`.
+- Las rutas y otros features no consumen `domain`, `application`, `infrastructure`
+  o `presentation` mediante imports profundos.
+- `/consulta-certificado/{id}` es una verificacion publica de solo lectura iniciada
+  por el QR. No depende de la sesion de `consulta-solicitud`.
+- El navegador nunca recibe la API key ni accede directamente al proveedor; la
+  consulta y la validacion Zod se ejecutan en el Server Component.
+
+API publica de consultas de solicitudes:
+- `@/modules/consultas`: formulario y contratos transversales browser-safe.
+- `@/modules/consultas/server`: consulta tipada compuesta en servidor.
+- `@/modules/consulta-solicitud`: resultados de certificados y constancias.
+- `@/modules/consulta-solicitud/server`: entrada server-only que fija el contexto
+  funcional de certificados y constancias.
+- `client.tsx` conecta los casos de uso de documentos digitales con su gateway sin
+  permitir imports de infraestructura desde presentation.
+
+Formato compartido de cargos:
+- `modules/shared/components/administrative-cargo-pdf.tsx` contiene A4, encabezado
+  institucional y estilos comunes.
+- Certificado, constancia, ubicacion y consulta mantienen sus propios adaptadores,
+  titulos, textos y reglas funcionales.
+
+API publica de consulta de ubicacion:
+- `@/modules/consulta-ubicacion`: vista y contrato de presentacion.
+- `@/modules/consulta-ubicacion/server`: composicion server-only del join.
+- Su infraestructura adapta `@/modules/consultas/server` a modelos locales; dominio,
+  aplicacion y presentacion no importan otros features.
+- El cargo se deriva de la solicitud activa y no realiza una segunda consulta por ID.
+
+API publica de solicitud de beca:
+- `@/modules/solicitud-beca`: formulario de verificacion y wizard.
+- `@/modules/solicitud-beca/client`: composicion de registro y reintento de correo.
+- `@/modules/solicitud-beca/server`: catalogos academicos y validacion binaria PDF.
+- Las rutas y el BFF no importan application, infrastructure o presentation de
+  forma profunda.
+
+API publica de solicitud de constancias:
+- `@/modules/solicitud-constancia`: wizard y componentes de finalizacion.
+- `@/modules/solicitud-constancia/client`: composicion de registro, estudiante,
+  correo y cargo.
+- `@/modules/solicitud-constancia/server`: catalogos y validacion server-side del
+  precio para tipos `5` y `6`.
+- App Router y el BFF no importan internals; los catalogos se validan en servidor y
+  presentation no consume repositories ni stores globales de catalogos.
+
+API publica de solicitud de ubicacion:
+- `@/modules/solicitud-ubicacion`: cronograma, wizard y finalizacion.
+- `@/modules/solicitud-ubicacion/client`: composicion de perfil, duplicidad,
+  estudiante, registro, correo y cargo.
+- `@/modules/solicitud-ubicacion/server`: catalogos, cookie de perfil y validacion
+  server-side de payloads y archivos.
+- El BFF selecciona el validador PDF academico mediante la sesion `UBICACION` y no
+  reutiliza reglas internas de becas.
+
+API publica de solicitud de alumno nuevo:
+- `@/modules/solicitud-nuevo`: wizard de tres pasos.
+- `@/modules/solicitud-nuevo/client`: composicion de registro Q10 y reintento de
+  notificacion.
+- `@/modules/solicitud-nuevo/server`: catalogo de programas, schema externo y
+  validacion server-side de sesion, email y programa.
+- App Router, el BFF y seguridad no importan internals del feature; los DTOs de
+  respuesta se infieren desde la validacion Zod.
 
 Infraestructura compartida:
 - `modules/shared/application/errors/app-error.ts`
@@ -174,6 +242,14 @@ ADRs vigentes:
 - ADR-014 Adoptar dominio, workflow y validacion server-side de precio para certificados.
 - ADR-015 Adoptar dominio, workflow y validacion server-side para alumno nuevo.
 - ADR-016 Adoptar dominio, workflow, perfil y tarifa server-side para solicitud de ubicacion.
+- ADR-017 Permitir la verificacion publica de certificados mediante QR.
+- ADR-018 Aplicar limites modulares y formato compartido a consulta de solicitudes.
+- ADR-019 Aplicar limites modulares y API publica a consulta de ubicacion.
+- ADR-020 Aplicar limites modulares y APIs publicas a solicitud de beca.
+- ADR-021 Aplicar limites modulares y APIs publicas a solicitud de certificados.
+- ADR-022 Aplicar limites modulares y APIs publicas a solicitud de constancias.
+- ADR-023 Aplicar limites modulares y APIs publicas a solicitud de ubicacion.
+- ADR-024 Aplicar limites modulares y APIs publicas a solicitud de alumno nuevo.
 
 ## 11. Riesgos y mitigaciones
 - Riesgo: extraer demasiada logica a `shared`.

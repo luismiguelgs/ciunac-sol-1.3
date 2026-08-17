@@ -1,13 +1,15 @@
 import React from 'react'
 import { normalizeAppError } from '@/modules/shared/application/errors/app-error'
+import {
+  registerNewStudent,
+  retryNewStudentNotification,
+} from '@/modules/solicitud-nuevo/client'
 import { NewStudent } from '@/modules/solicitud-nuevo/domain/new-student'
-import { createRegisterNewStudentUseCase } from '@/modules/solicitud-nuevo/application/factories/create-register-new-student-use-case'
 import useNewStudentStore, { NewStudentWriteRisk } from '@/modules/solicitud-nuevo/presentation/new-student.store'
 
 export type NewStudentRegisterDialogState = 'SAVE' | 'EMAIL' | 'EMAIL_ERROR' | 'ERROR'
 
 export function useRegisterNewStudent(onSuccess: (receiptId: string) => void) {
-  const useCase = React.useMemo(() => createRegisterNewStudentUseCase(), [])
   const workflow = useNewStudentStore((state) => state.workflow)
   const beginRegistration = useNewStudentStore((state) => state.beginRegistration)
   const completeRegistration = useNewStudentStore((state) => state.completeRegistration)
@@ -27,7 +29,7 @@ export function useRegisterNewStudent(onSuccess: (receiptId: string) => void) {
     beginRegistration(student)
     setOpen(true)
     try {
-      const result = await useCase.execute({ student })
+      const result = await registerNewStudent({ student })
       if (result.status === 'saved_notification_failed') {
         markNotificationFailed(result.documentNumber, result.error)
         return
@@ -50,7 +52,7 @@ export function useRegisterNewStudent(onSuccess: (receiptId: string) => void) {
     beginNotificationRetry(documentNumber)
     setOpen(true)
     try {
-      const receiptId = await useCase.retryNotification(documentNumber)
+      const receiptId = await retryNewStudentNotification(documentNumber)
       completeRegistration(documentNumber, receiptId)
       setOpen(false)
       onSuccess(receiptId)

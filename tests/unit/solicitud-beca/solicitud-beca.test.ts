@@ -2,7 +2,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AppError } from '@/modules/shared/application/errors/app-error'
 import { resolveCiunacBodySchema } from '@/modules/security/server/schemas'
 import { RegisterSolicitudBecaUseCase } from '@/modules/solicitud-beca/application/use-cases/register-solicitud-beca.use-case'
-import { ScholarshipCatalogs, SolicitudBeca } from '@/modules/solicitud-beca/domain/solicitud-beca'
+import { solicitudBecaSchema } from '@/modules/solicitud-beca/application/validation/solicitud-beca.schema'
+import {
+  hasConsistentScholarshipCatalogs,
+  ScholarshipCatalogs,
+  SolicitudBeca,
+} from '@/modules/solicitud-beca/domain/solicitud-beca'
+import { getScholarshipDocumentViolation } from '@/modules/solicitud-beca/domain/scholarship-document-policy'
 import { toScholarshipRequestDto } from '@/modules/solicitud-beca/infrastructure/mappers/scholarship-api.mapper'
 import {
   scholarshipCreateResponseSchema,
@@ -10,8 +16,8 @@ import {
   scholarshipSchoolArraySchema,
 } from '@/modules/solicitud-beca/infrastructure/validation/scholarship-api.schemas'
 import { toScholarshipBasicData, toScholarshipDocuments } from '@/modules/solicitud-beca/presentation/scholarship-form.mapper'
+import type { DocumentsFormValues } from '@/modules/solicitud-beca/presentation/schemas/documents.schema'
 import useSolicitudBecaStore from '@/modules/solicitud-beca/presentation/solicitud-beca.store'
-import { solicitudBecaSchema } from '@/modules/solicitud-beca/schemas/solicitud-beca.schema'
 
 const catalogs: ScholarshipCatalogs = {
   faculties: [{ id: 1, name: 'Ingenieria', code: 'FIIS' }],
@@ -77,6 +83,27 @@ describe('scholarship domain and DTO contracts', () => {
   it('validates and normalizes academic catalogs', () => {
     expect(scholarshipFacultyArraySchema.parse([{ id: '1', nombre: 'Ingenieria', codigo: 'FIIS' }])[0].id).toBe(1)
     expect(scholarshipSchoolArraySchema.parse([{ id: '2', nombre: 'Sistemas', facultadId: '1' }])[0]).toMatchObject({ id: 2, facultadId: 1 })
+  })
+
+  it('detects schools associated with an unknown faculty', () => {
+    expect(hasConsistentScholarshipCatalogs(catalogs)).toBe(true)
+    expect(hasConsistentScholarshipCatalogs({
+      ...catalogs,
+      schools: [{ id: 2, name: 'Sistemas', facultyId: 99 }],
+    })).toBe(false)
+  })
+
+  it('validates document metadata without depending on the browser File type', () => {
+    expect(getScholarshipDocumentViolation({
+      name: 'documento.pdf',
+      size: 1024,
+      mimeType: 'application/pdf',
+    })).toBeNull()
+    expect(getScholarshipDocumentViolation({
+      name: 'documento.png',
+      size: 1024,
+      mimeType: 'application/pdf',
+    })).toBe('INVALID_EXTENSION')
   })
 
   it.each([
@@ -188,7 +215,7 @@ function basicForm() {
   }
 }
 
-function documentForm() {
+function documentForm(): DocumentsFormValues {
   return {
     constancia_matricula: '/files/matricula.pdf',
     historial_academico: '/files/historial.pdf',

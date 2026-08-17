@@ -9,8 +9,8 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { StepperControl } from '@/components/stepper'
 import { FileUploaderCard } from '@/components/forms/upload.field'
 import { ScholarshipDocuments } from '@/modules/solicitud-beca/domain/solicitud-beca'
-import { validateScholarshipDocumentMetadata } from '@/modules/solicitud-beca/domain/scholarship-document-policy'
-import { documentsSchema, DocumentsFormValues } from '@/modules/solicitud-beca/schemas/documents.schema'
+import { validateScholarshipDocumentForPresentation } from '@/modules/solicitud-beca/presentation/scholarship-document.presenter'
+import { documentsSchema, DocumentsFormValues } from '@/modules/solicitud-beca/presentation/schemas/documents.schema'
 import { toDocumentFormValues } from '@/modules/solicitud-beca/presentation/scholarship-form.mapper'
 
 type Props = {
@@ -75,7 +75,7 @@ export default function Documents({ activeStep, steps, documentNumber, defaultDo
                 folder="becas"
                 icon={document.icon}
                 accept=".pdf"
-                validateFile={validateScholarshipDocumentMetadata}
+                validateFile={validateScholarshipDocumentForPresentation}
               />
             ))}
           </div>

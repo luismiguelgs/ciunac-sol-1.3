@@ -96,3 +96,16 @@ export function isCertificateLevel(value: number): value is CertificateLevelId {
 export function isDigitalCertificateType(value: CertificateTypeId): boolean {
   return value === 2 || value === 4
 }
+
+export function hasConsistentCertificateCatalogs(catalogs: CertificateCatalogs): boolean {
+  const facultyIds = new Set(catalogs.faculties.map((faculty) => faculty.id))
+  return catalogs.schools.every((school) => facultyIds.has(school.facultyId))
+}
+
+export function normalizeCertificateDocumentNumber(value: string): string {
+  return value.trim().toLocaleUpperCase()
+}
+
+export function isCertificateDocumentNumber(value: string): boolean {
+  return /^[A-Z0-9]{8,9}$/.test(normalizeCertificateDocumentNumber(value))
+}

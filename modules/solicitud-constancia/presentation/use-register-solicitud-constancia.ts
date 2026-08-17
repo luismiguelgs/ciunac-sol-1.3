@@ -1,13 +1,15 @@
 import React from 'react'
 import { normalizeAppError } from '@/modules/shared/application/errors/app-error'
 import { SolicitudConstancia } from '@/modules/solicitud-constancia/domain/solicitud-constancia'
-import { createRegisterSolicitudConstanciaUseCase } from '@/modules/solicitud-constancia/infrastructure/register-solicitud-constancia.adapters'
+import {
+  registerSolicitudConstancia,
+  retrySolicitudConstanciaNotification,
+} from '@/modules/solicitud-constancia/client'
 import useSolicitudConstanciaStore from '@/modules/solicitud-constancia/presentation/solicitud-constancia.store'
 
 export type ConstanciaRegisterDialogState = 'SAVE' | 'EMAIL' | 'EMAIL_ERROR' | 'ERROR'
 
 export function useRegisterSolicitudConstancia(onSuccess: (requestId: string, receiptId: string) => void) {
-  const useCase = React.useMemo(() => createRegisterSolicitudConstanciaUseCase(), [])
   const workflow = useSolicitudConstanciaStore((state) => state.workflow)
   const beginRegistration = useSolicitudConstanciaStore((state) => state.beginRegistration)
   const completeRegistration = useSolicitudConstanciaStore((state) => state.completeRegistration)
@@ -21,7 +23,7 @@ export function useRegisterSolicitudConstancia(onSuccess: (requestId: string, re
     beginRegistration(solicitud)
     setOpen(true)
     try {
-      const result = await useCase.execute({ solicitud })
+      const result = await registerSolicitudConstancia({ solicitud })
       if (result.status === 'saved_notification_failed') {
         markNotificationFailed(result.requestId, result.error)
         return
@@ -40,7 +42,7 @@ export function useRegisterSolicitudConstancia(onSuccess: (requestId: string, re
     beginNotificationRetry(requestId)
     setOpen(true)
     try {
-      const receiptId = await useCase.retryNotification(requestId)
+      const receiptId = await retrySolicitudConstanciaNotification(requestId)
       completeRegistration(requestId, receiptId)
       setOpen(false)
       onSuccess(requestId, receiptId)

@@ -16,11 +16,13 @@ import procesoUno from '@/assets/1.png'
 import procesoDos from '@/assets/2.png'
 import procesoTres from '@/assets/3.png'
 import solicitudRechazada from '@/assets/solicitud-rechazada.png'
-import { ConsultationRequestsResult } from '@/modules/consultas/application/get-consultation-requests.use-case'
-import { ConsultedRequestStep } from '@/modules/consultas/domain/consulted-request'
-import { findConsultationText } from '@/modules/consultas/domain/consultation-text'
+import {
+  findConsultationText,
+  type ConsultationRequestsResult,
+  type ConsultedRequestStep,
+} from '@/modules/consultas'
+import { DigitalDocumentDownload } from '@/modules/consulta-solicitud/client'
 import DownloadCargo from '@/modules/consulta-solicitud/presentation/components/download-cargo'
-import DownloadDocumentoDigital from '@/modules/consulta-solicitud/components/download-documento-digital'
 
 export default function ConsultationResults({ result }: { result: ConsultationRequestsResult }) {
   const student = result.requests[0].student
@@ -101,7 +103,7 @@ export default function ConsultationResults({ result }: { result: ConsultationRe
                         </AlertDescription>
                       </Alert>
                     ) : shouldDownloadDigitalDocument ? (
-                      <DownloadDocumentoDigital
+                      <DigitalDocumentDownload
                         solicitudId={request.id}
                         tipoDocumento={documentType}
                         fallback={cargoFallback}

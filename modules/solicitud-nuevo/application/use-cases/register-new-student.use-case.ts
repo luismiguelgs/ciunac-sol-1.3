@@ -4,7 +4,7 @@ import {
   NewStudentGateway,
   NewStudentNotificationGateway,
 } from '@/modules/solicitud-nuevo/application/ports/register-new-student.ports';
-import { parseNewStudent } from '@/modules/solicitud-nuevo/schemas/new-student.schema'
+import { parseNewStudent } from '@/modules/solicitud-nuevo/application/validation/new-student.schema'
 
 export type RegisterNewStudentOutcome =
   | { status: 'completed'; documentNumber: string; notificationReceiptId: string }

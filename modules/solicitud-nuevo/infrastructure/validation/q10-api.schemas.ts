@@ -1,15 +1,15 @@
 import { z } from 'zod'
-import {
-  Q10ProgramResponseDto,
-  Q10RegistrationResponseDto,
-  Q10StudentRequestDto,
-} from '@/modules/solicitud-nuevo/infrastructure/dto/q10-api.dto'
+import { Q10StudentRequestDto } from '@/modules/solicitud-nuevo/infrastructure/dto/q10-student-request.dto'
 
-export const q10ProgramArraySchema: z.ZodType<Q10ProgramResponseDto[]> = z.array(z.object({
+export const q10ProgramSchema = z.object({
   Codigo: z.string().trim().min(1).max(80),
   Nombre: z.string().trim().min(1).max(254),
   Numero_resolucion: z.string().nullable(),
-}).passthrough())
+}).passthrough()
+
+export const q10ProgramArraySchema = z.array(q10ProgramSchema)
+
+export type Q10ProgramResponseDto = z.output<typeof q10ProgramSchema>
 
 export const q10StudentRequestSchema: z.ZodType<Q10StudentRequestDto> = z.object({
   Primer_apellido: z.string().trim().min(2).max(80),
@@ -33,7 +33,9 @@ export const q10StudentRequestSchema: z.ZodType<Q10StudentRequestDto> = z.object
   }
 })
 
-export const q10RegistrationResponseSchema: z.ZodType<Q10RegistrationResponseDto> = z.record(
+export const q10RegistrationResponseSchema = z.record(
   z.string(),
   z.unknown(),
 )
+
+export type Q10RegistrationResponseDto = z.output<typeof q10RegistrationResponseSchema>

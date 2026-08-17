@@ -65,6 +65,12 @@ export type LocationStudentLookup = {
   phone: string
 }
 
+export type ExistingLocationRequest = {
+  statusId: number
+  languageId: number
+  requestTypeId: number
+}
+
 export type LocationCargo = {
   id: number
   typeName: string
@@ -87,4 +93,12 @@ export function isLocationLevel(value: number): value is LocationLevelId {
 
 export function isOfficialLocationPrice(value: number): boolean {
   return Number.isFinite(value) && Math.round(value * 100) === Math.round(LOCATION_EXAM_PRICE * 100)
+}
+
+export function normalizeLocationDocumentNumber(value: string): string {
+  return value.trim().toLocaleUpperCase()
+}
+
+export function isLocationDocumentNumber(value: string): boolean {
+  return /^[A-Z0-9]{8,9}$/.test(value)
 }

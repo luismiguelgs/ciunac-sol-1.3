@@ -2,16 +2,21 @@ import { AlertTriangle, GraduationCap, User } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import Download from '@/modules/consulta-ubicacion/components/download'
+import type { LocationConsultationResult } from '@/modules/consulta-ubicacion/application/get-location-consultation.use-case'
+import LocationCargoDownload from '@/modules/consulta-ubicacion/presentation/components/location-cargo-download'
+import LocationCertificateDownload from '@/modules/consulta-ubicacion/presentation/components/location-certificate-download'
 import {
-  LocationConsultation,
-  LocationExamResult,
-} from '@/modules/consulta-ubicacion/domain/location-consultation'
+  presentLocationConsultation,
+  type LocationResultViewModel,
+} from '@/modules/consulta-ubicacion/presentation/location-consultation.presenter'
 import Copyright from '@/modules/shared/components/copyright'
-import DescargaCargo from '@/modules/solicitud-ubicacion/presentation/components/descarga-cargo'
 
-export default function LocationConsultationView({ consultation }: { consultation: LocationConsultation }) {
-  const fullName = `${consultation.student.names} ${consultation.student.lastNames}`.trim().toLocaleUpperCase('es-PE')
+export default function LocationConsultationView({
+  consultation,
+}: {
+  consultation: LocationConsultationResult
+}) {
+  const viewModel = presentLocationConsultation(consultation)
 
   return (
     <main className="container mx-auto space-y-6 p-6">
@@ -27,11 +32,11 @@ export default function LocationConsultationView({ consultation }: { consultatio
           <dl className="space-y-2 p-3 text-sm md:text-base">
             <div className="flex flex-wrap gap-1">
               <dt className="font-semibold">Nombre del Alumno:</dt>
-              <dd>{fullName}</dd>
+              <dd>{viewModel.fullName}</dd>
             </div>
             <div className="flex flex-wrap gap-1">
               <dt className="font-semibold">Documento:</dt>
-              <dd>{consultation.documentNumber}</dd>
+              <dd>{viewModel.documentNumber}</dd>
             </div>
           </dl>
         </CardContent>
@@ -46,11 +51,11 @@ export default function LocationConsultationView({ consultation }: { consultatio
           <Separator className="my-2" />
         </CardHeader>
         <CardContent>
-          {consultation.results.length === 0 ? (
-            <LocationEmptyState requestId={consultation.activeRequestId} texts={consultation.cargoTexts} />
+          {viewModel.results.length === 0 ? (
+            <LocationEmptyState cargo={viewModel.cargo} />
           ) : (
             <div className="space-y-4">
-              {!consultation.yearName ? (
+              {!viewModel.yearAvailable ? (
                 <Alert>
                   <AlertTriangle aria-hidden="true" />
                   <AlertTitle>Nombre del año no disponible</AlertTitle>
@@ -59,9 +64,7 @@ export default function LocationConsultationView({ consultation }: { consultatio
                   </AlertDescription>
                 </Alert>
               ) : null}
-              {consultation.results.map((result) => (
-                <LocationResult key={result.id} result={result} yearName={consultation.yearName} />
-              ))}
+              {viewModel.results.map((result) => <LocationResult key={result.id} result={result} />)}
             </div>
           )}
         </CardContent>
@@ -72,7 +75,11 @@ export default function LocationConsultationView({ consultation }: { consultatio
   )
 }
 
-function LocationEmptyState({ requestId, texts }: { requestId: number; texts: LocationConsultation['cargoTexts'] }) {
+function LocationEmptyState({
+  cargo,
+}: {
+  cargo: ReturnType<typeof presentLocationConsultation>['cargo']
+}) {
   return (
     <div className="flex flex-col items-center gap-4 py-6 text-center">
       <div className="space-y-2">
@@ -81,46 +88,43 @@ function LocationEmptyState({ requestId, texts }: { requestId: number; texts: Lo
           Mientras se registran las notas, puede descargar el cargo de su solicitud.
         </p>
       </div>
-      <DescargaCargo solicitudId={requestId} texts={texts} />
+      {cargo.status === 'available' ? (
+        <LocationCargoDownload document={cargo.document} fileName={cargo.fileName} />
+      ) : (
+        <Alert>
+          <AlertTriangle aria-hidden="true" />
+          <AlertTitle>Cargo aún no disponible</AlertTitle>
+          <AlertDescription>{cargo.reason}</AlertDescription>
+        </Alert>
+      )}
     </div>
   )
 }
 
-function LocationResult({ result, yearName }: { result: LocationExamResult; yearName: string | null }) {
-  const displayDate = result.examDate ? formatDate(result.examDate) : 'No disponible'
-  const placementCycle = result.placementCycle ?? 'No disponible'
-
+function LocationResult({ result }: { result: LocationResultViewModel }) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-2">
         <div>
-          <h3 className="font-medium">{result.language.name}</h3>
-          <p className="text-sm text-muted-foreground">Fecha: {displayDate}</p>
+          <h3 className="font-medium">{result.languageName}</h3>
+          <p className="text-sm text-muted-foreground">Fecha: {result.dateLabel}</p>
         </div>
-        <p className="text-sm">Nota: <span className="font-bold">{result.grade}/100</span></p>
-        <p className="text-sm">Ubicación: <span className="font-bold">{placementCycle}</span></p>
-        {result.completed && result.dataQuality === 'complete' && yearName ? (
-          <Download item={result} fecha={displayDate} ciclo={placementCycle} yearName={yearName} />
+        <p className="text-sm">Nota: <span className="font-bold">{result.gradeLabel}</span></p>
+        <p className="text-sm">Ubicación: <span className="font-bold">{result.placementCycle}</span></p>
+        {result.certificate.status === 'available' ? (
+          <LocationCertificateDownload
+            document={result.certificate.document}
+            fileName={result.certificate.fileName}
+          />
         ) : (
           <Alert>
             <AlertTriangle aria-hidden="true" />
             <AlertTitle>Constancia aún no disponible</AlertTitle>
-            <AlertDescription>
-              {!result.completed
-                ? 'El resultado todavía no ha sido marcado como terminado.'
-                : 'Faltan datos de fecha, ciclo o año para generar una constancia completa.'}
-            </AlertDescription>
+            <AlertDescription>{result.certificate.reason}</AlertDescription>
           </Alert>
         )}
       </div>
       <Separator />
     </div>
   )
-}
-
-function formatDate(value: string): string {
-  const date = new Date(value)
-  return Number.isNaN(date.getTime())
-    ? 'No disponible'
-    : date.toLocaleDateString('es-PE', { timeZone: 'UTC' })
 }

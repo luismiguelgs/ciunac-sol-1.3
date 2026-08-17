@@ -78,6 +78,13 @@ sequenceDiagram
 - Corregir el lifecycle de procesos hijos de Playwright en Windows.
 - Sustituir la adaptacion temporal de correo `CONSTANCIA` a plantilla `CERTIFICADO` cuando el proveedor exponga una plantilla propia.
 
+## Refactor Modular Posterior
+
+ADR-022 completa la separacion fisica de capas. Los stores globales de catalogos
+dejaron de ser dependencias de constancias; App Router consume APIs publicas y el
+BFF revalida el precio vigente de los tipos `5` y `6`. Presentation ya no importa
+repositories y application ya no compone infraestructura.
+
 ## Resultados de Verificacion
 
 | Control | Resultado |

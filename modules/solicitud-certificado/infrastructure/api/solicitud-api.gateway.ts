@@ -3,7 +3,7 @@ import { resourceApiRepository } from '@/modules/shared/infrastructure/api/resou
 import { parseExternalResponse } from '@/modules/shared/infrastructure/validation/external-response'
 import { SolicitudGateway } from '@/modules/solicitud-certificado/application/ports/register-solicitud-certificado.ports'
 import { SolicitudCertificado } from '@/modules/solicitud-certificado/domain/solicitud-certificado'
-import { CertificateRequestDto } from '@/modules/solicitud-certificado/infrastructure/dto/certificate-api.dto'
+import { CertificateRequestDto } from '@/modules/solicitud-certificado/infrastructure/dto/certificate-request.dto'
 import { toCertificateRequestDto } from '@/modules/solicitud-certificado/infrastructure/mappers/certificate-api.mapper'
 import { certificateCreateResponseSchema } from '@/modules/solicitud-certificado/infrastructure/validation/certificate-api.schemas'
 

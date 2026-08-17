@@ -1,5 +1,5 @@
-import ConsultaPage from "@/modules/shared/components/consulta-wrapper"
-import ConsultaForm from '@/modules/consultas/presentation/components/consulta-form'
+import { ConsultaForm } from '@/modules/consultas'
+import ConsultaPage from '@/modules/shared/components/consulta-wrapper'
 
 export default function ConsultaUbicacionPage() {
 	return (

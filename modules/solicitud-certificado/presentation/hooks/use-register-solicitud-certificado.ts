@@ -1,13 +1,15 @@
 import React from 'react'
 import { normalizeAppError } from '@/modules/shared/application/errors/app-error'
-import { createRegisterSolicitudCertificadoUseCase } from '@/modules/solicitud-certificado/application/factories/create-register-solicitud-certificado-use-case'
+import {
+  registerSolicitudCertificado,
+  retrySolicitudCertificadoNotification,
+} from '@/modules/solicitud-certificado/client'
 import { SolicitudCertificado } from '@/modules/solicitud-certificado/domain/solicitud-certificado'
 import useSolicitudCertificadoStore from '@/modules/solicitud-certificado/presentation/solicitud-certificado.store'
 
 export type CertificateRegisterDialogState = 'SAVE' | 'EMAIL' | 'EMAIL_ERROR' | 'ERROR'
 
 export function useRegisterSolicitudCertificado(onSuccess: (requestId: string, receiptId: string) => void) {
-  const useCase = React.useMemo(() => createRegisterSolicitudCertificadoUseCase(), [])
   const workflow = useSolicitudCertificadoStore((state) => state.workflow)
   const beginRegistration = useSolicitudCertificadoStore((state) => state.beginRegistration)
   const completeRegistration = useSolicitudCertificadoStore((state) => state.completeRegistration)
@@ -21,7 +23,7 @@ export function useRegisterSolicitudCertificado(onSuccess: (requestId: string, r
     beginRegistration(solicitud)
     setOpen(true)
     try {
-      const result = await useCase.execute({ solicitud })
+      const result = await registerSolicitudCertificado({ solicitud })
       if (result.status === 'saved_notification_failed') {
         markNotificationFailed(result.requestId, result.error)
         return
@@ -40,7 +42,7 @@ export function useRegisterSolicitudCertificado(onSuccess: (requestId: string, r
     beginNotificationRetry(requestId)
     setOpen(true)
     try {
-      const receiptId = await useCase.retryNotification(requestId)
+      const receiptId = await retrySolicitudCertificadoNotification(requestId)
       completeRegistration(requestId, receiptId)
       setOpen(false)
       onSuccess(requestId, receiptId)

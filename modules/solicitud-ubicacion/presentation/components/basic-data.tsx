@@ -15,14 +15,14 @@ import { RadioGroupField } from '@/components/forms/radio-group.field'
 import { MySelect } from '@/components/forms/myselect.field'
 import MyAlert from '@/components/forms/myAlert'
 import UploadImage from '@/components/upload-image'
-import { validateIdentityDocumentMetadata } from '@/modules/solicitud-ubicacion/domain/identity-document-policy'
 import { LocationBasicData, LocationCatalogs } from '@/modules/solicitud-ubicacion/domain/solicitud-ubicacion'
-import { locationStudentRepository } from '@/modules/solicitud-ubicacion/infrastructure/location-student.repository'
+import { findLocationStudent } from '@/modules/solicitud-ubicacion/client'
 import {
   LocationBasicDataFormValues,
   locationBasicDataFormSchema,
-} from '@/modules/solicitud-ubicacion/schemas/location-basic-data.schema'
+} from '@/modules/solicitud-ubicacion/presentation/schemas/location-basic-data.schema'
 import { toLocationBasicFormValues } from '@/modules/solicitud-ubicacion/presentation/location-form.mapper'
+import { validateIdentityDocumentFile } from '@/modules/solicitud-ubicacion/presentation/location-file.presenter'
 
 const LEVELS = [
   { value: '1', label: 'BASICO' },
@@ -74,7 +74,7 @@ export default function BasicData({
     }
     setSearching(true)
     try {
-      const student = await locationStudentRepository.findByDocument(document)
+      const student = await findLocationStudent(document)
       if (!student) {
         form.setValue('estudianteId', '')
         toast.warning('No se encontraron datos para el documento ingresado.')
@@ -159,7 +159,7 @@ export default function BasicData({
               label="Documento de identidad"
               dni={documentNumber}
               folder="dnis"
-              validateFile={validateIdentityDocumentMetadata}
+              validateFile={validateIdentityDocumentFile}
             />
           </div>
         </div>
@@ -168,4 +168,3 @@ export default function BasicData({
     </Form>
   )
 }
-

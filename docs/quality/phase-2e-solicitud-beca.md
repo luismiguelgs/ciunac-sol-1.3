@@ -32,6 +32,37 @@ persistencia y correo. No introduce pago, voucher, cargo ni PDF generado.
 - El proveedor de correo no ofrece idempotencia confirmada ni garantia de entrega SMTP.
 - El lifecycle de Playwright en Windows y la descarga de Google Fonts siguen siendo deuda transversal.
 
+## Refactor Modular Posterior
+
+- Se incorporan APIs públicas `index.ts`, `client.ts` y `server.ts`.
+- La factory que importaba infraestructura desde application queda retirada.
+- Los schemas de formulario viven en presentation y el schema del command en
+  application.
+- Solo el request DTO permanece manual; respuestas y catálogos se infieren desde
+  Zod.
+- La política PDF usa metadatos neutrales y códigos de dominio, sin depender de
+  `File` ni de mensajes de UI.
+- App Router y el BFF dejan de importar rutas internas del feature.
+- ESLint aplica límites de dependencias únicamente a `solicitud-beca`.
+- Se añade validación de coherencia entre escuelas y facultades.
+
+### Verificación Modular
+
+| Comprobación | Resultado |
+| --- | --- |
+| `npm run lint` | Correcto, incluidas las restricciones por capa. |
+| `npx tsc --noEmit` | Correcto. |
+| Unitarias dirigidas | 31 de 31. |
+| `npm run test:unit` | 229 de 229 pruebas. |
+| Smoke E2E de beca | 9 de 9 escenarios correctos. |
+| Suite E2E completa | 92 de 92 escenarios correctos. |
+| `npm run build` | Correcto; 22 páginas generadas. |
+| Bundle y entorno | Correctos; no se detectaron secretos en cliente. |
+
+Playwright emitió todos los resultados correctos y luego agotó el timeout durante
+el teardown conocido en Windows. El primer build no pudo descargar Geist dentro
+del sandbox; la repetición con acceso de red autorizado terminó correctamente.
+
 ## Verificacion
 
 | Comprobacion | Resultado |

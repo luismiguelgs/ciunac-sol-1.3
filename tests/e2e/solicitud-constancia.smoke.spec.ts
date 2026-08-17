@@ -117,6 +117,27 @@ test('rechaza un voucher con firma binaria falsificada', async ({ page, request 
   expect(requests.filter((item) => item.path === '/upload/vouchers')).toHaveLength(0)
 })
 
+test('rechaza un monto de constancia manipulado antes de crear la solicitud', async ({ page, request }) => {
+  await verifyConstanciaEmail(page, request)
+  const response = await page.evaluate(async () => {
+    const result = await fetch('/api/ciunac/solicitudes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        estudianteId: 'student-e2e', tipoSolicitudId: 5, idiomaId: 2, nivelId: 1,
+        estadoId: 1, periodo: '202602', alumnoCiunac: false,
+        fechaPago: '2026-08-01T00:00:00.000Z', pago: 1, digital: true,
+        numeroVoucher: '123456789012345', imgVoucher: '/images/upload.svg',
+      }),
+    })
+    return { status: result.status, body: await result.json() }
+  })
+
+  expect(response).toMatchObject({ status: 409, body: { error: { code: 'PRICE_CHANGED' } } })
+  const requests = await getMockRequests(request)
+  expect(requests.filter((item) => item.path === '/solicitudes')).toHaveLength(0)
+})
+
 test('muestra el estado not found para un identificador final invalido', async ({ page }) => {
   await page.goto('/solicitud-constancias/finalizar?id=invalido')
   await expect(page.getByRole('heading', { name: /Solicitud no identificada/i })).toBeVisible()

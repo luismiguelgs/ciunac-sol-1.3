@@ -17,7 +17,7 @@ import {
 import MyAlert from '@/components/forms/myAlert'
 import SwithField from '@/components/forms/switch.field'
 import { LocationText } from '@/modules/solicitud-ubicacion/domain/solicitud-ubicacion'
-import { locationProfileCommandSchema } from '@/modules/solicitud-ubicacion/infrastructure/validation/location-api.schemas'
+import { locationProfileCommandSchema } from '@/modules/solicitud-ubicacion/application/validation/solicitud-ubicacion.schema'
 
 type ProfileValues = { isCiunacStudent: boolean }
 
@@ -68,4 +68,3 @@ export default function ProfileDialog({ open, texts, submitting, error, action }
     </AlertDialog>
   )
 }
-

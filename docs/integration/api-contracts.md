@@ -113,6 +113,18 @@ constancia de tercio o quinto, carta de compromiso y declaracion jurada. Las URL
 devueltas se incluyen en el DTO; comprobar su propiedad definitiva corresponde al
 backend externo.
 
+### Límite Modular de Becas
+
+App Router consume `@/modules/solicitud-beca` y
+`@/modules/solicitud-beca/server`. El Route Handler obtiene la validación específica
+de `/upload/becas` desde la misma entrada server-only. Ningún consumidor externo
+importa gateways, DTOs, schemas o componentes internos.
+
+`ScholarshipRequestDto` permanece explícito porque es el contrato de escritura.
+Los tipos de `_id`/`id`, facultades y escuelas se infieren desde Zod. Además de la
+estructura individual, el repositorio comprueba que cada escuela pertenezca a una
+facultad disponible antes de mostrar el wizard.
+
 ## Solicitud de Certificado
 
 La ruta de proceso obtiene tipos `1` a `4`, idiomas, facultades, escuelas y textos
@@ -154,6 +166,42 @@ Una respuesta vacia, nula, sin ID o mal formada detiene correo y navegacion. Si 
 solicitud ya fue creada pero `mailer` falla, la UI conserva el ID y reintenta solo
 `CERTIFICADO`; no repite estudiante, voucher ni solicitud.
 
+### Limite Modular de Certificados
+
+App Router consume `@/modules/solicitud-certificado` y
+`@/modules/solicitud-certificado/server`. El Route Handler obtiene la revalidacion
+de precio desde la entrada server-only. Ningun consumidor externo importa
+gateways, DTOs, schemas, repositories o componentes internos.
+
+`CertificateStudentRequestDto` y `CertificateRequestDto` permanecen explicitos por
+ser contratos de escritura. Identificadores, catalogos, estudiante consultado y
+cargo se infieren desde sus schemas Zod. Los casos de uso de lectura validan
+documento e identificador antes de ejecutar sus puertos.
+
+## Solicitud de Constancia
+
+La ruta de proceso obtiene tipos `5` y `6`, idiomas, facultades, escuelas y textos
+desde servidor. Las respuestas se validan con Zod y se mapean a
+`ConstanciaCatalogs`; un catalogo vacio, mal formado o con relaciones academicas
+inconsistentes activa el estado de error de la ruta.
+
+| Operacion | Entrada minima | Salida valida |
+| --- | --- | --- |
+| Buscar estudiante | Documento normalizado de 8 o 9 caracteres | Estudiante completo o ausencia real por `404` |
+| Crear o actualizar estudiante | Identidad, contacto y datos UNAC cuando apliquen | `{ id: string }` |
+| Crear solicitud | Estudiante, tipo `5..6`, idioma, nivel `1..3`, periodo, precio y voucher | `{ id: string }` |
+| Consultar cargo | ID entero positivo | `ConstanciaCargo` completo o ausencia real por `404` |
+
+Antes de reenviar `POST /api/ciunac/solicitudes`, el BFF consulta
+`tipossolicitud` y compara el monto en centimos con el precio vigente del tipo `5`
+o `6`. Un monto distinto devuelve `409 PRICE_CHANGED`; un tarifario ausente o
+invalido devuelve `503`. En ambos casos la API externa no recibe la solicitud.
+
+App Router consume `@/modules/solicitud-constancia` y
+`@/modules/solicitud-constancia/server`. Los componentes cliente consumen casos de
+uso desde `client.ts`; ningun consumidor externo importa gateways, schemas, DTOs o
+componentes internos.
+
 ## Solicitud de Examen de Ubicacion
 
 La sesion OTP `UBICACION` se complementa con una cookie cifrada `HttpOnly` de 15
@@ -183,6 +231,18 @@ firma. El voucher conserva la politica compartida documentada anteriormente.
 Una respuesta sin ID detiene correo y navegacion. Un fallo de `mailer` posterior al
 guardado conserva el ID y permite reintentar solo `UBICACION`.
 
+### Limite Modular de Ubicacion
+
+App Router consume `@/modules/solicitud-ubicacion` y
+`@/modules/solicitud-ubicacion/server`. Los componentes cliente consumen casos de
+uso desde `client.ts`; ningun consumidor externo importa gateways, schemas, DTOs o
+componentes internos.
+
+`LocationStudentRequestDto`, `LocationRequestDto` y el envelope del BFF permanecen
+explicitos. Respuestas de estudiante, solicitud, duplicidad, catalogos y cargo se
+infieren desde schemas Zod. `/upload/becas` conserva su nombre externo, pero una
+sesion `UBICACION` activa la politica y firma PDF propias del certificado academico.
+
 ## Registro de Alumno Nuevo
 
 La pagina consulta `https://api.q10.com/v1/programas?Limit=30` solo desde servidor
@@ -210,6 +270,15 @@ primitivos o JSON mal formado se clasifican como `EXTERNAL_SERVICE`; no se envia
 correo. Un fallo de correo posterior conserva el documento y permite reintentar
 solo `REGISTER`. Ante red o respuesta indeterminada de la escritura, la UI bloquea
 un segundo registro automatico para evitar duplicados.
+
+La integracion se consume mediante las fronteras modulares:
+
+- `@/modules/solicitud-nuevo/client` compone el caso de uso con los gateways Q10 y
+  correo.
+- `@/modules/solicitud-nuevo/server` expone el schema estricto y la revalidacion
+  server-side usada por el BFF.
+- `Q10StudentRequestDto` permanece explicito; programas y respuestas de registro
+  se infieren desde sus schemas Zod.
 
 ## Consulta Por Documento
 
@@ -251,6 +320,11 @@ de descarga debe usar `http` o `https`; un `404` es ausencia real y una respuest
 mal formada es un error tecnico reintentable. La aceptacion no habilita la descarga
 si el proveedor falla.
 
+El endpoint historico `GET constancias/solicitud/{id}` devuelve `id_solicitud` y
+`dni`, mientras el dominio usa `solicitudId` y `numeroDocumento`. El adapter de
+infraestructura normaliza estos aliases antes de validar y mapear. Los nombres
+historicos no se propagan a aplicacion, dominio ni presentacion.
+
 Limitacion vigente: estas operaciones aun atraviesan el BFF generico. La sesion
 autentica el flujo de consulta, pero falta un endpoint especializado que compruebe
 que el recurso solicitado pertenece al documento consultado antes de devolver la
@@ -258,25 +332,26 @@ URL o aceptar el documento.
 
 ## Detalle Publico de Certificado
 
-`GET certificados/{id}` se ejecuta server-side despues de validar una sesion de
-consulta `CERTIFICADO`. El identificador admite exclusivamente letras, numeros,
-guion y guion bajo, hasta 80 caracteres.
+`GET certificados/{id}` se ejecuta server-side al abrir la URL publica incluida en
+el QR. No requiere sesion de `consulta-solicitud`. El identificador admite
+exclusivamente letras, numeros, guion y guion bajo, hasta 80 caracteres.
 
 La respuesta minima valida requiere:
 
-- ID, tipo `VIRTUAL/FISICO`, estudiante y numero de documento;
+- ID, tipo `VIRTUAL/FISICO` y estudiante;
 - idioma, nivel, horas, solicitud y numero de registro;
 - fechas validas de emision y conclusion;
-- estado de entrega y fecha de aceptacion cuando corresponda;
+- estado de entrega, donde `null` o ausencia significa pendiente, y fecha de
+  aceptacion cuando corresponda;
 - notas completas o una lista vacia.
 
 El DTO se valida con Zod y se mapea a `CertificateDetail`. Un `404` o un `2xx` sin
 cuerpo produce ausencia. Un cuerpo incompleto, fecha invalida o nota mal formada
-produce `EXTERNAL_SERVICE`.
+produce `EXTERNAL_SERVICE`. `numeroDocumento` no se propaga al dominio publico ni
+a presentacion, incluso si el proveedor lo incluye.
 
-Antes de renderizar, el caso de uso exige que `numeroDocumento` coincida con el
-documento de la sesion. Si no coincide, responde como recurso no encontrado y no
-expone metadatos del certificado.
+La API key permanece server-only y el BFF generico conserva sus guardas. El
+navegador no llama directamente a la API CIUNAC.
 
 ## Consulta de Examen de Ubicacion
 
@@ -302,3 +377,12 @@ autorizada; si incluye otro documento, se descarta.
 Una relacion de examen o ciclo ausente conserva la nota con estado `partial`, pero
 bloquea la constancia. La constancia tambien requiere resultado terminado y nombre
 del año disponible.
+
+La ruta App Router consume `@/modules/consulta-ubicacion/server`. El adaptador de
+contexto usa `@/modules/consultas/server`; no accede a repositories, DTOs o dominio
+internos de consultas. Notas, examenes y ciclos conservan repositories propios.
+
+El resultado incluye una proyeccion del cargo construida con la solicitud activa.
+Por ello, el estado sin notas no ejecuta `GET solicitudes/{id}`. El PDF se genera
+en frontend, usa el renderer A4 compartido y mantiene titulo, textos y nombre de
+archivo propios de ubicacion. La tarifa esperada del examen es S/ 30.00.

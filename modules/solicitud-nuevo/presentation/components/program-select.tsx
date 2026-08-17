@@ -5,7 +5,7 @@ import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessa
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { getIconByCode } from '@/components/icons/flags'
 import { NewStudentProgramOption } from '@/modules/solicitud-nuevo/domain/new-student'
-import { IBasicInfoSchema } from '@/modules/solicitud-nuevo/schemas/basic-info.schema'
+import { IBasicInfoSchema } from '@/modules/solicitud-nuevo/presentation/schemas/basic-info.schema'
 
 type Props = {
   control: Control<IBasicInfoSchema>

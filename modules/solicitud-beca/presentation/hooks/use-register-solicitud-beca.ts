@@ -1,13 +1,15 @@
 import React from 'react'
 import { normalizeAppError } from '@/modules/shared/application/errors/app-error'
 import { SolicitudBeca } from '@/modules/solicitud-beca/domain/solicitud-beca'
-import { createRegisterSolicitudBecaUseCase } from '@/modules/solicitud-beca/application/factories/create-register-solicitud-beca-use-case'
+import {
+  registerSolicitudBeca,
+  retrySolicitudBecaNotification,
+} from '@/modules/solicitud-beca/client'
 import useSolicitudBecaStore from '@/modules/solicitud-beca/presentation/solicitud-beca.store'
 
 export type ScholarshipRegisterDialogState = 'SAVE' | 'EMAIL' | 'EMAIL_ERROR' | 'ERROR'
 
 export function useRegisterSolicitudBeca(onSuccess: (requestId: string, receiptId: string) => void) {
-  const useCase = React.useMemo(() => createRegisterSolicitudBecaUseCase(), [])
   const workflow = useSolicitudBecaStore((state) => state.workflow)
   const beginRegistration = useSolicitudBecaStore((state) => state.beginRegistration)
   const completeRegistration = useSolicitudBecaStore((state) => state.completeRegistration)
@@ -21,7 +23,7 @@ export function useRegisterSolicitudBeca(onSuccess: (requestId: string, receiptI
     beginRegistration(solicitud)
     setOpen(true)
     try {
-      const result = await useCase.execute({ solicitud })
+      const result = await registerSolicitudBeca({ solicitud })
       if (result.status === 'saved_notification_failed') {
         markNotificationFailed(result.requestId, result.error)
         return
@@ -40,7 +42,7 @@ export function useRegisterSolicitudBeca(onSuccess: (requestId: string, receiptI
     beginNotificationRetry(requestId)
     setOpen(true)
     try {
-      const receiptId = await useCase.retryNotification(requestId)
+      const receiptId = await retrySolicitudBecaNotification(requestId)
       completeRegistration(requestId, receiptId)
       setOpen(false)
       onSuccess(requestId, receiptId)

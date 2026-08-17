@@ -3,8 +3,8 @@ import {
   NewStudentBasicData,
   NewStudentProgramOption,
 } from '@/modules/solicitud-nuevo/domain/new-student'
-import { IBasicInfoSchema } from '@/modules/solicitud-nuevo/schemas/basic-info.schema'
-import { newStudentBasicDataSchema } from '@/modules/solicitud-nuevo/schemas/new-student.schema'
+import { newStudentBasicDataSchema } from '@/modules/solicitud-nuevo/application/validation/new-student.schema'
+import { IBasicInfoSchema } from '@/modules/solicitud-nuevo/presentation/schemas/basic-info.schema'
 
 export function toNewStudentBasicData(
   values: IBasicInfoSchema,

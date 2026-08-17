@@ -9,9 +9,9 @@ import FinData, { PaymentOption } from '@/modules/shared/components/fin-data'
 import { normalizeAppError } from '@/modules/shared/application/errors/app-error'
 import { IFinInfoSchema } from '@/modules/shared/schemas/fin-data.schema'
 import { LOCATION_EXAM_PRICE, LocationCatalogs } from '@/modules/solicitud-ubicacion/domain/solicitud-ubicacion'
-import { createCheckDuplicateSolicitudUbicacionUseCase } from '@/modules/solicitud-ubicacion/application/factories/create-check-duplicate-solicitud-ubicacion-use-case'
-import { LocationBasicDataFormValues } from '@/modules/solicitud-ubicacion/schemas/location-basic-data.schema'
-import { LocationDocumentsFormValues } from '@/modules/solicitud-ubicacion/schemas/location-documents.schema'
+import { checkDuplicateSolicitudUbicacion } from '@/modules/solicitud-ubicacion/client'
+import { LocationBasicDataFormValues } from '@/modules/solicitud-ubicacion/presentation/schemas/location-basic-data.schema'
+import { LocationDocumentsFormValues } from '@/modules/solicitud-ubicacion/presentation/schemas/location-documents.schema'
 import {
   toLocationBasicData,
   toLocationPayment,
@@ -32,7 +32,6 @@ export default function SolicitudUbicacionProcess({ email, isCiunacStudent, cata
   const completeStudyCertificate = useSolicitudUbicacionStore((state) => state.completeStudyCertificate)
   const [activeStep, setActiveStep] = React.useState(0)
   const [duplicateDialog, setDuplicateDialog] = React.useState(false)
-  const [duplicateUseCase] = React.useState(() => createCheckDuplicateSolicitudUbicacionUseCase())
   const steps = isCiunacStudent
     ? ['Datos basicos', 'Datos de pago', 'Documentos', 'Finalizar']
     : ['Datos basicos', 'Datos de pago', 'Finalizar']
@@ -49,7 +48,7 @@ export default function SolicitudUbicacionProcess({ email, isCiunacStudent, cata
   const handleBasicData = async (values: LocationBasicDataFormValues) => {
     try {
       const basicData = toLocationBasicData(values, catalogs, isCiunacStudent)
-      const duplicate = await duplicateUseCase.execute({
+      const duplicate = await checkDuplicateSolicitudUbicacion({
         documentNumber: basicData.documentNumber,
         languageId: basicData.languageId,
       })

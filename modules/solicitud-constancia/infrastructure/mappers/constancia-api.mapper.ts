@@ -1,15 +1,24 @@
 import { obtenerPeriodo } from '@/lib/utils'
-import {
+import type {
   ConstanciaCargo,
+  ConstanciaCatalogs,
   ConstanciaStudentLookup,
+  ConstanciaType,
   SolicitudConstancia,
 } from '@/modules/solicitud-constancia/domain/solicitud-constancia'
-import {
-  ConstanciaCargoResponseDto,
+import type {
   ConstanciaRequestDto,
-  ConstanciaStudentLookupResponseDto,
   ConstanciaStudentRequestDto,
-} from '@/modules/solicitud-constancia/infrastructure/dto/constancia-api.dto'
+} from '@/modules/solicitud-constancia/infrastructure/dto/constancia-request.dto'
+import type {
+  ConstanciaCargoResponseDto,
+  ConstanciaFacultyResponseDto,
+  ConstanciaLanguageResponseDto,
+  ConstanciaSchoolResponseDto,
+  ConstanciaStudentLookupResponseDto,
+  ConstanciaTextResponseDto,
+  ConstanciaTypeResponseDto,
+} from '@/modules/solicitud-constancia/infrastructure/validation/constancia-api.schemas'
 
 export function toConstanciaStudentRequestDto(solicitud: SolicitudConstancia): ConstanciaStudentRequestDto {
   const { basicData } = solicitud
@@ -26,10 +35,7 @@ export function toConstanciaStudentRequestDto(solicitud: SolicitudConstancia): C
   }
 }
 
-export function toConstanciaRequestDto(
-  solicitud: SolicitudConstancia,
-  studentId: string,
-): ConstanciaRequestDto {
+export function toConstanciaRequestDto(solicitud: SolicitudConstancia, studentId: string): ConstanciaRequestDto {
   return {
     estudianteId: studentId,
     tipoSolicitudId: solicitud.basicData.typeId,
@@ -47,12 +53,7 @@ export function toConstanciaRequestDto(
 }
 
 export function toConstanciaStudentLookup(dto: ConstanciaStudentLookupResponseDto): ConstanciaStudentLookup {
-  return {
-    id: dto.id,
-    names: dto.nombres,
-    lastNames: dto.apellidos,
-    phone: dto.celular,
-  }
+  return { id: dto.id, names: dto.nombres, lastNames: dto.apellidos, phone: dto.celular }
 }
 
 export function toConstanciaCargo(dto: ConstanciaCargoResponseDto): ConstanciaCargo {
@@ -70,5 +71,25 @@ export function toConstanciaCargo(dto: ConstanciaCargoResponseDto): ConstanciaCa
     amount: dto.pago,
     voucherNumber: dto.numeroVoucher,
     paidAt: dto.fechaPago,
+  }
+}
+
+export function toConstanciaType(dto: ConstanciaTypeResponseDto): ConstanciaType {
+  return { id: dto.id, name: dto.solicitud, price: dto.precio }
+}
+
+export function toConstanciaCatalogs(
+  requestTypes: ConstanciaTypeResponseDto[],
+  languages: ConstanciaLanguageResponseDto[],
+  faculties: ConstanciaFacultyResponseDto[],
+  schools: ConstanciaSchoolResponseDto[],
+  texts: ConstanciaTextResponseDto[],
+): ConstanciaCatalogs {
+  return {
+    requestTypes: requestTypes.map(toConstanciaType),
+    languages: languages.map((item) => ({ id: item.id, name: item.nombre })),
+    faculties: faculties.map((item) => ({ id: item.id, name: item.nombre, code: item.codigo })),
+    schools: schools.map((item) => ({ id: item.id, name: item.nombre, facultyId: item.facultadId })),
+    texts: texts.map((item) => ({ code: item.codigo, content: item.contenido })),
   }
 }

@@ -1,5 +1,35 @@
-import { ConsultedRequest } from '@/modules/consultas/domain/consulted-request'
-import { ConsultationText } from '@/modules/consultas/domain/consultation-text'
+export type LocationText = {
+  code: string
+  content: string
+}
+
+export type LocationRequest = {
+  id: number
+  student: {
+    id: string
+    names: string
+    lastNames: string
+    documentNumber: string
+  }
+  requestType: {
+    id: number
+    name: string
+  }
+  language: {
+    id: number
+    name: string
+  }
+  level: {
+    id: number
+    name: string
+  }
+  createdAt: string
+  payment: {
+    amount: number
+    voucherNumber: string | null
+    paidAt: string | null
+  }
+}
 
 export type LocationExam = {
   id: number
@@ -44,32 +74,53 @@ export type LocationExamResult = {
   dataQuality: 'complete' | 'partial'
 }
 
-export type LocationConsultation = {
-  documentNumber: string
-  student: {
-    names: string
-    lastNames: string
-    documentNumber: string
-  }
-  activeRequestId: number
-  results: LocationExamResult[]
-  yearName: string | null
-  cargoTexts: ConsultationText[]
-  textStatus: 'available' | 'unavailable'
+export type LocationCargo = {
+  requestId: number
+  requestTypeName: string
+  createdAt: string
+  student: LocationRequest['student']
+  languageName: string
+  levelName: string
+  amount: number
+  voucherNumber: string | null
+  paidAt: string | null
 }
 
-export function selectLatestLocationRequest(requests: ConsultedRequest[]): ConsultedRequest | null {
+export function normalizeLocationDocument(value: string): string | null {
+  const documentNumber = value.trim().toUpperCase()
+  return /^[A-Z0-9]{8,9}$/.test(documentNumber) ? documentNumber : null
+}
+
+export function findLocationText(texts: LocationText[], code: string): string | null {
+  return texts.find((item) => item.code === code)?.content ?? null
+}
+
+export function selectLatestLocationRequest(requests: LocationRequest[]): LocationRequest | null {
   return [...requests].sort((left, right) => {
     const dateDifference = Date.parse(right.createdAt) - Date.parse(left.createdAt)
     return dateDifference || right.id - left.id
   })[0] ?? null
 }
 
+export function toLocationCargo(request: LocationRequest): LocationCargo {
+  return {
+    requestId: request.id,
+    requestTypeName: request.requestType.name,
+    createdAt: request.createdAt,
+    student: request.student,
+    languageName: request.language.name,
+    levelName: request.level.name,
+    amount: request.payment.amount,
+    voucherNumber: request.payment.voucherNumber,
+    paidAt: request.payment.paidAt,
+  }
+}
+
 export function joinLocationExamResults(
   records: LocationPlacementRecord[],
   exams: LocationExam[],
   cycles: LocationCycle[],
-  locationRequests: ConsultedRequest[],
+  locationRequests: LocationRequest[],
   documentNumber: string,
 ): LocationExamResult[] {
   const normalizedDocument = documentNumber.trim().toUpperCase()
@@ -92,12 +143,7 @@ export function joinLocationExamResults(
         requestId: record.requestId,
         grade: record.grade,
         completed: record.completed,
-        student: record.student ?? {
-          id: request.student.id,
-          names: request.student.names,
-          lastNames: request.student.lastNames,
-          documentNumber: request.student.documentNumber,
-        },
+        student: record.student ?? request.student,
         language: record.language,
         evaluatedLevel: record.evaluatedLevel,
         examDate,

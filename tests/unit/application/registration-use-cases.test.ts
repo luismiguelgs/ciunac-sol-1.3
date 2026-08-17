@@ -7,7 +7,7 @@ import { SolicitudBeca } from '@/modules/solicitud-beca/domain/solicitud-beca'
 import { RegisterSolicitudUbicacionUseCase } from '@/modules/solicitud-ubicacion/application/use-cases/register-solicitud-ubicacion.use-case'
 import { SolicitudUbicacion } from '@/modules/solicitud-ubicacion/domain/solicitud-ubicacion'
 import { RegisterNewStudentUseCase } from '@/modules/solicitud-nuevo/application/use-cases/register-new-student.use-case'
-import { RegisterSolicitudConstanciaUseCase } from '@/modules/solicitud-constancia/application/register-solicitud-constancia.use-case'
+import { RegisterSolicitudConstanciaUseCase } from '@/modules/solicitud-constancia/application/use-cases/register-solicitud-constancia.use-case'
 import { SolicitudConstancia } from '@/modules/solicitud-constancia/domain/solicitud-constancia'
 import { NewStudent } from '@/modules/solicitud-nuevo/domain/new-student'
 
@@ -55,9 +55,9 @@ describe('registration use cases', () => {
       .mockRejectedValueOnce(new AppError({ code: 'EXTERNAL_SERVICE', message: 'Correo no disponible' }))
       .mockResolvedValueOnce('receipt-constancia')
     const useCase = new RegisterSolicitudConstanciaUseCase({
-      student: { save },
-      request: { create },
-      notification: { sendSolicitudCreada },
+      studentGateway: { save },
+      requestGateway: { create },
+      notificationGateway: { sendSolicitudCreada },
     })
 
     await expect(useCase.execute({ solicitud: constanciaDraft() })).resolves.toMatchObject({
@@ -73,14 +73,14 @@ describe('registration use cases', () => {
   it('does not notify when constancia creation has no identifier', async () => {
     const sendSolicitudCreada = vi.fn()
     const useCase = new RegisterSolicitudConstanciaUseCase({
-      student: { save: vi.fn().mockResolvedValue('student-constancia') },
-      request: {
+      studentGateway: { save: vi.fn().mockResolvedValue('student-constancia') },
+      requestGateway: {
         create: vi.fn().mockRejectedValue(new AppError({
           code: 'EXTERNAL_SERVICE',
           message: 'La API no devolvio un identificador valido',
         })),
       },
-      notification: { sendSolicitudCreada },
+      notificationGateway: { sendSolicitudCreada },
     })
 
     await expect(useCase.execute({ solicitud: constanciaDraft() })).rejects.toMatchObject({
@@ -94,9 +94,9 @@ describe('registration use cases', () => {
     const create = vi.fn()
     const sendSolicitudCreada = vi.fn()
     const useCase = new RegisterSolicitudConstanciaUseCase({
-      student: { save },
-      request: { create },
-      notification: { sendSolicitudCreada },
+      studentGateway: { save },
+      requestGateway: { create },
+      notificationGateway: { sendSolicitudCreada },
     })
 
     await expect(useCase.execute({

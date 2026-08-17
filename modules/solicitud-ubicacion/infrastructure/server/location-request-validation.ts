@@ -14,6 +14,7 @@ import {
   locationDuplicateResponseArraySchema,
   locationStudentRequestDtoSchema,
   locationTypeArraySchema,
+  filterLocationTypeResponse,
 } from '@/modules/solicitud-ubicacion/infrastructure/validation/location-api.schemas'
 
 export async function validateLocationRequest(request: NextRequest, value: unknown): Promise<unknown> {
@@ -33,7 +34,7 @@ export async function validateLocationRequest(request: NextRequest, value: unkno
   }
 
   const catalogResponse = await ciunacRequest<unknown>('tipossolicitud')
-  const catalog = locationTypeArraySchema.safeParse(filterLocationType(catalogResponse))
+  const catalog = locationTypeArraySchema.safeParse(filterLocationTypeResponse(catalogResponse))
   if (!catalog.success || !isOfficialLocationPrice(catalog.data[0].precio)) {
     throw new SecurityError('SERVICE_UNAVAILABLE', 503, 'Location price catalog is inconsistent')
   }
@@ -73,9 +74,4 @@ async function assertNoDuplicate(documentNumber: string, languageId: number): Pr
 
 function looksLikeLocationEnvelope(value: unknown): boolean {
   return Boolean(value && typeof value === 'object' && 'request' in value && 'documentNumber' in value)
-}
-
-function filterLocationType(value: unknown): unknown {
-  if (!Array.isArray(value)) return value
-  return value.filter((item) => item && typeof item === 'object' && Number((item as { id?: unknown }).id) === 7)
 }

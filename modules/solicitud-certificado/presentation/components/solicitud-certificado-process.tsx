@@ -7,7 +7,7 @@ import FinData, { PaymentOption } from '@/modules/shared/components/fin-data'
 import { normalizeAppError } from '@/modules/shared/application/errors/app-error'
 import { IFinInfoSchema } from '@/modules/shared/schemas/fin-data.schema'
 import { CertificateCatalogs } from '@/modules/solicitud-certificado/domain/solicitud-certificado'
-import { CertificateBasicDataFormValues } from '@/modules/solicitud-certificado/schemas/basic-data.schema'
+import { CertificateBasicDataFormValues } from '@/modules/solicitud-certificado/presentation/schemas/basic-data.schema'
 import {
   findCertificatePrice,
   toCertificateBasicData,

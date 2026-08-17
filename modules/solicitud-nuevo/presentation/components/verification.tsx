@@ -19,7 +19,7 @@ import {
   initialValues,
   IVerificationSchema,
   verificationSchema,
-} from '@/modules/solicitud-nuevo/schemas/verificacion.schema'
+} from '@/modules/shared/schemas/verification.schema'
 
 type Props = {
   activeStep: number

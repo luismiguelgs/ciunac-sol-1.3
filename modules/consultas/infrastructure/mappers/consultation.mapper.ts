@@ -1,9 +1,9 @@
 import { ConsultedRequest, resolveRequestKind, resolveRequestStep } from '@/modules/consultas/domain/consulted-request'
 import { ConsultationText } from '@/modules/consultas/domain/consultation-text'
-import {
+import type {
   ConsultationTextResponseDto,
   ConsultedRequestResponseDto,
-} from '@/modules/consultas/infrastructure/dto/consultation.dto'
+} from '@/modules/consultas/infrastructure/validation/consultation.schemas'
 
 export function toConsultedRequest(dto: ConsultedRequestResponseDto): ConsultedRequest {
   return {

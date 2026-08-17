@@ -3,9 +3,11 @@ import { notFound } from 'next/navigation'
 import { CheckCircle2 } from 'lucide-react'
 import NotificationResult from '@/modules/shared/components/notification-result'
 import { readNotificationReceipt } from '@/modules/security/server/session'
-import { getLocationTexts } from '@/modules/solicitud-ubicacion/infrastructure/server/location-catalog.repository'
-import DescargaCargo from '@/modules/solicitud-ubicacion/presentation/components/descarga-cargo'
-import FinalNotices from '@/modules/solicitud-ubicacion/presentation/components/final-notices'
+import {
+  LocationCargoDownload,
+  LocationFinalNotices,
+} from '@/modules/solicitud-ubicacion'
+import { getLocationTexts } from '@/modules/solicitud-ubicacion/server'
 
 type PageProps = { searchParams: Promise<{ id?: string; receipt?: string }> }
 
@@ -32,8 +34,8 @@ export default async function FinalizarPage({ searchParams }: PageProps) {
         </div>
         <div className="my-2 w-full border-t border-gray-200" />
         <div className="flex w-full flex-col gap-3">
-          <DescargaCargo solicitudId={solicitudId} texts={texts} />
-          <FinalNotices texts={texts} />
+          <LocationCargoDownload solicitudId={solicitudId} texts={texts} />
+          <LocationFinalNotices texts={texts} />
         </div>
       </div>
     </div>

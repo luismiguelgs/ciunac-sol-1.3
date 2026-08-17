@@ -10,7 +10,7 @@ import InputField from '@/components/forms/input.field'
 import { RadioGroupField } from '@/components/forms/radio-group.field'
 import { MySelect } from '@/components/forms/myselect.field'
 import { ScholarshipBasicData, ScholarshipCatalogs } from '@/modules/solicitud-beca/domain/solicitud-beca'
-import { basicInfoSchema, IBasicInfoSchema } from '@/modules/solicitud-beca/schemas/basic-data.schema'
+import { basicInfoSchema, IBasicInfoSchema } from '@/modules/solicitud-beca/presentation/schemas/basic-data.schema'
 import { toBasicFormValues } from '@/modules/solicitud-beca/presentation/scholarship-form.mapper'
 
 type Props = {

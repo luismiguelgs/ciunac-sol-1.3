@@ -3,7 +3,12 @@ import 'server-only'
 import { AppError } from '@/modules/shared/application/errors/app-error'
 import { ciunacRequest } from '@/modules/security/server/ciunac-client'
 import { parseExternalResponse } from '@/modules/shared/infrastructure/validation/external-response'
-import { CertificateCatalogs, CertificateText, CertificateType } from '@/modules/solicitud-certificado/domain/solicitud-certificado'
+import {
+  CertificateCatalogs,
+  CertificateText,
+  CertificateType,
+  hasConsistentCertificateCatalogs,
+} from '@/modules/solicitud-certificado/domain/solicitud-certificado'
 import { toCertificateCatalogs, toCertificateType } from '@/modules/solicitud-certificado/infrastructure/mappers/certificate-api.mapper'
 import {
   certificateFacultyArraySchema,
@@ -17,7 +22,7 @@ export async function getCertificateTypes(): Promise<CertificateType[]> {
   const response = await ciunacRequest<unknown>('tipossolicitud')
   const types = parseExternalResponse(
     certificateTypeArraySchema,
-    filterCertificateTypes(response),
+    response,
     'La API devolvio un tarifario de certificados vacio o invalido.',
   )
   return types.map(toCertificateType)
@@ -34,7 +39,7 @@ export async function getCertificateCatalogs(): Promise<CertificateCatalogs> {
 
   const types = parseExternalResponse(
     certificateTypeArraySchema,
-    filterCertificateTypes(typesResponse),
+    typesResponse,
     'La API devolvio un tarifario de certificados vacio o invalido.',
   )
   const languages = parseExternalResponse(
@@ -58,15 +63,15 @@ export async function getCertificateCatalogs(): Promise<CertificateCatalogs> {
     'La API devolvio un catalogo de textos vacio o invalido.',
   )
 
-  const facultyIds = new Set(faculties.map((item) => item.id))
-  if (schools.some((school) => !facultyIds.has(school.facultadId))) {
+  const catalogs = toCertificateCatalogs(types, languages, faculties, schools, texts)
+  if (!hasConsistentCertificateCatalogs(catalogs)) {
     throw new AppError({
       code: 'EXTERNAL_SERVICE',
       message: 'El catalogo academico contiene relaciones invalidas.',
     })
   }
 
-  return toCertificateCatalogs(types, languages, faculties, schools, texts)
+  return catalogs
 }
 
 export async function getCertificateTexts(): Promise<CertificateText[]> {
@@ -76,13 +81,4 @@ export async function getCertificateTexts(): Promise<CertificateText[]> {
     response,
     'La API devolvio un catalogo de textos vacio o invalido.',
   ).map((item) => ({ code: item.codigo, content: item.contenido }))
-}
-
-function filterCertificateTypes(value: unknown): unknown {
-  if (!Array.isArray(value)) return value
-  return value.filter((item) => {
-    if (!item || typeof item !== 'object') return false
-    const id = Number((item as { id?: unknown }).id)
-    return id >= 1 && id <= 4
-  })
 }

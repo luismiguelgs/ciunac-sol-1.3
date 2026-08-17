@@ -1,29 +1,13 @@
 import FormEmailSolicitud from '@/modules/shared/components/form-email-solicitud'
 import RequestTypesPriceTable from '@/modules/shared/components/request-types-price-table'
 import VerificacionEmail from '@/modules/shared/components/verificacion-email-view'
-import { ITipoSolicitud } from '@/modules/shared/interfaces/types.interface'
-import { ciunacRequest } from '@/modules/security/server/ciunac-client'
-import { parseExternalResponse } from '@/modules/shared/infrastructure/validation/external-response'
-import { isConstanciaType } from '@/modules/solicitud-constancia/domain/solicitud-constancia'
-import { constanciaTypeCatalogResponseSchema } from '@/modules/solicitud-constancia/infrastructure/validation/constancia-api.schemas'
+import { getConstanciaTypes } from '@/modules/solicitud-constancia/server'
 
 export const dynamic = 'force-dynamic'
 
-async function getConstancias(): Promise<ITipoSolicitud[]> {
-  const response = await ciunacRequest<unknown>('tipossolicitud')
-  if (response === null) return []
-
-  const requestTypes = parseExternalResponse(
-    constanciaTypeCatalogResponseSchema,
-    response,
-    'La API devolvio tipos de solicitud no validos',
-  )
-
-  return requestTypes.filter((item) => isConstanciaType(item.id))
-}
-
 export default async function SolicitudConstanciasPage() {
-  const constancias = await getConstancias()
+  const constancias = await getConstanciaTypes()
+  const priceRows = constancias.map((item) => ({ id: item.id, solicitud: item.name, precio: item.price }))
 
   return (
     <div className="p-4">
@@ -33,7 +17,7 @@ export default async function SolicitudConstanciasPage() {
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <VerificacionEmail
           priceTable={(
-            <RequestTypesPriceTable data={constancias} emptyLabel="No hay constancias disponibles." />
+            <RequestTypesPriceTable data={priceRows} emptyLabel="No hay constancias disponibles." />
           )}
         />
         <div>

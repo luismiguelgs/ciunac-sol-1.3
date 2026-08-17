@@ -10,7 +10,7 @@ import InputField from '@/components/forms/input.field'
 import { RadioGroupField } from '@/components/forms/radio-group.field'
 import { DatePicker } from '@/components/forms/date-picker.new'
 import { NewStudentBasicData, NewStudentProgramOption } from '@/modules/solicitud-nuevo/domain/new-student'
-import { basicInfoSchema, IBasicInfoSchema } from '@/modules/solicitud-nuevo/schemas/basic-info.schema'
+import { basicInfoSchema, IBasicInfoSchema } from '@/modules/solicitud-nuevo/presentation/schemas/basic-info.schema'
 import { toBasicInfoFormValues } from '@/modules/solicitud-nuevo/presentation/new-student-form.mapper'
 import ProgramSelect from '@/modules/solicitud-nuevo/presentation/components/program-select'
 

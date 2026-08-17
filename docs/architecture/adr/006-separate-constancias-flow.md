@@ -3,6 +3,8 @@
 ## Estado
 Aceptado e implementado
 
+Complementado por ADR-022 para los limites modulares y APIs publicas.
+
 ## Contexto
 El proyecto ya cuenta con un flujo de solicitud de certificados. Se requiere construir una solicitud de constancias como flujo independiente, aunque comparta patrones funcionales: verificacion de correo, captura de datos, datos de pago, voucher, guardado backend, correo de confirmacion y cargo PDF.
 

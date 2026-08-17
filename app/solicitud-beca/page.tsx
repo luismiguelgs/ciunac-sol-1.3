@@ -1,4 +1,4 @@
-import ScholarshipEmailForm from '@/modules/solicitud-beca/presentation/components/form-email'
+import { ScholarshipEmailForm } from '@/modules/solicitud-beca'
 import EmailVerificationView from '@/modules/shared/components/verificacion-email-view'
 
 export default function ScholarshipPage() {

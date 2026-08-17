@@ -1,81 +1,75 @@
-# Fase 2D: Tipado y Confiabilidad de Consulta de Ubicacion
+# Fase 2D y Refactor Modular de Consulta de Ubicación
 
 ## Alcance
 
-La fase migra `consulta-ubicacion/[dni]`, su join de solicitudes, resultados,
-examenes y ciclos, y la constancia PDF asociada. No modifica el registro de una
-solicitud de ubicacion ni su politica de pago.
+`consulta-ubicacion/[dni]` consulta solicitudes, resultados, exámenes, ciclos y
+textos desde servidor. El refactor modular posterior conserva ese comportamiento
+y organiza el feature en `domain`, `application`, `infrastructure` y
+`presentation`.
 
-## Problemas Corregidos
-
-- Solicitud cargada en servidor y tres consultas adicionales desde `useEffect`.
-- Join con busquedas lineales repetidas durante cada render.
-- Interfaces opcionales y casts sobre respuestas externas.
-- Error, vacio y relacion faltante representados de forma ambigua.
-- Resultados potencialmente ajenos sin filtro por solicitud/documento.
-- PDF habilitado aunque faltaran fecha, ciclo o nombre del año.
-- Consulta adicional de textos desde el navegador.
-- Generacion PDF sin estado de progreso o error.
-- Textos visibles con codificacion dañada.
+No modifica el registro de ubicación, OTP, CAPTCHA, sesión, pago ni contratos del
+backend.
 
 ## Estructura Resultante
 
 ```text
 modules/consulta-ubicacion/
+  index.ts
+  server.ts
   domain/location-consultation.ts
-  application/get-location-consultation.use-case.ts
+  application/
+    ports/location-consultation.port.ts
+    get-location-consultation.use-case.ts
   infrastructure/
-    dto/
-    validation/
-    mappers/
-    server/
-  presentation/components/location-consultation-view.tsx
-  components/ConstanciaFormat.tsx
-  components/download.tsx
+    mappers/location-consultation.mapper.ts
+    server/location-consultation.repository.ts
+    validation/location-consultation.schemas.ts
+  presentation/
+    location-consultation.presenter.ts
+    components/
+      location-consultation-view.tsx
+      location-certificate-download.tsx
+      location-certificate-pdf.tsx
+      location-cargo-download.tsx
 ```
+
+## Problemas Corregidos
+
+- Dominio y aplicación dependían de archivos internos de `modules/consultas`.
+- Las rutas importaban una factory y una vista mediante rutas profundas.
+- El DTO manual repetía los tipos de los schemas Zod.
+- La vista consumía el cargo interno de `solicitud-ubicacion`.
+- El cargo ejecutaba una segunda consulta `GET solicitudes/{id}`.
+- La fixture del cargo conservaba un precio histórico de S/ 80.00.
+- Componentes PDF estaban fuera de presentation.
 
 ## Contrato
 
-El caso de uso recibe el documento de la sesion y devuelve
-`LocationConsultation | null`. El modelo contiene alumno, solicitud activa,
-resultados unidos, nombre del año y estado de textos.
+La entrada pública server-only es:
 
-Cada resultado discrimina:
+```ts
+getLocationConsultation({
+  documentNumber: string
+}): Promise<LocationConsultationResult | null>
+```
 
-- `complete`: tiene examen y ciclo relacionados;
-- `partial`: conserva la nota, pero falta fecha o ciclo y no permite generar PDF.
+Una relación ausente de examen o ciclo conserva la nota como resultado parcial y
+bloquea la constancia. La constancia requiere resultado terminado, examen, ciclo y
+`TEXTO_NOMBREAN`. El cargo se deriva de la solicitud activa y utiliza el precio
+oficial registrado de S/ 30.00.
 
-Una respuesta mal formada produce `EXTERNAL_SERVICE`. Una solicitud de ubicacion
-inexistente produce `not-found`; una lista de notas vacia muestra el cargo de la
-solicitud activa.
+## Pruebas
 
-## Archivos Retirados
+- Validación runtime de notas, exámenes y ciclos.
+- Join completo, parcial, relación ajena y selección determinista.
+- Documento inválido y solicitud inexistente.
+- Presenter, constancia disponible y textos incompletos.
+- Cargo con tarifa S/ 30.00 y renderer A4 compartido.
+- Smoke de estado vacío con cargo y cero llamadas a `solicitudes/{id}`.
+- Restricciones ESLint de APIs públicas y dependencias por capa.
 
-- `modules/consulta-ubicacion/components/ubicacion-detalle.tsx`.
-- `modules/consulta-ubicacion/hooks/useCiclos.ts`.
-- `modules/consulta-ubicacion/services/solicitud-examen.service.ts`.
-- `modules/consulta-ubicacion/interfaces/examen.interface.ts`.
+## Deuda Técnica Pendiente
 
-Quedaron sin consumidores al mover la carga y el join al servidor.
-
-## Pruebas Agregadas
-
-- DTOs validos e invalidos de resultados, examenes y ciclos.
-- Estudiante omitido y completado desde solicitud autorizada.
-- Join completo, parcial y filtrado de relaciones ajenas.
-- Seleccion determinista de la solicitud mas reciente.
-- Texto institucional disponible e indisponible.
-- Estado vacio con cargo.
-- Respuesta externa mal formada.
-- Examen relacionado ausente.
-- Resultado perteneciente a otro documento.
-
-## Deuda Tecnica Pendiente
-
-- Tipar el componente de cargo reutilizado desde `solicitud-ubicacion`.
 - Resolver el lifecycle de Playwright en Windows.
-- Evaluar fuentes locales para que desarrollo y build no dependan de Google Fonts.
-
-## Resultados
-
-Los resultados finales se registran en `docs/quality/baseline.md` al cerrar la fase.
+- Servir Roboto localmente para que el PDF no dependa de Google Fonts.
+- Mantener la verificación de autenticidad académica en el backend externo.

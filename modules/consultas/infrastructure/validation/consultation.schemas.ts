@@ -1,8 +1,4 @@
 import { z } from 'zod'
-import {
-  ConsultationTextResponseDto,
-  ConsultedRequestResponseDto,
-} from '@/modules/consultas/infrastructure/dto/consultation.dto'
 
 const positiveNumber = z.union([
   z.number().int().positive(),
@@ -22,7 +18,7 @@ const optionalDateString = z.union([dateString, z.literal('').transform(() => nu
   .transform((value) => value ?? null)
 const optionalText = z.string().trim().nullable().optional().transform((value) => value || null)
 
-const consultedRequestResponseSchema: z.ZodType<ConsultedRequestResponseDto> = z.object({
+const consultedRequestResponseSchema = z.object({
   id: positiveNumber,
   tipoSolicitudId: positiveNumber,
   estadoId: positiveNumber,
@@ -62,7 +58,7 @@ const consultedRequestResponseSchema: z.ZodType<ConsultedRequestResponseDto> = z
 
 export const consultedRequestArrayResponseSchema = z.array(consultedRequestResponseSchema)
 
-export const consultationTextArrayResponseSchema: z.ZodType<ConsultationTextResponseDto[]> = z.array(
+export const consultationTextArrayResponseSchema = z.array(
   z.object({
     codigo: z.string().trim().min(1),
     contenido: z.string(),
@@ -73,3 +69,8 @@ export const consultationCheckResponseSchema = z.object({
   ok: z.literal(true),
   found: z.boolean(),
 }).strict()
+
+export type ConsultedRequestResponseDto = z.output<typeof consultedRequestResponseSchema>
+export type ConsultationTextResponseDto = z.output<
+  typeof consultationTextArrayResponseSchema
+>[number]

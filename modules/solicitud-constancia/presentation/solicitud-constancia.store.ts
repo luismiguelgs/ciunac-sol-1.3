@@ -45,16 +45,20 @@ const useSolicitudConstanciaStore = create<StoreState>((set) => ({
       draft: { email, basicData: null, payment: null },
     },
   }),
-  completeBasicData: (data) => set((state) => ({
-    workflow: {
-      status: 'editing',
-      draft: {
-        email: state.workflow.draft.email,
-        basicData: data,
-        payment: null,
+  completeBasicData: (data) => set((state) => {
+    const previous = state.workflow.draft.basicData
+    const keepsPayment = previous?.documentNumber === data.documentNumber && previous.typeId === data.typeId
+    return {
+      workflow: {
+        status: 'editing',
+        draft: {
+          email: state.workflow.draft.email,
+          basicData: data,
+          payment: keepsPayment ? state.workflow.draft.payment : null,
+        },
       },
-    },
-  })),
+    }
+  }),
   completePayment: (data) => set((state) => state.workflow.draft.basicData
     ? {
         workflow: {

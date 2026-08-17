@@ -76,3 +76,10 @@ repeticion autorizada termino correctamente sin modificar fuentes ni configuraci
 Los resultados finales se registran tambien en `docs/quality/baseline.md`. Tanto el
 smoke dirigido como la suite global agotaron el timeout despues de reportar el
 ultimo caso por el bloqueo transversal del teardown de Playwright en Windows.
+
+## Refactor Modular Posterior
+
+ADR-023 estabiliza las cuatro capas mediante `index.ts`, `client.ts` y `server.ts`.
+Application ya no importa DTOs ni factories de infraestructura; presentation usa
+casos de uso para estudiante y cargo, y App Router/BFF consumen solo APIs publicas.
+Las reglas funcionales y controles server-side de esta fase permanecen vigentes.

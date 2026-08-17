@@ -7,13 +7,12 @@ import { AlertCircle, CloudDownloadIcon, Loader2 } from 'lucide-react'
 import pdfImage from '@/assets/pdf.png'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { useCatalogStore } from '@/hooks/useCatalogStore'
 import { AppError, normalizeAppError } from '@/modules/shared/application/errors/app-error'
-import { ITexto } from '@/modules/shared/interfaces/types.interface'
-import { ConstanciaCargo } from '@/modules/solicitud-constancia/domain/solicitud-constancia'
-import { constanciaCargoRepository } from '@/modules/solicitud-constancia/infrastructure/constancia-cargo.repository'
+import { getConstanciaCargo } from '@/modules/solicitud-constancia/client'
+import type { ConstanciaCargo, ConstanciaText } from '@/modules/solicitud-constancia/domain/solicitud-constancia'
 import ConstanciaCargoPdf from '@/modules/solicitud-constancia/presentation/components/cargo-pdf'
-import { useTextsStore } from '@/stores/types.stores'
+
+const REQUIRED_TEXTS = ['TEXTO_NOMBREAN', 'TEXTO_1_FINAL', 'TEXTO_1_DISCLAMER', 'TEXTO_2_DISCLAMER']
 
 type CargoLoadState =
   | { status: 'loading' }
@@ -21,27 +20,18 @@ type CargoLoadState =
   | { status: 'empty' }
   | { status: 'error'; error: AppError }
 
-export default function DescargaCargo({ solicitudId }: { solicitudId: number | null }) {
-  const { data: textos } = useCatalogStore(useTextsStore)
+export default function DescargaCargo({ solicitudId, texts }: { solicitudId: number; texts: ConstanciaText[] }) {
   const [state, setState] = React.useState<CargoLoadState>({ status: 'loading' })
   const [pdfError, setPdfError] = React.useState<string | null>(null)
   const [attempt, setAttempt] = React.useState(0)
 
   React.useEffect(() => {
     let mounted = true
-    if (!solicitudId || solicitudId <= 0) {
-      setState({
-        status: 'error',
-        error: new AppError({ code: 'VALIDATION', message: 'El identificador de la solicitud no es valido.' }),
-      })
-      return
-    }
-
     const load = async () => {
       setState({ status: 'loading' })
       setPdfError(null)
       try {
-        const result = await constanciaCargoRepository.findById(solicitudId)
+        const result = await getConstanciaCargo(solicitudId)
         if (!mounted) return
         setState(result ? { status: 'data', data: result } : { status: 'empty' })
       } catch (cause) {
@@ -57,12 +47,14 @@ export default function DescargaCargo({ solicitudId }: { solicitudId: number | n
 
   const exportPdf = async () => {
     if (state.status !== 'data') return
+    if (!hasRequiredTexts(texts)) {
+      setPdfError('Los textos institucionales necesarios para generar el cargo no estan disponibles.')
+      return
+    }
 
     try {
       setPdfError(null)
-      const blob = await pdf(
-        <ConstanciaCargoPdf textos={(textos ?? []) as ITexto[]} solicitud={state.data} />,
-      ).toBlob()
+      const blob = await pdf(<ConstanciaCargoPdf texts={texts} solicitud={state.data} />).toBlob()
       downloadBlob(blob, `CONSTANCIA-${state.data.student.documentNumber}-${state.data.id}.pdf`)
     } catch (cause) {
       setPdfError(normalizeAppError(cause, 'No se pudo generar el cargo PDF').message)
@@ -91,11 +83,9 @@ export default function DescargaCargo({ solicitudId }: { solicitudId: number | n
           <AlertTitle>No se pudo cargar el cargo</AlertTitle>
           <AlertDescription>{state.error.message}</AlertDescription>
         </Alert>
-        {solicitudId ? (
-          <Button type="button" variant="outline" onClick={() => setAttempt((value) => value + 1)}>
-            Reintentar carga
-          </Button>
-        ) : null}
+        <Button type="button" variant="outline" onClick={() => setAttempt((value) => value + 1)}>
+          Reintentar carga
+        </Button>
       </div>
     )
   }
@@ -111,12 +101,17 @@ export default function DescargaCargo({ solicitudId }: { solicitudId: number | n
       ) : null}
       <div className="flex items-center gap-10">
         <Image src={pdfImage.src} alt="Documento PDF" width={50} height={50} />
-        <Button onClick={exportPdf}>
+        <Button onClick={exportPdf} disabled={!hasRequiredTexts(texts)}>
           Descargar cargo <CloudDownloadIcon className="ml-2" />
         </Button>
       </div>
+      {!hasRequiredTexts(texts) ? <p className="text-sm text-destructive">Los textos del cargo no estan disponibles.</p> : null}
     </div>
   )
+}
+
+function hasRequiredTexts(texts: ConstanciaText[]): boolean {
+  return REQUIRED_TEXTS.every((code) => texts.some((item) => item.code === code && item.content.trim()))
 }
 
 function downloadBlob(blob: Blob, fileName: string) {

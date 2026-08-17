@@ -2,14 +2,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AppError } from '@/modules/shared/application/errors/app-error'
 import { resourceApiRepository } from '@/modules/shared/infrastructure/api/resource-api.repository'
 import { RegisterSolicitudCertificadoUseCase } from '@/modules/solicitud-certificado/application/use-cases/register-solicitud-certificado.use-case'
+import { FindCertificateStudentUseCase } from '@/modules/solicitud-certificado/application/use-cases/find-certificate-student.use-case'
+import { GetCertificateCargoUseCase } from '@/modules/solicitud-certificado/application/use-cases/get-certificate-cargo.use-case'
 import {
   CertificateCatalogs,
   SolicitudCertificado,
+  hasConsistentCertificateCatalogs,
   isDigitalCertificateType,
 } from '@/modules/solicitud-certificado/domain/solicitud-certificado'
 import { SolicitudApiGateway } from '@/modules/solicitud-certificado/infrastructure/api/solicitud-api.gateway'
-import { StudentApiGateway } from '@/modules/solicitud-certificado/infrastructure/api/student-api.gateway'
-import { certificateCargoRepository } from '@/modules/solicitud-certificado/infrastructure/certificate-cargo.repository'
+import { CertificateStudentApiGateway } from '@/modules/solicitud-certificado/infrastructure/api/certificate-student-api.gateway'
+import { CertificateCargoApiGateway } from '@/modules/solicitud-certificado/infrastructure/api/certificate-cargo-api.gateway'
 import {
   toCertificateCargo,
   toCertificateRequestDto,
@@ -27,8 +30,8 @@ import {
   toCertificatePayment,
 } from '@/modules/solicitud-certificado/presentation/certificate-form.mapper'
 import useSolicitudCertificadoStore from '@/modules/solicitud-certificado/presentation/solicitud-certificado.store'
-import { CertificateBasicDataFormValues } from '@/modules/solicitud-certificado/schemas/basic-data.schema'
-import { solicitudCertificadoSchema } from '@/modules/solicitud-certificado/schemas/solicitud-certificado.schema'
+import { CertificateBasicDataFormValues } from '@/modules/solicitud-certificado/presentation/schemas/basic-data.schema'
+import { solicitudCertificadoSchema } from '@/modules/solicitud-certificado/application/validation/solicitud-certificado.schema'
 
 const catalogs: CertificateCatalogs = {
   requestTypes: [
@@ -86,6 +89,14 @@ describe('certificate domain and form mapping', () => {
       ...complete,
       basicData: { ...complete.basicData, studentCode: '' },
     }).success).toBe(false)
+  })
+
+  it('detects schools that do not belong to a known faculty', () => {
+    expect(hasConsistentCertificateCatalogs(catalogs)).toBe(true)
+    expect(hasConsistentCertificateCatalogs({
+      ...catalogs,
+      schools: [{ id: 2, name: 'Sistemas', facultyId: 99 }],
+    })).toBe(false)
   })
 
   it('validates selected catalogs and the school-faculty relation', () => {
@@ -217,12 +228,13 @@ describe('certificate API contracts and mappers', () => {
   it('distinguishes an absent cargo from malformed data and network errors', async () => {
     const getOptional = vi.spyOn(resourceApiRepository, 'getOptional')
     getOptional.mockResolvedValueOnce(null)
-    await expect(certificateCargoRepository.findById(1001)).resolves.toBeNull()
+    const gateway = new CertificateCargoApiGateway()
+    await expect(gateway.findById(1001)).resolves.toBeNull()
     getOptional.mockResolvedValueOnce({ id: 1001 })
-    await expect(certificateCargoRepository.findById(1001)).rejects.toMatchObject({ code: 'EXTERNAL_SERVICE' })
+    await expect(gateway.findById(1001)).rejects.toMatchObject({ code: 'EXTERNAL_SERVICE' })
     const networkError = new AppError({ code: 'NETWORK', message: 'Sin conexion', retryable: true })
     getOptional.mockRejectedValueOnce(networkError)
-    await expect(certificateCargoRepository.findById(1001)).rejects.toBe(networkError)
+    await expect(gateway.findById(1001)).rejects.toBe(networkError)
   })
 
   it('updates an existing student and rejects a malformed response', async () => {
@@ -230,17 +242,39 @@ describe('certificate API contracts and mappers', () => {
     const request = certificate({
       basicData: { ...certificate().basicData, existingStudentId: 'student-1' },
     })
-    await expect(new StudentApiGateway().save(request)).resolves.toBe('student-1')
+    await expect(new CertificateStudentApiGateway().save(request)).resolves.toBe('student-1')
     expect(update).toHaveBeenCalledWith('estudiantes/student-1', expect.any(Object))
 
     update.mockResolvedValueOnce({})
-    await expect(new StudentApiGateway().save(request)).rejects.toMatchObject({ code: 'EXTERNAL_SERVICE' })
+    await expect(new CertificateStudentApiGateway().save(request)).rejects.toMatchObject({ code: 'EXTERNAL_SERVICE' })
   })
 
   it('preserves a 409 validation error returned by price verification', async () => {
     const priceError = new AppError({ code: 'VALIDATION', status: 409, message: 'El tarifario cambio.' })
     vi.spyOn(resourceApiRepository, 'create').mockRejectedValueOnce(priceError)
     await expect(new SolicitudApiGateway().create(certificate(), 'student-1')).rejects.toBe(priceError)
+  })
+})
+
+describe('certificate read use cases', () => {
+  it('normalizes a valid document and rejects invalid input before integration', async () => {
+    const findByDocument = vi.fn().mockResolvedValue(null)
+    const useCase = new FindCertificateStudentUseCase({ findByDocument })
+
+    await expect(useCase.execute(' ab123456 ')).resolves.toBeNull()
+    expect(findByDocument).toHaveBeenCalledWith('AB123456')
+
+    await expect(useCase.execute('123')).rejects.toMatchObject({ code: 'VALIDATION' })
+    expect(findByDocument).toHaveBeenCalledTimes(1)
+  })
+
+  it('rejects an invalid cargo id before integration and preserves absence', async () => {
+    const findById = vi.fn().mockResolvedValue(null)
+    const useCase = new GetCertificateCargoUseCase({ findById })
+
+    await expect(useCase.execute(1001)).resolves.toBeNull()
+    await expect(useCase.execute(0)).rejects.toMatchObject({ code: 'VALIDATION' })
+    expect(findById).toHaveBeenCalledTimes(1)
   })
 })
 

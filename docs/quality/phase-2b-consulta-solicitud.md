@@ -28,10 +28,13 @@ modules/consultas/
   presentation/
 
 modules/consulta-solicitud/
+  application/
   domain/
   infrastructure/
   presentation/
-  components/
+  index.ts
+  server.ts
+  client.tsx
 ```
 
 `modules/consultas` contiene el contrato estable compartido por las entradas de
@@ -57,6 +60,11 @@ type ConsultationRequestsResult = {
 El documento digital distingue ausencia real, datos validos y error tecnico. La
 aceptacion usa un command tipado y detiene la descarga si el `PATCH` falla.
 
+El refactor modular posterior incorpora puertos y casos de uso explicitos, API
+publica, composition roots y restricciones ESLint acotadas. El cargo ya no importa
+el dominio o PDF de certificados: usa un renderer A4 visual compartido y un
+presenter propio para distinguir certificado y constancia.
+
 ## Dependencias Eliminadas
 
 - `modules/consulta-solicitud/components/consulta-form.tsx`.
@@ -66,6 +74,9 @@ aceptacion usa un command tipado y detiene la descarga si el `PATCH` falla.
 - `services/certificados.service.ts`.
 - `services/constancias.service.ts`.
 - `modules/shared/interfaces/constancia.interface.ts`.
+- `modules/consulta-solicitud/infrastructure/digital-document.repository.ts`.
+- `modules/consultas/infrastructure/dto/consultation.dto.ts`.
+- `modules/consultas/infrastructure/server/create-get-consultation-requests.ts`.
 
 ## Dependencias Que Permanecen
 
@@ -101,3 +112,27 @@ aceptacion usa un command tipado y detiene la descarga si el `PATCH` falla.
 
 Los resultados finales de lint, tipado, pruebas, build, seguridad y entorno se
 registran en `docs/quality/baseline.md` al cerrar la fase.
+
+## Correccion de Compatibilidad con Certificados Historicos
+
+La API externa puede devolver `numeroDocumento` como numero en certificados
+historicos, aunque el contrato normalizado del frontend lo representa como texto.
+El schema de infraestructura acepta ambas representaciones exclusivamente en el
+limite externo y transforma el valor numerico a `string` antes de ejecutar el
+mapper. El dominio, la aplicacion y la presentacion conservan un unico tipo estable.
+
+La correccion fue validada con una lectura del contrato real reportado, sin aceptar,
+actualizar ni descargar automaticamente el certificado. Se agregaron pruebas
+unitarias para certificados y constancias historicas, junto con un smoke E2E que
+confirma que el boton de descarga vuelve a estar disponible.
+
+## Correccion de Compatibilidad con Constancias Historicas
+
+La API real de constancias conserva los campos `id_solicitud` y `dni`; no devuelve
+los nombres normalizados `solicitudId` y `numeroDocumento`. El schema Zod adapta
+ambos aliases en el limite de infraestructura y entrega al mapper un DTO canonico.
+El dominio continua exigiendo identificador de solicitud y documento completos.
+
+La forma del endpoint `constancias/solicitud/{id}` se verifico mediante una lectura
+segura de una constancia digital existente, sin ejecutar aceptacion ni actualizacion.
+La fixture E2E reproduce ese contrato y confirma que la descarga vuelve a mostrarse.

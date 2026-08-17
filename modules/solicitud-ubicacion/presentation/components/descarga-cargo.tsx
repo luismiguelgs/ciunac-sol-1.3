@@ -9,7 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { AppError, normalizeAppError } from '@/modules/shared/application/errors/app-error'
 import { LocationCargo, LocationText } from '@/modules/solicitud-ubicacion/domain/solicitud-ubicacion'
-import { locationCargoRepository } from '@/modules/solicitud-ubicacion/infrastructure/location-cargo.repository'
+import { getLocationCargo } from '@/modules/solicitud-ubicacion/client'
 import LocationCargoPdf from '@/modules/solicitud-ubicacion/presentation/components/cargo-pdf'
 
 const REQUIRED_TEXTS = ['TEXTO_NOMBREAN', 'TEXTO_UBICACION_3', 'TEXTO_UBICACION_4']
@@ -31,7 +31,7 @@ export default function DescargaCargo({ solicitudId, texts }: { solicitudId: num
       setState({ status: 'loading' })
       setPdfError(null)
       try {
-        const result = await locationCargoRepository.findById(solicitudId)
+        const result = await getLocationCargo(solicitudId)
         if (mounted) setState(result ? { status: 'data', data: result } : { status: 'empty' })
       } catch (cause) {
         if (mounted) setState({ status: 'error', error: normalizeAppError(cause, 'No se pudo cargar el cargo') })
@@ -92,4 +92,3 @@ function downloadBlob(blob: Blob, fileName: string) {
   anchor.click()
   URL.revokeObjectURL(url)
 }
-

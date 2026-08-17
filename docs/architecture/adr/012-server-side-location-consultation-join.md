@@ -64,8 +64,8 @@ fallo no oculta la nota.
 
 ## Limites
 
-- El cargo mostrado cuando no hay notas conserva el componente legacy de
-  `solicitud-ubicacion`; tiparlo pertenece a una fase posterior del flujo de registro.
+- ADR-019 reemplaza la composicion legacy del cargo: ahora se construye desde la
+  solicitud activa y no importa internals de `solicitud-ubicacion`.
 - La validacion del formato del PDF no demuestra autenticidad academica; la API sigue
   siendo la autoridad de los resultados.
 - El acceso depende de una sesion de consulta `EXAMEN` vigente.

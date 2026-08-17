@@ -7,10 +7,9 @@ import { AlertCircle, Loader2 } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import pdfImage from '@/assets/pdf.png'
-import CertificateCargoPdf from '@/modules/solicitud-certificado/presentation/components/cargo-pdf'
-import { CertificateCargo } from '@/modules/solicitud-certificado/domain/solicitud-certificado'
-import { ConsultedRequest } from '@/modules/consultas/domain/consulted-request'
-import { ConsultationText } from '@/modules/consultas/domain/consultation-text'
+import type { ConsultationText, ConsultedRequest } from '@/modules/consultas'
+import AdministrativeCargoPdf from '@/modules/shared/components/administrative-cargo-pdf'
+import { toConsultationCargoDocument } from '@/modules/consulta-solicitud/presentation/consultation-cargo.presenter'
 
 type Props = {
   request: ConsultedRequest
@@ -30,22 +29,8 @@ export default function DownloadCargo({ request, texts }: Props) {
     if (state.status === 'generating') return
     setState({ status: 'generating' })
     try {
-      const data: CertificateCargo = {
-        id: request.id,
-        typeName: request.requestType.name,
-        createdAt: formatDate(request.createdAt),
-        student: {
-          names: request.student.names,
-          lastNames: request.student.lastNames,
-          documentNumber: request.student.documentNumber,
-        },
-        languageName: request.language.name,
-        levelName: request.level.name,
-        amount: request.payment.amount,
-        voucherNumber: request.payment.voucherNumber,
-        paidAt: request.payment.paidAt ? formatDate(request.payment.paidAt) : null,
-      }
-      const blob = await pdf(<CertificateCargoPdf texts={texts} solicitud={data} />).toBlob()
+      const document = toConsultationCargoDocument(request, texts)
+      const blob = await pdf(<AdministrativeCargoPdf document={document} />).toBlob()
       downloadBlob(blob, fileName)
       setState({ status: 'idle' })
     } catch {
@@ -72,11 +57,6 @@ export default function DownloadCargo({ request, texts }: Props) {
       <p className="pl-2 text-sm font-medium text-destructive">Puede descargar su cargo aqui.</p>
     </div>
   )
-}
-
-function formatDate(value: string): string {
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString('es-PE')
 }
 
 function downloadBlob(blob: Blob, fileName: string) {

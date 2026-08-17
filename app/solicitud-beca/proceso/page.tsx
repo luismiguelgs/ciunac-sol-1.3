@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
-import SolicitudBecaProcess from '@/modules/solicitud-beca/presentation/components/solicitud-beca-process'
+import { SolicitudBecaProcess } from '@/modules/solicitud-beca'
+import { getScholarshipCatalogs } from '@/modules/solicitud-beca/server'
 import { readVerifiedSession } from '@/modules/security/server/session'
-import { getScholarshipCatalogs } from '@/modules/solicitud-beca/infrastructure/server/scholarship-catalog.repository'
 
 export default async function BecaProcessPage() {
     const session = await readVerifiedSession('BECA')

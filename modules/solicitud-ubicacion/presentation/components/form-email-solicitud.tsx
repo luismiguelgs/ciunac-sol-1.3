@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import FormEmail from '@/modules/shared/components/email-verification-form'
 import { normalizeAppError } from '@/modules/shared/application/errors/app-error'
 import { LocationText } from '@/modules/solicitud-ubicacion/domain/solicitud-ubicacion'
-import { saveLocationProfile } from '@/modules/solicitud-ubicacion/infrastructure/api/location-profile.client'
+import { saveLocationProfile } from '@/modules/solicitud-ubicacion/client'
 import ProfileDialog from '@/modules/solicitud-ubicacion/presentation/components/profile-dialog'
 
 export default function FormEmailSolicitud({ texts }: { texts: LocationText[] }) {
@@ -40,4 +40,3 @@ export default function FormEmailSolicitud({ texts }: { texts: LocationText[] })
     </>
   )
 }
-

@@ -11,14 +11,20 @@ import {
 import { SecurityError } from '@/modules/security/server/security-error';
 import { validateVoucherUpload } from '@/modules/security/server/voucher-upload-validation';
 import { MAX_VOUCHER_FILE_BYTES } from '@/modules/shared/domain/voucher-file-policy';
-import { validateScholarshipDocumentUpload } from '@/modules/solicitud-beca/infrastructure/validation/scholarship-document-upload';
-import { validateCertificateRequestPrice } from '@/modules/solicitud-certificado/infrastructure/server/certificate-price-validation';
-import { validateNewStudentRequest } from '@/modules/solicitud-nuevo/infrastructure/server/new-student-request-validation'
-import { validateIdentityDocumentUpload } from '@/modules/solicitud-ubicacion/infrastructure/validation/identity-document-upload'
+import { validateScholarshipDocumentUpload } from '@/modules/solicitud-beca/server';
+import { validateCertificateRequestPrice } from '@/modules/solicitud-certificado/server';
+import { validateConstanciaRequestPrice } from '@/modules/solicitud-constancia/server';
 import {
+  q10StudentRequestSchema,
+  validateNewStudentRequest,
+} from '@/modules/solicitud-nuevo/server'
+import {
+  locationCreateCommandDtoSchema,
+  validateIdentityDocumentUpload,
+  validateLocationStudyCertificateUpload,
   validateLocationRequest,
   validateLocationStudentRequest,
-} from '@/modules/solicitud-ubicacion/infrastructure/server/location-request-validation'
+} from '@/modules/solicitud-ubicacion/server'
 
 export const runtime = 'nodejs';
 
@@ -109,7 +115,12 @@ async function readUpload(request: NextRequest, path: string): Promise<FormData>
     throw new SecurityError('INVALID_REQUEST', 400, 'Upload file is invalid');
   }
   if (path === 'upload/vouchers') await validateVoucherUpload(formData);
-  if (path === 'upload/becas') await validateScholarshipDocumentUpload(formData);
+  if (path === 'upload/becas') {
+    const purpose = readVerifiedSessionFromRequest(request)?.purpose;
+    if (purpose === 'UBICACION') await validateLocationStudyCertificateUpload(formData);
+    else if (purpose === 'BECA') await validateScholarshipDocumentUpload(formData);
+    else throw new SecurityError('FORBIDDEN', 403, 'This document upload is not allowed');
+  }
   if (path === 'upload/dnis') await validateIdentityDocumentUpload(formData);
 
   return formData;
@@ -137,7 +148,14 @@ async function handle(request: NextRequest, context: RouteContext, method: Allow
     if (method === 'POST' && path.startsWith('upload/')) {
       body = await readUpload(request, path);
     } else if (method !== 'GET') {
-      body = await parseJsonBody(request, resolveCiunacBodySchema(method, path));
+      const schema = method === 'POST' && path === 'q10/estudiantes'
+        ? q10StudentRequestSchema
+        : method === 'POST'
+          && path === 'solicitudes'
+          && readVerifiedSessionFromRequest(request)?.purpose === 'UBICACION'
+          ? locationCreateCommandDtoSchema
+          : resolveCiunacBodySchema(method, path);
+      body = await parseJsonBody(request, schema);
     }
 
     if ((method === 'POST' && path === 'estudiantes') || (method === 'PATCH' && path.startsWith('estudiantes/'))) {
@@ -146,6 +164,7 @@ async function handle(request: NextRequest, context: RouteContext, method: Allow
     if (method === 'POST' && path === 'solicitudes') {
       body = await validateLocationRequest(request, body)
       await validateCertificateRequestPrice(body);
+      await validateConstanciaRequestPrice(body);
     }
     if (method === 'POST' && path === 'q10/estudiantes') {
       body = await validateNewStudentRequest(request, body)

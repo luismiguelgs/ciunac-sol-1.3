@@ -151,6 +151,13 @@ test('muestra error de ruta cuando los catálogos académicos están vacíos', a
   await expect(page.getByRole('button', { name: /Reintentar/i })).toBeVisible()
 })
 
+test('muestra error de ruta cuando una escuela no pertenece a una facultad disponible', async ({ page, request }) => {
+  await setMockScenario(request, { inconsistentScholarshipCatalogs: true })
+  await verifyScholarshipEmail(page, request)
+  await expect(page.getByRole('heading', { name: /No se pudo abrir la solicitud de beca/i })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Reintentar/i })).toBeVisible()
+})
+
 test('muestra not-found para un identificador final inválido', async ({ page }) => {
   await page.goto('/solicitud-beca/finalizar?id=valor%20inválido')
   await expect(page.getByRole('heading', { name: /Solicitud de beca no identificada/i })).toBeVisible()

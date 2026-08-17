@@ -1,66 +1,78 @@
-# CU-006 Consultar Certificado
+# CU-006 Verificar Certificado Mediante QR
 
 ## Objetivo
-Permitir que un Usuario solicitante consulte certificados asociados a solicitudes y acceda a informacion o descarga cuando este disponible.
+
+Permitir que un tercero verifique la informacion de un certificado CIUNAC desde
+la URL publica incluida en su codigo QR.
 
 ## Actores
-- Actor principal: Usuario solicitante.
+
+- Actor principal: Usuario verificador.
 - Actores secundarios: Sistema CIUNAC, API CIUNAC.
 
 ## Precondiciones
-- Existe una solicitud o certificado registrado en API CIUNAC.
-- El usuario cuenta con documento o identificador requerido por el flujo de consulta.
-- Existe una sesion de consulta vigente para el documento del usuario.
+
+- Existe un certificado registrado en API CIUNAC.
+- El usuario dispone del certificado o de su URL QR con identificador opaco.
 
 ## Disparador
-El usuario ingresa a `app/consulta-certificado/page.tsx` o a una ruta de detalle de certificado.
+
+El usuario escanea el QR y abre `/consulta-certificado/{certificateId}`.
 
 ## Flujo Principal
-1. El sistema presenta el contenedor de consulta.
-2. El usuario busca por documento mediante el flujo compartido de consulta cuando corresponde.
-3. El sistema consulta solicitudes o certificados disponibles.
-4. El sistema comprueba que el certificado pertenece al documento consultado.
-5. Si existe y pertenece al usuario, el sistema muestra informacion del certificado.
-6. Si el usuario descarga o acepta el certificado digital, el sistema puede actualizar estado de aceptacion.
 
-## Diagrama del Flujo
+1. El sistema valida el formato del identificador incluido en la URL.
+2. El Server Component consulta el certificado usando la API key privada.
+3. El sistema valida la respuesta externa y elimina datos no publicos del modelo.
+4. El sistema muestra nombre, idioma, nivel, horas, registro, fechas, entrega y
+   notas disponibles.
+5. La pagina permanece en modo de solo lectura.
+
 ```mermaid
 flowchart TD
-    Start["Usuario consulta certificado"] --> Search["Buscar solicitud o certificado"]
-    Search --> Found{"Existe certificado?"}
-    Found -->|No| Empty["Mostrar informacion no disponible"]
-    Found -->|Si| Owner{"Pertenece al documento consultado?"}
-    Owner -->|No| Empty
-    Owner -->|Si| Detail["Mostrar detalle de certificado"]
-    Detail --> Action{"Usuario descarga o acepta?"}
-    Action -->|No| End["Mantener detalle visible"]
-    Action -->|Si| Update["Actualizar estado de aceptacion cuando aplique"]
-    Update --> End
+    Start["Usuario escanea QR"] --> Validate["Validar ID opaco"]
+    Validate -->|Invalido| Empty["Mostrar certificado no disponible"]
+    Validate -->|Valido| Fetch["Consultar API desde servidor"]
+    Fetch --> Found{"Existe certificado valido?"}
+    Found -->|No| Empty
+    Found -->|Si| Detail["Mostrar detalle publico"]
+    Detail --> End["Finalizar sin mutaciones"]
 ```
 
 ## Flujos Alternativos
-- Si no existe certificado asociado, el sistema no muestra descarga disponible.
-- Si el certificado no pertenece al documento consultado, se muestra como no disponible.
-- Si el certificado no contiene notas, se muestran sus metadatos y un estado vacio de notas.
+
+- Si el certificado no contiene notas, se muestran los metadatos y un estado
+  vacio de notas.
+- Si `aceptado` llega nulo, se muestra como entrega pendiente.
+- Si se abre `/consulta-certificado` sin ID, se muestran instrucciones para usar
+  el QR.
 
 ## Excepciones
-- Si falla la consulta del certificado, el sistema registra el error y evita romper la pantalla.
-- Si la API devuelve una respuesta incompleta, se muestra un error reintentable y no datos parciales.
+
+- Un ID invalido, `404` o respuesta vacia muestra certificado no disponible.
+- Una respuesta mal formada o un fallo tecnico muestra un error reintentable.
 
 ## Postcondiciones
-- El usuario visualiza o descarga el certificado si esta disponible.
-- El estado de aceptacion puede actualizarse cuando el usuario ejecuta la accion correspondiente.
+
+- El usuario visualiza la informacion publica del certificado cuando existe.
+- No se descarga, acepta ni modifica ningun recurso.
 
 ## Datos Requeridos
-- Documento o identificador de solicitud/certificado.
+
+- Identificador opaco del certificado incluido en el QR.
 
 ## Reglas Relacionadas
+
 - RF-016, RF-018.
+- ADR-017.
 
 ## Criterios de Aceptacion
-```gherkin
-Dado que existe un certificado para una solicitud
-Cuando el usuario consulta la informacion
-Entonces el sistema muestra el certificado disponible
-```
 
+```gherkin
+Dado un certificado existente con un identificador QR valido
+Y sin una sesion previa de consulta
+Cuando el usuario abre la URL del QR
+Entonces el sistema permanece en la ruta del certificado
+Y muestra su detalle publico
+Y no expone la API key ni el numero de documento
+```

@@ -19,8 +19,7 @@ import InputField from '@/components/forms/input.field'
 import { DatePicker } from '@/components/forms/date-picker.new'
 import MyAlert from '@/components/forms/myAlert'
 import UploadImage from '@/components/upload-image'
-import { useCatalogStore } from '@/hooks/useCatalogStore'
-import { useTextsStore } from '@/stores/types.stores'
+import useTexts from '@/hooks/useTexts'
 import {
   finInfoSchema,
   IFinInfoSchema,
@@ -51,6 +50,8 @@ type VoucherExampleProps = {
   height: number
   thumbnailPosition: string
 }
+
+const PAYMENT_ATTENTION_FALLBACK = 'Verifique que el numero de voucher, la fecha de pago y el archivo adjunto correspondan al mismo comprobante antes de continuar.'
 
 function VoucherExample(props: VoucherExampleProps) {
   return (
@@ -135,7 +136,11 @@ export default function FinData({
   defaultValues,
   paymentOptions,
 }: FinDataProps) {
-  const { data: textos } = useCatalogStore(useTextsStore)
+  const textos = useTexts({ revalidateOnMount: true })
+  const paymentAttentionText = textos
+    ?.find((item) => item.codigo === 'TEXTO_1_PAGO')
+    ?.contenido
+    ?.trim() || PAYMENT_ATTENTION_FALLBACK
   const form = useForm<IFinInfoSchema>({
     resolver: zodResolver(finInfoSchema),
     defaultValues: {
@@ -196,7 +201,7 @@ export default function FinData({
               />
               <MyAlert
                 title="Atencion"
-                description={textos?.find((item) => item.codigo === 'TEXTO_1_PAGO')?.contenido}
+                description={paymentAttentionText}
               />
             </div>
             <div className="flex flex-col gap-4">

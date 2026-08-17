@@ -56,6 +56,18 @@ consultas.
   completar escenarios; los smoke usan Webpack y respuestas de fuente simuladas
   para reducir dependencias externas, pero el lifecycle requiere una correccion transversal.
 
+## Refactor Modular
+
+- Se incorporaron APIs publicas `index.ts`, `client.ts` y `server.ts`.
+- App Router y BFF dejaron de importar internals del feature.
+- Presentacion consume casos de uso compuestos, no repositories ni gateways.
+- Busqueda, alta y actualizacion de estudiante usan un gateway unico.
+- Los response DTOs se infieren desde Zod; solo los contratos de escritura siguen
+  declarados explicitamente.
+- Schemas de command y formulario quedaron en application y presentation.
+- ESLint hace cumplir las dependencias de las cuatro capas solo en certificados.
+- No existen imports entre solicitud de certificados y solicitud de constancias.
+
 ## Verificacion
 
 | Comprobacion | Resultado |
@@ -75,3 +87,22 @@ sandbox. La repeticion autorizada del mismo comando termino correctamente, sin
 cambios en fuentes ni configuracion productiva. Para reducir ruido externo, el
 servidor E2E usa Webpack y respuestas Google Fonts simuladas; el bloqueo de teardown
 persiste y queda como deuda transversal del runner.
+
+## Verificacion del Refactor Modular
+
+| Comprobacion | Resultado |
+| --- | --- |
+| `npm run lint` | Correcto, incluidas las restricciones del feature. |
+| `npx tsc --noEmit` | Correcto. |
+| Unitarias dirigidas | 51 de 51. |
+| `npm run test:unit` | 232 de 232 pruebas en 15 archivos. |
+| Smoke E2E de certificados | 15 de 15 escenarios correctos; timeout posterior en teardown. |
+| Suite E2E completa | 92 de 92 escenarios correctos; timeout posterior en teardown. |
+| `npm run build` | Correcto con Turbopack; 22 paginas generadas. |
+| `npm run security:bundle-check` | Correcto. |
+| `npm run env:check` | Correcto. |
+| `git diff --check` | Correcto; solo avisos LF/CRLF de Windows. |
+
+El primer build modular no pudo descargar Geist por la restriccion de red del
+sandbox. La repeticion autorizada del mismo comando finalizo correctamente sin
+alterar fuentes, configuracion o dependencias.

@@ -35,16 +35,14 @@ La consulta recibe:
 ```ts
 type GetCertificateDetailQuery = {
   certificateId: string
-  consultationDocument: string
 }
 ```
 
 Devuelve `CertificateDetail | null`. `null` representa un identificador inexistente,
-un `404`, una respuesta exitosa sin cuerpo o un certificado de otro documento. Una
-respuesta incompleta o mal formada lanza `EXTERNAL_SERVICE` y no se interpreta como
-ausencia.
+un `404` o una respuesta exitosa sin cuerpo. Una respuesta incompleta o mal formada
+lanza `EXTERNAL_SERVICE` y no se interpreta como ausencia.
 
-`CertificateDetail` contiene identificadores, estudiante, documento, idioma, nivel,
+`CertificateDetail` contiene identificadores, estudiante, idioma, nivel,
 horas, fechas, registro, entrega discriminada y notas completas. Un certificado
 aceptado requiere fecha de aceptacion.
 
@@ -63,13 +61,12 @@ Ambos quedaron sin consumidores al introducir el contrato especifico del slice.
 - Lista de notas vacia.
 - Identificador seguro e intentos con forma de ruta.
 - Orden estable de ciclos y fallback de etiquetas.
-- Propietario correcto, propietario diferente y recurso ausente.
-- Smoke E2E para respuesta vacia, `404`, contrato mal formado y propietario distinto.
+- Acceso publico directo mediante ID opaco y recurso ausente.
+- Smoke E2E para acceso sin sesion, respuesta vacia, `404` y contrato mal formado.
 
 ## Deuda Tecnica Pendiente
 
-- Definir la experiencia de acceso directo desde QR cuando no existe una sesion de
-  consulta previa.
+- El acceso directo por QR fue resuelto posteriormente mediante ADR-017.
 - Crear autorizacion especializada para descarga/aceptacion del documento digital.
 - La migracion de `consulta-ubicacion/[dni]` fue completada en Fase 2D.
 

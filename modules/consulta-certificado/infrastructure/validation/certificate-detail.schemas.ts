@@ -35,7 +35,6 @@ export const certificateDetailResponseSchema = z.object({
   _id: externalIdSchema,
   tipo: z.enum(['VIRTUAL', 'FISICO']),
   estudiante: z.string().trim().min(1),
-  numeroDocumento: z.string().trim().min(8).max(20),
   idioma: z.string().trim().min(1),
   nivel: z.string().trim().min(1),
   cantidadHoras: nonNegativeIntegerSchema,
@@ -43,7 +42,7 @@ export const certificateDetailResponseSchema = z.object({
   fechaEmision: externalDateSchema,
   numeroRegistro: z.string().trim().min(1),
   fechaConcluido: externalDateSchema,
-  aceptado: z.boolean(),
+  aceptado: z.boolean().nullish().transform(Boolean),
   fechaAceptacion: nullableExternalDateSchema,
   notas: z.array(certificateNoteResponseSchema).optional().default([]),
 }).passthrough().superRefine((value, context) => {
@@ -55,3 +54,5 @@ export const certificateDetailResponseSchema = z.object({
     })
   }
 })
+
+export type CertificateDetailResponseDto = z.output<typeof certificateDetailResponseSchema>

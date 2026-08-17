@@ -5,7 +5,7 @@ import {
   SolicitudBecaNotificationGateway,
 } from '@/modules/solicitud-beca/application/ports/register-solicitud-beca.ports';
 import { RegistrationOutcome } from '@/modules/shared/application/results/registration-outcome';
-import { parseSolicitudBeca } from '@/modules/solicitud-beca/schemas/solicitud-beca.schema'
+import { parseSolicitudBeca } from '@/modules/solicitud-beca/application/validation/solicitud-beca.schema'
 
 type Dependencies = {
   solicitudGateway: SolicitudBecaGateway;

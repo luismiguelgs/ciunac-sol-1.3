@@ -1,7 +1,7 @@
 import { AppError, normalizeAppError } from '@/modules/shared/application/errors/app-error';
 import { SolicitudBecaGateway } from '@/modules/solicitud-beca/application/ports/register-solicitud-beca.ports';
 import { SolicitudBeca } from '@/modules/solicitud-beca/domain/solicitud-beca'
-import { ScholarshipRequestDto } from '@/modules/solicitud-beca/infrastructure/dto/scholarship-api.dto'
+import { ScholarshipRequestDto } from '@/modules/solicitud-beca/infrastructure/dto/scholarship-request.dto'
 import { toScholarshipRequestDto } from '@/modules/solicitud-beca/infrastructure/mappers/scholarship-api.mapper'
 import { scholarshipCreateResponseSchema } from '@/modules/solicitud-beca/infrastructure/validation/scholarship-api.schemas'
 import { resourceApiRepository } from '@/modules/shared/infrastructure/api/resource-api.repository'

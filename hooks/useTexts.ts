@@ -6,12 +6,17 @@ import { useTextsStore } from '@/stores/types.stores'
 import React from 'react'
 import { useCachedFetch } from './useCachedFetch'
 
-export default function useTexts() {
+type UseTextsOptions = {
+  revalidateOnMount?: boolean
+}
+
+export default function useTexts(options: UseTextsOptions = {}) {
   const fetchTexts = React.useCallback(() => TextosService.fetchItems(), [])
 
   const { data } = useCachedFetch<ITexto>(
     useTextsStore,
-    fetchTexts
+    fetchTexts,
+    options,
   )
   return data
 }

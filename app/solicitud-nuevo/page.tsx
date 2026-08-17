@@ -1,5 +1,5 @@
-import NewStudentProcess from '@/modules/solicitud-nuevo/presentation/components/new-student-process'
-import { getNewStudentPrograms } from '@/modules/solicitud-nuevo/infrastructure/server/q10-program.repository'
+import { NewStudentProcess } from '@/modules/solicitud-nuevo'
+import { getNewStudentPrograms } from '@/modules/solicitud-nuevo/server'
 import EmptyState from '@/modules/shared/components/empty-state'
 
 export const dynamic = 'force-dynamic'

@@ -365,3 +365,329 @@ El primer build fallo al no poder descargar Geist desde el sandbox. La repeticio
 con acceso de red autorizado compilo correctamente sin cambios de codigo ni fuentes.
 Permanecen como deuda la validacion institucional del perfil CIUNAC, la falta de
 atomicidad confirmada para duplicidad y la idempotencia del proveedor de correo.
+
+## Resultado del Refactor Modular de Consulta de Certificado
+
+- Fecha: 2026-08-10.
+- Alcance: arquitectura modular de cuatro capas para `consulta-certificado`.
+- Next.js: 16.2.12, sin cambios de dependencias.
+- `npm run lint`: correcto, incluidas las restricciones de imports del feature.
+- `npx tsc --noEmit`: correcto.
+- `npm run test:unit`: 214 de 214 pruebas en 15 archivos.
+- Pruebas unitarias del feature: 15 de 15.
+- Smoke E2E de consultas: 18 de 18 escenarios alcanzaron el resultado esperado.
+- Suite E2E completa: los 89 escenarios emitieron marcador de exito.
+- `npm run build`: correcto con Turbopack; 22 paginas generadas.
+- `npm run security:bundle-check`: correcto; no se detectaron secretos privados en `.next/static`.
+- `npm run env:check`: correcto; variables privadas presentes, claves reCAPTCHA distintas y `NEXT_PUBLIC_API_KEY` ausente.
+- `git diff --check`: correcto, con advertencias de conversion LF/CRLF propias de Windows.
+
+El feature expone una API browser-safe desde `@/modules/consulta-certificado` y
+una entrada de composicion server-only desde `@/modules/consulta-certificado/server`.
+La ruta App Router ya no conoce dominio, infraestructura ni factories internas.
+El DTO manual se sustituyo por el tipo inferido del schema Zod, y las etiquetas y
+fechas visibles se trasladaron a un presenter.
+
+`solicitud-certificados` dejo de importar una tabla interna de
+`consulta-certificado` y usa directamente el componente shared estable. ESLint
+aplica los limites de dependencia solo al feature migrado para no romper los
+modulos pendientes. Permanece fuera de alcance la dependencia de
+`consulta-solicitud` hacia el cargo interno de `solicitud-certificado`.
+
+El smoke dirigido reporto sus 18 escenarios correctos. La suite global emitio los
+89 marcadores de exito y luego agoto el timeout por el bloqueo conocido del
+teardown de Playwright en Windows. El primer build no pudo descargar Geist desde
+el sandbox; la repeticion autorizada termino correctamente sin cambios de codigo.
+
+## Correccion de Acceso Publico QR a Certificados
+
+- Fecha: 2026-08-10.
+- El ID real `8EP4pqHBpZGO00JIn14I` responde `200`, permanece en su URL y muestra
+  un unico detalle de certificado sin sesion previa.
+- La ruta ya no redirige a `consulta-solicitud` ni depende de sus cookies.
+- El resultado de dominio no contiene el numero de documento.
+- Certificados historicos con `numeroDocumento: null` y `aceptado: null` se validan
+  sin exponer el documento; la entrega nula se normaliza como pendiente.
+- La API key permanece server-only y el navegador no llama al proveedor.
+- `npm run lint`: correcto.
+- `npx tsc --noEmit`: correcto despues de regenerar los tipos E2E.
+- `npm run test:unit`: 214 de 214 pruebas en 15 archivos.
+- Unitarias dirigidas: 15 de 15.
+- Smoke E2E de consultas: los 18 escenarios emitieron marcador de exito; el runner
+  agoto el timeout despues del ultimo escenario por el teardown conocido.
+- Suite E2E completa: los 89 escenarios emitieron marcador de exito; el runner
+  agoto el timeout despues del ultimo escenario por el mismo teardown.
+- `npm run build`: correcto con Turbopack; 22 paginas generadas.
+- `npm run security:bundle-check`: correcto; no se detectaron secretos privados.
+- `npm run env:check`: correcto; configuracion privada presente y
+  `NEXT_PUBLIC_API_KEY` ausente.
+- `git diff --check`: correcto, con advertencias informativas LF/CRLF de Windows.
+
+ADR-017 reemplaza exclusivamente la autorizacion por sesion de ADR-011. La
+arquitectura modular, la validacion Zod, el repository server-only y el presenter
+permanecen vigentes.
+
+## Resultado del Refactor Modular de Consulta de Solicitudes
+
+- Fecha: 2026-08-11.
+- Alcance: arquitectura modular de cuatro capas para `consulta-solicitud` y
+  renderer visual compartido de cargos.
+- Next.js: 16.2.12, sin cambios de dependencias.
+- `npm run lint`: correcto, incluidas las restricciones de imports del feature.
+- `npx tsc --noEmit`: correcto.
+- `npm run test:unit`: 222 de 222 pruebas en 15 archivos.
+- Unitarias dirigidas de consultas: 18 de 18.
+- Smoke E2E de consultas: 19 de 19.
+- Suite E2E completa: 90 de 90.
+- `npm run build`: correcto con Turbopack; 22 paginas generadas.
+- `npm run security:bundle-check`: correcto; no se detectaron secretos privados.
+- `npm run env:check`: correcto; configuracion privada presente y
+  `NEXT_PUBLIC_API_KEY` ausente.
+- `git diff --check`: correcto, con avisos informativos LF/CRLF de Windows.
+
+El feature expone presentacion desde `@/modules/consulta-solicitud` y composicion
+server-only desde `@/modules/consulta-solicitud/server`. Documentos digitales
+incorporan puertos, casos de uso, mapper y gateway; presentation ya no consume
+infraestructura ni dominio directamente. `modules/consultas` tambien dispone de
+API publica y sus DTOs se infieren desde Zod.
+
+`AdministrativeCargoPdf` centraliza A4, encabezado y estilos. Certificado,
+constancia, ubicacion y consulta conservan adaptadores propios, por lo que no
+existen imports entre sus features. La consulta de constancia muestra ahora su
+titulo y etiqueta correctos.
+
+El primer build fallo por la descarga bloqueada de Geist; la repeticion con acceso
+de red autorizado termino correctamente. Playwright se bloqueo al gestionar sus
+web servers; al ejecutar mock y Next como servidores aislados, el smoke y la suite
+global terminaron normalmente. Permanece pendiente el Route Handler que valide la
+propiedad del documento digital antes de exponer o aceptar su URL.
+
+## Hotfix de Descarga de Certificados Historicos
+
+- Fecha: 2026-08-11.
+- Causa: el proveedor devuelve `numeroDocumento` como valor numerico en algunos
+  certificados historicos y la validacion runtime nueva exigia `string`.
+- Solucion: normalizacion numero/texto a `string` en el schema de infraestructura,
+  sin debilitar el modelo de dominio ni modificar el contrato HTTP.
+- Contrato real reportado: validado correctamente mediante una operacion de solo
+  lectura; no se ejecuto `PATCH` ni se altero el certificado.
+- `npm run lint`: correcto.
+- `npx tsc --noEmit`: correcto.
+- `npm run test:unit`: 223 de 223 pruebas en 15 archivos.
+- Smoke E2E de consultas: 20 de 20, incluido certificado historico numerico.
+- Suite E2E completa previa al hotfix: 90 de 90; el cambio queda cubierto por el
+  smoke completo del feature afectado.
+- `npm run build`: correcto con Turbopack; 22 paginas generadas.
+- `npm run security:bundle-check`: correcto; no se detectaron secretos privados.
+- `npm run env:check`: correcto; configuracion privada presente y
+  `NEXT_PUBLIC_API_KEY` ausente.
+- `git diff --check`: correcto, con avisos informativos LF/CRLF de Windows.
+
+## Hotfix de Descarga de Constancias Historicas
+
+- Fecha: 2026-08-11.
+- Causa: el proveedor usa `id_solicitud` y `dni`, pero el schema runtime exigia
+  `solicitudId` y `numeroDocumento`; la constancia se descartaba antes del render.
+- Solucion: normalizacion de aliases exclusivamente en infraestructura, manteniendo
+  el contrato canonico y obligatorio en las capas internas.
+- Contrato real: verificado mediante `GET` seguro; no se ejecuto `PATCH`, aceptacion
+  ni modificacion de constancias reales.
+- `npm run lint`: correcto y sin advertencias.
+- `npx tsc --noEmit`: correcto.
+- `npm run test:unit`: 224 de 224 pruebas en 15 archivos.
+- Unitarias dirigidas de consultas: 20 de 20.
+- Smoke E2E de consultas: 20 de 20, incluido el payload historico de constancia.
+- `npm run build`: correcto con Turbopack; 22 paginas generadas.
+- `npm run security:bundle-check`: correcto; no se detectaron secretos privados.
+- `npm run env:check`: correcto; configuracion privada presente y
+  `NEXT_PUBLIC_API_KEY` ausente.
+- `git diff --check`: correcto, con avisos informativos LF/CRLF de Windows.
+
+## Resultado del Refactor Modular de Consulta de Ubicacion
+
+- Fecha: 2026-08-11.
+- Alcance: arquitectura modular de cuatro capas para `consulta-ubicacion`.
+- Next.js: 16.2.12 y aplicacion 1.5.7, sin cambios de dependencias.
+- `npm run lint`: correcto, incluidas las restricciones de imports del feature.
+- `npx tsc --noEmit`: correcto.
+- Unitarias dirigidas: 17 de 17.
+- `npm run test:unit`: 227 de 227 pruebas en 15 archivos.
+- Smoke E2E de consultas: 20 de 20 escenarios alcanzaron su resultado esperado.
+- Suite E2E completa: 91 de 91 escenarios alcanzaron su resultado esperado.
+- `npm run build`: correcto con Turbopack; 22 paginas generadas.
+- `npm run security:bundle-check`: correcto; no se detectaron secretos privados.
+- `npm run env:check`: correcto; configuracion privada presente y
+  `NEXT_PUBLIC_API_KEY` ausente.
+- `git diff --check`: correcto, con avisos informativos LF/CRLF de Windows.
+
+El feature expone presentacion desde `@/modules/consulta-ubicacion` y composicion
+server-only desde `@/modules/consulta-ubicacion/server`. Dominio y aplicacion usan
+modelos y puertos locales; solo infraestructura adapta la API publica
+`@/modules/consultas/server`. Los DTOs de notas, examenes y ciclos se infieren de
+sus schemas Zod.
+
+El cargo deja de importar `solicitud-ubicacion` y se construye con la solicitud
+activa ya disponible. El smoke comprueba que el estado sin notas no ejecuta
+`GET solicitudes/{id}`. El presenter y las fixtures usan la tarifa oficial de
+S/ 30.00. La constancia conserva su formato frontend y el cargo usa el renderer A4
+compartido.
+
+El primer build fallo porque el sandbox no pudo descargar Geist; la repeticion con
+acceso de red autorizado termino correctamente sin cambios de codigo. Tanto el
+smoke dirigido como la suite global emitieron todos sus resultados correctos y
+luego agotaron el timeout por el teardown conocido de Playwright en Windows. La
+fuente Roboto remota de la constancia permanece como deuda tecnica.
+
+## Resultado del Refactor Modular de Solicitud de Beca
+
+- Fecha: 2026-08-13.
+- Alcance: límites modulares de cuatro capas para `solicitud-beca`.
+- Next.js: 16.2.12 y aplicación 1.5.8, sin cambios de dependencias.
+- `npm run lint`: correcto, incluidas las restricciones del feature.
+- `npx tsc --noEmit`: correcto.
+- Unitarias dirigidas: 31 de 31.
+- `npm run test:unit`: 229 de 229 pruebas en 15 archivos.
+- Smoke E2E de beca: 9 de 9 escenarios correctos.
+- Suite E2E completa: 92 de 92 escenarios correctos.
+- `npm run build`: correcto con Turbopack; 22 páginas generadas.
+- `npm run security:bundle-check`: correcto; no se detectaron secretos privados.
+- `npm run env:check`: correcto; configuración privada presente y
+  `NEXT_PUBLIC_API_KEY` ausente.
+- `git diff --check`: correcto, con avisos informativos LF/CRLF de Windows.
+
+El feature expone presentación desde `@/modules/solicitud-beca`, composición de
+registro desde `@/modules/solicitud-beca/client` y capacidades server-only desde
+`@/modules/solicitud-beca/server`. La factory que invertía dependencias fue
+retirada; schemas de formulario y command quedaron en sus capas correspondientes.
+
+La política PDF ya no depende del tipo `File` ni devuelve mensajes de interfaz.
+Los catálogos rechazan relaciones escuela-facultad inconsistentes y las respuestas
+externas se infieren desde Zod. El request DTO conserva el contrato histórico
+`contancia_tercio`.
+
+El primer build falló por la descarga de Geist bloqueada en el sandbox; la
+repetición con acceso autorizado terminó correctamente. Los nueve smoke y los 92
+E2E globales emitieron resultado correcto antes de que Playwright agotara el
+timeout durante su teardown conocido en Windows.
+
+## Resultado del Refactor Modular de Solicitud de Certificados
+
+- Fecha: 2026-08-13.
+- Alcance: limites modulares de cuatro capas para `solicitud-certificado`.
+- Next.js: 16.2.12 y aplicacion 1.5.9, sin cambios de dependencias.
+- `npm run lint`: correcto, incluidas las restricciones del feature.
+- `npx tsc --noEmit`: correcto.
+- Unitarias dirigidas: 51 de 51.
+- `npm run test:unit`: 232 de 232 pruebas en 15 archivos.
+- Smoke E2E de certificados: 15 de 15 escenarios correctos.
+- Suite E2E completa: 92 de 92 escenarios correctos.
+- `npm run build`: correcto con Turbopack; 22 paginas generadas.
+- `npm run security:bundle-check`: correcto; sin secretos privados en el bundle.
+- `npm run env:check`: correcto; configuracion privada presente y clave publica
+  antigua ausente.
+- `git diff --check`: correcto, con avisos informativos LF/CRLF de Windows.
+
+El feature expone presentacion desde `@/modules/solicitud-certificado`, composicion
+cliente desde `@/modules/solicitud-certificado/client` y capacidades server-only
+desde `@/modules/solicitud-certificado/server`. Presentacion ya no consume
+repositories; application no compone gateways y el BFF no importa internals.
+
+Los DTOs de respuesta se infieren desde Zod. Alta, actualizacion y consulta de
+estudiante usan un gateway unico. Certificados y constancias permanecen sin imports
+entre features y solo comparten pago, voucher, seguridad y renderer A4 estables.
+
+El primer build fallo por la descarga de Geist bloqueada en el sandbox; la
+repeticion autorizada termino correctamente. Los smoke y E2E emitieron todos sus
+resultados correctos antes del timeout del teardown conocido de Playwright en
+Windows.
+
+## Resultado del Refactor Modular de Solicitud de Constancias
+
+- Fecha: 2026-08-14.
+- Alcance: limites modulares de cuatro capas para `solicitud-constancia`.
+- Next.js: 16.2.12 y aplicacion 1.6.0, sin cambios de dependencias.
+- `npm run lint`: correcto, incluidas las restricciones del feature.
+- `npx tsc --noEmit`: correcto.
+- Unitarias dirigidas: 35 de 35.
+- `npm run test:unit`: 237 de 237 pruebas en 15 archivos.
+- Smoke E2E de constancias: 6 de 6 escenarios correctos.
+- Suite E2E completa: 93 de 93 escenarios correctos.
+- `npm run build`: correcto con Turbopack; 22 paginas generadas.
+- `npm run security:bundle-check`: correcto; sin secretos privados en el bundle.
+- `npm run env:check`: correcto; configuracion privada presente y clave publica
+  antigua ausente.
+- `git diff --check`: correcto, con avisos informativos LF/CRLF de Windows.
+
+El feature expone presentacion desde `@/modules/solicitud-constancia`, composicion
+cliente desde `@/modules/solicitud-constancia/client` y catalogos/validacion de
+precio desde `@/modules/solicitud-constancia/server`. Presentacion ya no consume
+repositories ni stores globales de catalogos; App Router y el BFF usan solo las
+entradas publicas.
+
+Constancias y certificados permanecen sin imports mutuos. El BFF revalida el
+precio de los tipos `5` y `6` y bloquea montos manipulados antes de la API externa.
+Pago, voucher, seguridad y renderer A4 continúan como capacidades compartidas
+estables.
+
+El primer build fallo por la descarga de Geist bloqueada en el sandbox; la
+repeticion con acceso de red termino correctamente. Los 6 smoke y los 93 E2E
+globales emitieron resultado correcto antes del timeout del teardown conocido de
+Playwright en Windows.
+
+## Resultado del Refactor Modular de Solicitud de Ubicacion
+
+- Fecha: 2026-08-17.
+- Alcance: limites modulares de cuatro capas para `solicitud-ubicacion`.
+- Next.js: 16.2.12 y aplicacion 1.6.1, sin cambios de dependencias.
+- `npm run lint`: correcto, incluidas las restricciones del feature.
+- `npx tsc --noEmit`: correcto.
+- Unitarias dirigidas: 31 de 31.
+- `npm run test:unit`: 238 de 238 pruebas en 15 archivos.
+- Smoke E2E de ubicacion: 11 de 11 escenarios correctos.
+- Suite E2E completa: 92 de 93 en una ejecucion; el unico timeout paso aislado.
+- `npm run build`: correcto con Turbopack; 22 paginas generadas.
+- `npm run security:bundle-check`: correcto; sin secretos privados en el bundle.
+- `npm run env:check`: correcto; configuracion privada presente.
+- `git diff --check`: correcto, con avisos informativos LF/CRLF de Windows.
+
+El feature expone presentacion desde `@/modules/solicitud-ubicacion`, composicion
+cliente desde `@/modules/solicitud-ubicacion/client` y catalogos, perfil y
+validaciones BFF desde `@/modules/solicitud-ubicacion/server`. Application no
+importa DTOs de infraestructura y presentation ya no consume repositories.
+
+El BFF conserva `upload/becas` por compatibilidad, pero selecciona la politica PDF
+academica de ubicacion cuando la sesion es `UBICACION`. El build requirio acceso de
+red para Geist. Playwright completo los smoke de ubicacion antes del bloqueo de
+teardown; el timeout global de PDF falsificado de beca paso en su repeticion
+aislada de 9.6 segundos.
+
+## Resultado del Refactor Modular de Solicitud de Alumno Nuevo
+
+- Fecha: 2026-08-17.
+- Alcance: limites modulares de cuatro capas para `solicitud-nuevo`.
+- Next.js: 16.2.12 y aplicacion 1.6.2, sin cambios de dependencias.
+- `npm run lint`: correcto, incluidas las restricciones del feature.
+- `npx tsc --noEmit`: correcto.
+- Unitarias dirigidas: 31 de 31.
+- `npm run test:unit`: 238 de 238 pruebas en 15 archivos.
+- Smoke E2E de alumno nuevo: 10 de 10 escenarios correctos.
+- Suite E2E completa: 93 de 93 escenarios correctos.
+- `npm run build`: correcto con Turbopack; 22 paginas generadas.
+- `npm run security:bundle-check`: correcto; sin secretos privados en el bundle.
+- `npm run env:check`: correcto; configuracion privada presente y clave publica
+  antigua ausente.
+- `git diff --check`: correcto, con avisos informativos LF/CRLF de Windows.
+
+El feature expone presentacion desde `@/modules/solicitud-nuevo`, composicion de
+registro y correo desde `@/modules/solicitud-nuevo/client`, y catalogos/validacion
+Q10 desde `@/modules/solicitud-nuevo/server`. Application ya no instancia gateways;
+App Router, BFF y seguridad consumen solo las fronteras publicas.
+
+El request DTO Q10 permanece explicito y los tipos de respuestas se infieren desde
+Zod. El FormModel y el command quedaron en sus capas correspondientes, mientras el
+schema OTP duplicado fue sustituido por el contrato shared estable.
+
+El build inicial fallo por la descarga de Geist bloqueada en el sandbox; la
+repeticion con red termino correctamente. Los 10 smoke y 93 E2E globales emitieron
+resultado correcto antes de quedar abiertos durante el teardown conocido de
+Playwright en Windows.

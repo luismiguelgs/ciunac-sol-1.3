@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation'
 import { readConsultationSession } from '@/modules/security/server/session'
 import EmptyState from '@/modules/shared/components/empty-state'
-import { createGetConsultationRequestsUseCase } from '@/modules/consultas/infrastructure/server/create-get-consultation-requests'
-import ConsultationResults from '@/modules/consulta-solicitud/presentation/components/consultation-results'
+import { ConsultationResults } from '@/modules/consulta-solicitud'
+import { getSolicitudConsultation } from '@/modules/consulta-solicitud/server'
 
 type PageProps = {
   params: Promise<{ dni: string }>
@@ -13,8 +13,7 @@ export default async function ResultadoSolicitudPage({ params }: PageProps) {
   const consultation = await readConsultationSession('CERTIFICADO', dni)
   if (!consultation) redirect('/consulta-solicitud')
 
-  const useCase = createGetConsultationRequestsUseCase()
-  const result = await useCase.execute(dni, 'CERTIFICADO')
+  const result = await getSolicitudConsultation({ documentNumber: dni })
 
   if (result.requests.length === 0) {
     return (

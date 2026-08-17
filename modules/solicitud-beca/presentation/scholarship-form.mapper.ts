@@ -4,12 +4,12 @@ import {
   ScholarshipCatalogs,
   ScholarshipDocuments,
 } from '@/modules/solicitud-beca/domain/solicitud-beca'
-import { IBasicInfoSchema } from '@/modules/solicitud-beca/schemas/basic-data.schema'
-import { DocumentsFormValues } from '@/modules/solicitud-beca/schemas/documents.schema'
+import { IBasicInfoSchema } from '@/modules/solicitud-beca/presentation/schemas/basic-data.schema'
+import { DocumentsFormValues } from '@/modules/solicitud-beca/presentation/schemas/documents.schema'
 import {
   scholarshipBasicDataSchema,
   scholarshipDocumentsSchema,
-} from '@/modules/solicitud-beca/schemas/solicitud-beca.schema'
+} from '@/modules/solicitud-beca/application/validation/solicitud-beca.schema'
 
 export function toScholarshipBasicData(
   values: IBasicInfoSchema,

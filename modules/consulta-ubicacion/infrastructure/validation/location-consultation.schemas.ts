@@ -46,3 +46,7 @@ export const locationPlacementArrayResponseSchema = z.array(z.object({
   }).passthrough(),
   calificacion: z.object({ cicloId: externalIdSchema }).passthrough().nullish().transform((value) => value ?? null),
 }).passthrough())
+
+export type LocationExamResponseDto = z.output<typeof locationExamArrayResponseSchema>[number]
+export type LocationCycleResponseDto = z.output<typeof locationCycleArrayResponseSchema>[number]
+export type LocationPlacementResponseDto = z.output<typeof locationPlacementArrayResponseSchema>[number]

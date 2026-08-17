@@ -5,14 +5,12 @@ import { Separator } from '@/components/ui/separator'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { AlertTriangle, Mail, Phone } from 'lucide-react'
 import waterMark from '@/assets/logo-ciunac-trans.png'
-import {
-  CertificateDetail,
-  resolveCertificateCourseLabels,
-} from '@/modules/consulta-certificado/domain/certificate-detail'
+import type { CertificateDetailResult } from '@/modules/consulta-certificado/application/get-certificate-detail.use-case'
+import { presentCertificateDetail } from '@/modules/consulta-certificado/presentation/certificate-detail.presenter'
 import Copyright from '@/modules/shared/components/copyright'
 
-export default function CertificateDetailView({ certificate }: { certificate: CertificateDetail }) {
-  const labels = resolveCertificateCourseLabels(certificate)
+export default function CertificateDetailView({ certificate }: { certificate: CertificateDetailResult }) {
+  const presentation = presentCertificateDetail(certificate)
 
   return (
     <main className="flex min-h-screen flex-col">
@@ -41,15 +39,15 @@ export default function CertificateDetailView({ certificate }: { certificate: Ce
             </CardHeader>
             <CardContent className="relative space-y-4">
               <dl className="grid grid-cols-1 gap-3 text-sm md:text-base">
-                <DetailRow label="Idioma" value={labels.language} />
-                <DetailRow label="Nivel" value={certificate.level} />
-                <DetailRow label="N.° de horas" value={String(certificate.hours)} />
-                <DetailRow label="N.° de registro" value={certificate.registrationNumber} />
-                <DetailRow label="Fecha de emisión" value={formatDate(certificate.issuedAt)} />
-                <DetailRow label="Fecha de conclusión" value={formatDate(certificate.completedAt)} />
-                <DetailRow label="Entregado" value={certificate.delivery.status === 'accepted' ? 'Sí' : 'No'} />
-                {certificate.delivery.status === 'accepted' ? (
-                  <DetailRow label="Fecha de entrega" value={formatDate(certificate.delivery.acceptedAt)} />
+                <DetailRow label="Idioma" value={presentation.courseLanguage} />
+                <DetailRow label="Nivel" value={presentation.courseLevel} />
+                <DetailRow label="N.º de horas" value={String(certificate.hours)} />
+                <DetailRow label="N.º de registro" value={certificate.registrationNumber} />
+                <DetailRow label="Fecha de emisión" value={presentation.issuedAt} />
+                <DetailRow label="Fecha de conclusión" value={presentation.completedAt} />
+                <DetailRow label="Entregado" value={presentation.delivered} />
+                {presentation.acceptedAt ? (
+                  <DetailRow label="Fecha de entrega" value={presentation.acceptedAt} />
                 ) : null}
               </dl>
             </CardContent>
@@ -57,7 +55,9 @@ export default function CertificateDetailView({ certificate }: { certificate: Ce
 
           <Card className="shadow-lg">
             <CardHeader>
-              <h2 className="text-center text-2xl font-bold md:text-left">NIVEL {labels.level}</h2>
+              <h2 className="text-center text-2xl font-bold md:text-left">
+                NIVEL {presentation.courseLevel}
+              </h2>
               <Separator className="my-4" />
             </CardHeader>
             <CardContent>
@@ -125,11 +125,4 @@ function DetailRow({ label, value }: { label: string; value: string }) {
       <dd className="text-right">{value}</dd>
     </div>
   )
-}
-
-function formatDate(value: string): string {
-  const date = new Date(value)
-  return Number.isNaN(date.getTime())
-    ? 'No disponible'
-    : date.toLocaleDateString('es-PE', { timeZone: 'UTC' })
 }

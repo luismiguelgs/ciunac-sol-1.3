@@ -8,16 +8,18 @@ import {
   isDigitalCertificateType,
 } from '@/modules/solicitud-certificado/domain/solicitud-certificado'
 import {
+  CertificateRequestDto,
+  CertificateStudentRequestDto,
+} from '@/modules/solicitud-certificado/infrastructure/dto/certificate-request.dto'
+import type {
   CertificateCargoResponseDto,
   CertificateFacultyResponseDto,
   CertificateLanguageResponseDto,
-  CertificateRequestDto,
   CertificateSchoolResponseDto,
   CertificateStudentLookupResponseDto,
-  CertificateStudentRequestDto,
   CertificateTextResponseDto,
   CertificateTypeResponseDto,
-} from '@/modules/solicitud-certificado/infrastructure/dto/certificate-api.dto'
+} from '@/modules/solicitud-certificado/infrastructure/validation/certificate-api.schemas'
 
 export function toCertificateStudentRequestDto(solicitud: SolicitudCertificado): CertificateStudentRequestDto {
   const { basicData } = solicitud

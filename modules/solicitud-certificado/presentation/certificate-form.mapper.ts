@@ -9,7 +9,7 @@ import {
 import {
   CertificateBasicDataFormValues,
   certificateBasicDataInitialValues,
-} from '@/modules/solicitud-certificado/schemas/basic-data.schema'
+} from '@/modules/solicitud-certificado/presentation/schemas/basic-data.schema'
 
 export function toCertificateBasicData(
   values: CertificateBasicDataFormValues,

@@ -8,8 +8,8 @@ import pdfImage from '@/assets/pdf.png'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { AppError, normalizeAppError } from '@/modules/shared/application/errors/app-error'
+import { getCertificateCargo } from '@/modules/solicitud-certificado/client'
 import { CertificateCargo, CertificateText } from '@/modules/solicitud-certificado/domain/solicitud-certificado'
-import { certificateCargoRepository } from '@/modules/solicitud-certificado/infrastructure/certificate-cargo.repository'
 import CertificateCargoPdf from '@/modules/solicitud-certificado/presentation/components/cargo-pdf'
 
 const REQUIRED_TEXTS = ['TEXTO_NOMBREAN', 'TEXTO_1_FINAL', 'TEXTO_1_DISCLAMER', 'TEXTO_2_DISCLAMER']
@@ -31,7 +31,7 @@ export default function DescargaCargo({ solicitudId, texts }: { solicitudId: num
       setState({ status: 'loading' })
       setPdfError(null)
       try {
-        const result = await certificateCargoRepository.findById(solicitudId)
+        const result = await getCertificateCargo(solicitudId)
         if (!mounted) return
         setState(result ? { status: 'data', data: result } : { status: 'empty' })
       } catch (cause) {

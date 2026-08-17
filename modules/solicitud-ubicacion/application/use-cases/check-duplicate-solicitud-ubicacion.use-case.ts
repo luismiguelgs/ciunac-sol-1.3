@@ -15,9 +15,9 @@ export class CheckDuplicateSolicitudUbicacionUseCase {
       const solicitudes = await this.solicitudGateway.searchByDocument(documentNumber)
       return solicitudes.some(
         (solicitud) =>
-          solicitud.estadoId === 1 &&
-          solicitud.idiomaId === languageId &&
-          solicitud.tipoSolicitudId === LOCATION_REQUEST_TYPE_ID,
+          solicitud.statusId === 1 &&
+          solicitud.languageId === languageId &&
+          solicitud.requestTypeId === LOCATION_REQUEST_TYPE_ID,
       )
     } catch (error) {
       throw normalizeAppError(error, 'No se pudo verificar duplicidad de solicitud')

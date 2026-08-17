@@ -1,13 +1,15 @@
 import React from 'react'
 import { normalizeAppError } from '@/modules/shared/application/errors/app-error'
-import { createRegisterSolicitudUbicacionUseCase } from '@/modules/solicitud-ubicacion/application/factories/create-register-solicitud-ubicacion-use-case'
+import {
+  registerSolicitudUbicacion,
+  retrySolicitudUbicacionNotification,
+} from '@/modules/solicitud-ubicacion/client'
 import { SolicitudUbicacion } from '@/modules/solicitud-ubicacion/domain/solicitud-ubicacion'
 import useSolicitudUbicacionStore from '@/modules/solicitud-ubicacion/presentation/solicitud-ubicacion.store'
 
 export type LocationRegisterDialogState = 'SAVE' | 'EMAIL' | 'EMAIL_ERROR' | 'ERROR'
 
 export function useRegisterSolicitudUbicacion(onSuccess: (requestId: string, receiptId: string) => void) {
-  const useCase = React.useMemo(() => createRegisterSolicitudUbicacionUseCase(), [])
   const workflow = useSolicitudUbicacionStore((state) => state.workflow)
   const beginRegistration = useSolicitudUbicacionStore((state) => state.beginRegistration)
   const completeRegistration = useSolicitudUbicacionStore((state) => state.completeRegistration)
@@ -21,7 +23,7 @@ export function useRegisterSolicitudUbicacion(onSuccess: (requestId: string, rec
     beginRegistration(solicitud)
     setOpen(true)
     try {
-      const result = await useCase.execute({ solicitud })
+      const result = await registerSolicitudUbicacion({ solicitud })
       if (result.status === 'saved_notification_failed') {
         markNotificationFailed(result.requestId, result.error)
         return
@@ -40,7 +42,7 @@ export function useRegisterSolicitudUbicacion(onSuccess: (requestId: string, rec
     beginNotificationRetry(requestId)
     setOpen(true)
     try {
-      const receiptId = await useCase.retryNotification(requestId)
+      const receiptId = await retrySolicitudUbicacionNotification(requestId)
       completeRegistration(requestId, receiptId)
       setOpen(false)
       onSuccess(requestId, receiptId)

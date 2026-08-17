@@ -41,3 +41,9 @@ flowchart LR
 - Respuestas sin ID no se consideran exitosas y no disparan correo.
 - El resumen de beca deja de depender del modulo de consultas.
 - La propiedad definitiva de las URLs cargadas sigue requiriendo validacion del backend externo.
+
+## Evolución Posterior
+
+ADR-020 completa los límites modulares: traslada la composición fuera de
+application, define las entradas públicas browser/server y convierte la política
+PDF en una regla de dominio independiente del tipo `File`.

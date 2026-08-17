@@ -1,23 +1,18 @@
 import { z } from 'zod'
-import {
-  ScholarshipCreateResponseDto,
-  ScholarshipFacultyResponseDto,
-  ScholarshipSchoolResponseDto,
-} from '@/modules/solicitud-beca/infrastructure/dto/scholarship-api.dto'
 
 const numericId = z.union([
   z.number().int().positive(),
   z.string().trim().regex(/^\d+$/).transform(Number),
 ])
 
-export const scholarshipCreateResponseSchema: z.ZodType<ScholarshipCreateResponseDto> = z.object({
+export const scholarshipCreateResponseSchema = z.object({
   _id: z.string().trim().min(1).max(80).optional(),
   id: z.string().trim().min(1).max(80).optional(),
 }).passthrough().refine((value) => Boolean(value._id || value.id), {
   message: 'La respuesta no contiene un identificador de beca.',
 })
 
-export const scholarshipFacultyArraySchema: z.ZodType<ScholarshipFacultyResponseDto[]> = z.array(
+export const scholarshipFacultyArraySchema = z.array(
   z.object({
     id: numericId,
     nombre: z.string().trim().min(1).max(254),
@@ -25,10 +20,14 @@ export const scholarshipFacultyArraySchema: z.ZodType<ScholarshipFacultyResponse
   }).passthrough(),
 ).min(1)
 
-export const scholarshipSchoolArraySchema: z.ZodType<ScholarshipSchoolResponseDto[]> = z.array(
+export const scholarshipSchoolArraySchema = z.array(
   z.object({
     id: numericId,
     nombre: z.string().trim().min(1).max(254),
     facultadId: numericId,
   }).passthrough(),
 ).min(1)
+
+export type ScholarshipCreateResponseDto = z.output<typeof scholarshipCreateResponseSchema>
+export type ScholarshipFacultyResponseDto = z.output<typeof scholarshipFacultyArraySchema>[number]
+export type ScholarshipSchoolResponseDto = z.output<typeof scholarshipSchoolArraySchema>[number]

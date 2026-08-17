@@ -61,3 +61,9 @@ sequenceDiagram
 - La cookie protege el flujo normal, pero una autoridad definitiva sobre la
   condicion CIUNAC requiere validacion del backend institucional.
 - El comprobante de correo confirma aceptacion HTTP, no entrega SMTP.
+
+## Evolucion
+
+ADR-023 conserva estas reglas y agrega APIs publicas, composition roots y limites
+ESLint. Las factories de application y los imports directos a infrastructure fueron
+retirados sin cambiar los contratos funcionales aqui definidos.

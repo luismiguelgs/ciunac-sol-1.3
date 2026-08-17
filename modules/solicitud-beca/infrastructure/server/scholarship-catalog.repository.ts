@@ -1,6 +1,9 @@
 import 'server-only'
 
-import { ScholarshipCatalogs } from '@/modules/solicitud-beca/domain/solicitud-beca'
+import {
+  hasConsistentScholarshipCatalogs,
+  ScholarshipCatalogs,
+} from '@/modules/solicitud-beca/domain/solicitud-beca'
 import {
   toScholarshipFaculty,
   toScholarshipSchool,
@@ -10,6 +13,7 @@ import {
   scholarshipSchoolArraySchema,
 } from '@/modules/solicitud-beca/infrastructure/validation/scholarship-api.schemas'
 import { ciunacRequest } from '@/modules/security/server/ciunac-client'
+import { AppError } from '@/modules/shared/application/errors/app-error'
 import { parseExternalResponse } from '@/modules/shared/infrastructure/validation/external-response'
 
 export async function getScholarshipCatalogs(): Promise<ScholarshipCatalogs> {
@@ -29,5 +33,14 @@ export async function getScholarshipCatalogs(): Promise<ScholarshipCatalogs> {
     'La API devolvió un catálogo de escuelas vacío o inválido.',
   ).map(toScholarshipSchool)
 
-  return { faculties, schools }
+  const catalogs = { faculties, schools }
+  if (!hasConsistentScholarshipCatalogs(catalogs)) {
+    throw new AppError({
+      code: 'EXTERNAL_SERVICE',
+      status: 503,
+      message: 'El catálogo académico contiene relaciones inconsistentes.',
+    })
+  }
+
+  return catalogs
 }

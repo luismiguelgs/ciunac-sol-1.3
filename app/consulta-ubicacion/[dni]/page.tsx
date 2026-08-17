@@ -1,6 +1,6 @@
 import { notFound, redirect } from 'next/navigation'
-import { createGetLocationConsultationUseCase } from '@/modules/consulta-ubicacion/infrastructure/server/create-get-location-consultation'
-import LocationConsultationView from '@/modules/consulta-ubicacion/presentation/components/location-consultation-view'
+import { LocationConsultationView } from '@/modules/consulta-ubicacion'
+import { getLocationConsultation } from '@/modules/consulta-ubicacion/server'
 import { readConsultationSession } from '@/modules/security/server/session'
 
 type PageProps = {
@@ -12,7 +12,7 @@ export default async function LocationDetailPage({ params }: PageProps) {
   const consultationSession = await readConsultationSession('EXAMEN', dni)
   if (!consultationSession) redirect('/consulta-ubicacion')
 
-  const consultation = await createGetLocationConsultationUseCase().execute(dni)
+  const consultation = await getLocationConsultation({ documentNumber: dni })
   if (!consultation) notFound()
 
   return <LocationConsultationView consultation={consultation} />

@@ -147,6 +147,9 @@ const server = createServer(async (request, response) => {
     if (scenario.scholarshipCatalogError) return sendJson(response, 503, { internal: 'hidden catalog failure' })
     if (scenario.emptyScholarshipCatalogs) return sendJson(response, 200, [])
     if (scenario.malformedScholarshipCatalogs) return sendJson(response, 200, [{ id: 1 }])
+    if (scenario.inconsistentScholarshipCatalogs) {
+      return sendJson(response, 200, fixture.escuelas.map((school) => ({ ...school, facultadId: 999 })))
+    }
     return sendJson(response, 200, fixture.escuelas)
   }
   if (method === 'GET' && path === 'textos') {
@@ -202,11 +205,17 @@ const server = createServer(async (request, response) => {
     documentRequestReads += 1
     if (scenario.emptyRequestsAfterFirst && documentRequestReads > 1) return sendJson(response, 200, [])
     if (scenario.malformedRequestsAfterFirst && documentRequestReads > 1) return sendJson(response, 200, [{ id: 1001 }])
-    let requestsResponse = scenario.readyDigitalCertificate
-      ? fixture.solicitudes.map((item) => item.id === 1001
+    let requestsResponse = fixture.solicitudes
+    if (scenario.readyDigitalCertificate) {
+      requestsResponse = requestsResponse.map((item) => item.id === 1001
         ? { ...item, estadoId: 3, digital: true, estado: { id: 3, nombre: 'PARA RECOGER', referencia: 'LISTO' } }
         : item)
-      : fixture.solicitudes
+    }
+    if (scenario.readyDigitalConstancia) {
+      requestsResponse = requestsResponse.map((item) => item.id === 1003
+        ? { ...item, estadoId: 3, digital: true, estado: { id: 3, nombre: 'PARA RECOGER', referencia: 'LISTO' } }
+        : item)
+    }
     if (scenario.duplicateLocationRequest) {
       requestsResponse = requestsResponse.map((item) => item.id === 1002
         ? { ...item, estadoId: 1, estado: { id: 1, nombre: 'NUEVO', referencia: 'REGISTRADO' } }
@@ -243,7 +252,9 @@ const server = createServer(async (request, response) => {
   }
 
   if (method === 'GET' && path.startsWith('certificados/solicitud/')) {
-    return sendJson(response, 200, fixture.certificado)
+    return sendJson(response, 200, scenario.legacyNumericCertificateDocument
+      ? { ...fixture.certificado, numeroDocumento: 12345678 }
+      : fixture.certificado)
   }
   if (method === 'GET' && path.startsWith('certificados/')) {
     if (scenario.certificateNotFound) return sendJson(response, 404, { error: 'not found' })
@@ -253,9 +264,6 @@ const server = createServer(async (request, response) => {
       return
     }
     if (scenario.malformedCertificate) return sendJson(response, 200, { _id: fixture.certificado._id, notas: [] })
-    if (scenario.certificateOwnerMismatch) {
-      return sendJson(response, 200, { ...fixture.certificado, numeroDocumento: '87654321' })
-    }
     if (scenario.certificateWithoutNotes) return sendJson(response, 200, { ...fixture.certificado, notas: [] })
     return sendJson(response, 200, fixture.certificado)
   }
@@ -264,6 +272,14 @@ const server = createServer(async (request, response) => {
   }
 
   if (method === 'GET' && path.startsWith('constancias/solicitud/')) {
+    if (scenario.legacyConstanciaAliases) {
+      const { solicitudId, numeroDocumento, ...legacyConstancia } = fixture.constancia
+      return sendJson(response, 200, {
+        ...legacyConstancia,
+        id_solicitud: solicitudId,
+        dni: numeroDocumento,
+      })
+    }
     return sendJson(response, 200, fixture.constancia)
   }
   if (method === 'PATCH' && path.startsWith('constancias/')) {

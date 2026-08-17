@@ -1,8 +1,6 @@
 import { NewStudent, NewStudentProgramOption } from '@/modules/solicitud-nuevo/domain/new-student'
-import {
-  Q10ProgramResponseDto,
-  Q10StudentRequestDto,
-} from '@/modules/solicitud-nuevo/infrastructure/dto/q10-api.dto'
+import { Q10StudentRequestDto } from '@/modules/solicitud-nuevo/infrastructure/dto/q10-student-request.dto'
+import { Q10ProgramResponseDto } from '@/modules/solicitud-nuevo/infrastructure/validation/q10-api.schemas'
 
 const HIDDEN_PROGRAM_NAME_PATTERNS = ['2026', 'kids', 'juniors']
 

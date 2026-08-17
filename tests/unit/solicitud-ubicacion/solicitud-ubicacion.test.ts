@@ -1,17 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AppError } from '@/modules/shared/application/errors/app-error'
 import { resourceApiRepository } from '@/modules/shared/infrastructure/api/resource-api.repository'
+import { FindLocationStudentUseCase } from '@/modules/solicitud-ubicacion/application/use-cases/find-location-student.use-case'
+import { GetLocationCargoUseCase } from '@/modules/solicitud-ubicacion/application/use-cases/get-location-cargo.use-case'
 import { RegisterSolicitudUbicacionUseCase } from '@/modules/solicitud-ubicacion/application/use-cases/register-solicitud-ubicacion.use-case'
+import { solicitudUbicacionDomainSchema } from '@/modules/solicitud-ubicacion/application/validation/solicitud-ubicacion.schema'
+import {
+  getIdentityDocumentViolation,
+  getStudyCertificateViolation,
+} from '@/modules/solicitud-ubicacion/domain/location-document-policy'
 import {
   LocationCatalogs,
   SolicitudUbicacion,
   isOfficialLocationPrice,
 } from '@/modules/solicitud-ubicacion/domain/solicitud-ubicacion'
-import { validateIdentityDocumentMetadata } from '@/modules/solicitud-ubicacion/domain/identity-document-policy'
-import { validateLocationStudyCertificateMetadata } from '@/modules/solicitud-ubicacion/domain/study-certificate-policy'
+import { LocationCargoApiGateway } from '@/modules/solicitud-ubicacion/infrastructure/api/location-cargo-api.gateway'
+import { LocationStudentApiGateway } from '@/modules/solicitud-ubicacion/infrastructure/api/location-student-api.gateway'
 import { SolicitudUbicacionApiGateway } from '@/modules/solicitud-ubicacion/infrastructure/api/solicitud-ubicacion-api.gateway'
-import { StudentUbicacionApiGateway } from '@/modules/solicitud-ubicacion/infrastructure/api/student-ubicacion-api.gateway'
-import { locationCargoRepository } from '@/modules/solicitud-ubicacion/infrastructure/location-cargo.repository'
 import {
   toLocationCargo,
   toLocationRequestDto,
@@ -25,13 +30,15 @@ import {
   locationStudentResponseSchema,
   locationTypeArraySchema,
 } from '@/modules/solicitud-ubicacion/infrastructure/validation/location-api.schemas'
-import { validateIdentityDocumentUpload } from '@/modules/solicitud-ubicacion/infrastructure/validation/identity-document-upload'
+import {
+  validateIdentityDocumentUpload,
+  validateLocationStudyCertificateUpload,
+} from '@/modules/solicitud-ubicacion/infrastructure/validation/location-document-upload'
 import {
   toLocationBasicData,
   toLocationPayment,
 } from '@/modules/solicitud-ubicacion/presentation/location-form.mapper'
 import useSolicitudUbicacionStore from '@/modules/solicitud-ubicacion/presentation/solicitud-ubicacion.store'
-import { solicitudUbicacionDomainSchema } from '@/modules/solicitud-ubicacion/schemas/solicitud-ubicacion-domain.schema'
 
 const catalogs: LocationCatalogs = {
   requestType: { id: 7, name: 'Examen de ubicacion', price: 30 },
@@ -138,10 +145,10 @@ describe('location DTOs, external responses and gateways', () => {
     const update = vi.spyOn(resourceApiRepository, 'update').mockResolvedValueOnce({ id: 'student-1' })
     const request = locationRequest()
     request.basicData.existingStudentId = 'student-1'
-    await expect(new StudentUbicacionApiGateway().save(request)).resolves.toBe('student-1')
+    await expect(new LocationStudentApiGateway().save(request)).resolves.toBe('student-1')
     expect(update).toHaveBeenCalledWith('estudiantes/student-1', expect.objectContaining({ imgDoc: '/identity.pdf' }))
     update.mockResolvedValueOnce({})
-    await expect(new StudentUbicacionApiGateway().save(request)).rejects.toMatchObject({ code: 'EXTERNAL_SERVICE' })
+    await expect(new LocationStudentApiGateway().save(request)).rejects.toMatchObject({ code: 'EXTERNAL_SERVICE' })
   })
 
   it('posts the location envelope and preserves a 409 validation error', async () => {
@@ -160,9 +167,22 @@ describe('location DTOs, external responses and gateways', () => {
     const dto = locationCargoResponseSchema.parse(cargoResponse())
     expect(toLocationCargo(dto)).toMatchObject({ id: 1002, amount: 30, languageName: 'Ingles' })
     const getOptional = vi.spyOn(resourceApiRepository, 'getOptional').mockResolvedValueOnce(null)
-    await expect(locationCargoRepository.findById(1002)).resolves.toBeNull()
+    await expect(new LocationCargoApiGateway().findById(1002)).resolves.toBeNull()
     getOptional.mockResolvedValueOnce({ id: 1002 })
-    await expect(locationCargoRepository.findById(1002)).rejects.toMatchObject({ code: 'EXTERNAL_SERVICE' })
+    await expect(new LocationCargoApiGateway().findById(1002)).rejects.toMatchObject({ code: 'EXTERNAL_SERVICE' })
+  })
+
+  it('validates student and cargo reads before invoking their ports', async () => {
+    const findByDocument = vi.fn().mockResolvedValue(null)
+    const findStudent = new FindLocationStudentUseCase({ findByDocument })
+    await expect(findStudent.execute(' 12345678 ')).resolves.toBeNull()
+    expect(findByDocument).toHaveBeenCalledWith('12345678')
+    await expect(findStudent.execute('bad')).rejects.toMatchObject({ code: 'VALIDATION' })
+
+    const findById = vi.fn().mockResolvedValue(null)
+    const getCargo = new GetLocationCargoUseCase({ findById })
+    await expect(getCargo.execute(1002)).resolves.toBeNull()
+    await expect(getCargo.execute(0)).rejects.toMatchObject({ code: 'VALIDATION' })
   })
 })
 
@@ -173,19 +193,31 @@ describe('location file policies', () => {
     ['identity.jpg', 'image/jpeg', [0xff, 0xd8, 0xff, 0xe0]],
   ])('accepts a real %s identity document', async (name, type, bytes) => {
     const file = new File([new Uint8Array(bytes as number[])], name, { type })
-    expect(validateIdentityDocumentMetadata(file)).toBeNull()
+    expect(getIdentityDocumentViolation({ name: file.name, size: file.size, mimeType: file.type })).toBeNull()
     const data = new FormData()
     data.set('file', file)
     await expect(validateIdentityDocumentUpload(data)).resolves.toBe(file)
   })
 
-  it('rejects a forged identity document and invalid study certificate metadata', async () => {
+  it('rejects forged files and validates study certificate metadata without File dependencies', async () => {
     const forged = new File([new Uint8Array([0x00, 0x01])], 'identity.pdf', { type: 'application/pdf' })
     const data = new FormData()
     data.set('file', forged)
     await expect(validateIdentityDocumentUpload(data)).rejects.toMatchObject({ code: 'INVALID_FILE' })
-    expect(validateLocationStudyCertificateMetadata(new File(['image'], 'study.png', { type: 'image/png' }))).toMatch(/PDF/)
-    expect(validateLocationStudyCertificateMetadata(new File([], 'study.pdf', { type: 'application/pdf' }))).toMatch(/vacio/)
+
+    expect(getStudyCertificateViolation({ name: 'study.png', size: 5, mimeType: 'image/png' })).toBe('INVALID_MIME')
+    expect(getStudyCertificateViolation({ name: 'study.pdf', size: 0, mimeType: 'application/pdf' })).toBe('EMPTY')
+
+    const validStudy = new File([new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d])], 'study.pdf', {
+      type: 'application/pdf',
+    })
+    const validData = new FormData()
+    validData.set('file', validStudy)
+    await expect(validateLocationStudyCertificateUpload(validData)).resolves.toBe(validStudy)
+
+    const forgedStudy = new FormData()
+    forgedStudy.set('file', new File(['not-pdf'], 'study.pdf', { type: 'application/pdf' }))
+    await expect(validateLocationStudyCertificateUpload(forgedStudy)).rejects.toMatchObject({ code: 'INVALID_FILE' })
   })
 })
 

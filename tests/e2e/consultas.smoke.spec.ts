@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { installBrowserMocks, resetMockApi, setMockScenario } from './support/browser-mocks'
+import { getMockRequests, installBrowserMocks, resetMockApi, setMockScenario } from './support/browser-mocks'
 
 test.beforeEach(async ({ page, request }) => {
   await resetMockApi(request)
@@ -46,17 +46,46 @@ test('muestra el documento digital solo cuando la solicitud esta lista', async (
   await expect(page.getByRole('button', { name: /Descargar Certificado/i })).toBeVisible()
 })
 
-test('consulta un certificado y muestra sus notas', async ({ page }) => {
+test('permite descargar certificados historicos con documento numerico', async ({ page, request }) => {
+  await setMockScenario(request, {
+    readyDigitalCertificate: true,
+    legacyNumericCertificateDocument: true,
+  })
   await page.goto('/consulta-solicitud')
   await page.locator('input[name="documento"]').fill('12345678')
   await page.getByRole('button', { name: 'Buscar' }).click()
-  await expect(page).toHaveURL(/\/consulta-solicitud\/12345678$/)
+
+  await expect(page.getByRole('button', { name: /Descargar Certificado/i })).toBeVisible()
+})
+
+test('muestra la constancia digital con su variante independiente cuando esta lista', async ({ page, request }) => {
+  await setMockScenario(request, {
+    readyDigitalConstancia: true,
+    legacyConstanciaAliases: true,
+  })
+  await page.goto('/consulta-solicitud')
+  await page.locator('input[name="documento"]').fill('12345678')
+  await page.getByRole('button', { name: 'Buscar' }).click()
+
+  await expect(page.getByRole('button', { name: /Descargar Constancia/i })).toBeVisible()
+})
+
+test('consulta un certificado y muestra sus notas', async ({ page }) => {
+  const browserRequests: string[] = []
+  let browserSentApiKey = false
+  page.on('request', (request) => {
+    browserRequests.push(request.url())
+    browserSentApiKey ||= Boolean(request.headers()['x-api-key'])
+  })
 
   await page.goto('/consulta-certificado/CERT-E2E')
 
+  await expect(page).toHaveURL(/\/consulta-certificado\/CERT-E2E$/)
   await expect(page.getByRole('heading', { name: /Detalle de Certificado/i })).toBeVisible()
   await expect(page.getByText('REG-E2E-001')).toBeVisible()
   await expect(page.getByRole('cell', { name: '90' })).toBeVisible()
+  expect(browserRequests.some((url) => url.startsWith('http://127.0.0.1:4100'))).toBe(false)
+  expect(browserSentApiKey).toBe(false)
 })
 
 test('consulta el resultado del examen de ubicacion', async ({ page }) => {
@@ -78,11 +107,6 @@ test('muestra un estado explicito cuando la consulta queda sin solicitudes', asy
 
 test('muestra certificado sin notas sin lanzar un error', async ({ page, request }) => {
   await setMockScenario(request, { certificateWithoutNotes: true })
-  await page.goto('/consulta-solicitud')
-  await page.locator('input[name="documento"]').fill('12345678')
-  await page.getByRole('button', { name: 'Buscar' }).click()
-  await expect(page).toHaveURL(/\/consulta-solicitud\/12345678$/)
-
   await page.goto('/consulta-certificado/CERT-E2E')
   await expect(page.getByText(/No hay notas disponibles/i)).toBeVisible()
   await expect(page.getByText('REG-E2E-001')).toBeVisible()
@@ -90,48 +114,30 @@ test('muestra certificado sin notas sin lanzar un error', async ({ page, request
 
 test('muestra certificado no disponible ante una respuesta vacia', async ({ page, request }) => {
   await setMockScenario(request, { emptyCertificateResponse: true })
-  await page.goto('/consulta-solicitud')
-  await page.locator('input[name="documento"]').fill('12345678')
-  await page.getByRole('button', { name: 'Buscar' }).click()
-  await expect(page).toHaveURL(/\/consulta-solicitud\/12345678$/)
-
   await page.goto('/consulta-certificado/CERT-E2E')
   await expect(page.getByRole('heading', { name: /Certificado no disponible/i })).toBeVisible()
 })
 
 test('muestra error de ruta ante un certificado mal formado', async ({ page, request }) => {
   await setMockScenario(request, { malformedCertificate: true })
-  await page.goto('/consulta-solicitud')
-  await page.locator('input[name="documento"]').fill('12345678')
-  await page.getByRole('button', { name: 'Buscar' }).click()
-  await expect(page).toHaveURL(/\/consulta-solicitud\/12345678$/)
-
   await page.goto('/consulta-certificado/CERT-E2E')
   await expect(page.getByText(/No se pudo consultar el certificado/i)).toBeVisible()
   await expect(page.getByRole('button', { name: 'Reintentar' })).toBeVisible()
 })
 
-test('no expone un certificado perteneciente a otro documento', async ({ page, request }) => {
-  await setMockScenario(request, { certificateOwnerMismatch: true })
-  await page.goto('/consulta-solicitud')
-  await page.locator('input[name="documento"]').fill('12345678')
-  await page.getByRole('button', { name: 'Buscar' }).click()
-  await expect(page).toHaveURL(/\/consulta-solicitud\/12345678$/)
-
-  await page.goto('/consulta-certificado/CERT-E2E')
-  await expect(page.getByRole('heading', { name: /Certificado no disponible/i })).toBeVisible()
-  await expect(page.getByText('REG-E2E-001')).toHaveCount(0)
-})
-
 test('muestra certificado no disponible ante un 404 real', async ({ page, request }) => {
   await setMockScenario(request, { certificateNotFound: true })
-  await page.goto('/consulta-solicitud')
-  await page.locator('input[name="documento"]').fill('12345678')
-  await page.getByRole('button', { name: 'Buscar' }).click()
-  await expect(page).toHaveURL(/\/consulta-solicitud\/12345678$/)
-
   await page.goto('/consulta-certificado/CERT-E2E')
   await expect(page.getByRole('heading', { name: /Certificado no disponible/i })).toBeVisible()
+})
+
+test('rechaza un identificador de certificado con formato invalido sin consultar el proveedor', async ({ page, request }) => {
+  await page.goto('/consulta-certificado/CERT!INVALID')
+  await expect(page.getByRole('heading', { name: /Certificado no disponible/i })).toBeVisible()
+
+  const upstreamRequests = await request.get('http://127.0.0.1:4100/__test/requests')
+  const requests = await upstreamRequests.json() as Array<{ path: string }>
+  expect(requests.some((item) => item.path.startsWith('/certificados/'))).toBe(false)
 })
 
 test('distingue un error tecnico de la ausencia de notas de ubicacion', async ({ page, request }) => {
@@ -148,6 +154,9 @@ test('muestra estado vacio y conserva el cargo cuando aun no hay notas de ubicac
 
   await expect(page.getByText(/Aún no se encontraron notas/i)).toBeVisible()
   await expect(page.getByRole('button', { name: /Descargar Cargo/i })).toBeVisible()
+
+  const providerRequests = await getMockRequests(request)
+  expect(providerRequests.filter((item) => item.path === '/solicitudes/1002')).toHaveLength(0)
 })
 
 test('muestra error de ruta ante resultados de ubicacion mal formados', async ({ page, request }) => {

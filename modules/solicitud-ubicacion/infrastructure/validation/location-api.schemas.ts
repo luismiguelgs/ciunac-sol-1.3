@@ -1,17 +1,8 @@
 import { z } from 'zod'
 import {
-  LocationCargoResponseDto,
   LocationCreateCommandDto,
-  LocationCreateResponseDto,
-  LocationDuplicateResponseDto,
-  LocationLanguageResponseDto,
   LocationRequestDto,
-  LocationScheduleResponseDto,
-  LocationStudentLookupResponseDto,
   LocationStudentRequestDto,
-  LocationStudentResponseDto,
-  LocationTextResponseDto,
-  LocationTypeResponseDto,
 } from '@/modules/solicitud-ubicacion/infrastructure/dto/location-api.dto'
 
 const stringId = z.union([z.string().trim().min(1), z.number().int().positive()]).transform(String)
@@ -26,8 +17,6 @@ const amount = z.union([
 const documentReference = z.string().trim().min(1).max(2048).refine(
   (value) => value.startsWith('/') || /^https?:\/\//i.test(value),
 )
-
-export const locationProfileCommandSchema = z.object({ isCiunacStudent: z.boolean() }).strict()
 
 export const locationStudentRequestDtoSchema: z.ZodType<LocationStudentRequestDto> = z.object({
   nombres: z.string().trim().min(1).max(254),
@@ -44,22 +33,22 @@ export const locationStudentRequestDtoSchema: z.ZodType<LocationStudentRequestDt
   }
 })
 
-export const locationStudentResponseSchema: z.ZodType<LocationStudentResponseDto> = z.object({
+export const locationStudentResponseSchema = z.object({
   id: stringId,
 }).passthrough()
 
-export const locationStudentLookupResponseSchema: z.ZodType<LocationStudentLookupResponseDto> = z.object({
+export const locationStudentLookupResponseSchema = z.object({
   id: stringId,
   nombres: z.string().trim().min(1),
   apellidos: z.string().trim().min(1),
   celular: z.string().trim().regex(/^\d{9}$/),
 }).passthrough()
 
-export const locationCreateResponseSchema: z.ZodType<LocationCreateResponseDto> = z.object({
+export const locationCreateResponseSchema = z.object({
   id: stringId,
 }).passthrough()
 
-export const locationDuplicateResponseArraySchema: z.ZodType<LocationDuplicateResponseDto[]> = z.array(z.object({
+export const locationDuplicateResponseArraySchema = z.array(z.object({
   estadoId: z.number().int().positive(),
   idiomaId: z.number().int().positive(),
   tipoSolicitudId: z.number().int().positive(),
@@ -98,23 +87,23 @@ export const locationCreateCommandDtoSchema: z.ZodType<LocationCreateCommandDto>
   request: locationRequestDtoSchema,
 }).strict()
 
-export const locationTypeArraySchema: z.ZodType<LocationTypeResponseDto[]> = z.array(z.object({
+export const locationTypeArraySchema = z.array(z.object({
   id: z.union([z.literal(7), z.literal('7').transform(() => 7 as const)]),
   solicitud: z.string().trim().min(1),
   precio: amount,
 }).passthrough()).length(1)
 
-export const locationLanguageArraySchema: z.ZodType<LocationLanguageResponseDto[]> = z.array(z.object({
+export const locationLanguageArraySchema = z.array(z.object({
   id: numericId,
   nombre: z.string().trim().min(1),
 }).passthrough()).min(1)
 
-export const locationTextArraySchema: z.ZodType<LocationTextResponseDto[]> = z.array(z.object({
+export const locationTextArraySchema = z.array(z.object({
   codigo: z.string().trim().min(1),
   contenido: z.string().trim().min(1),
 }).passthrough()).min(1)
 
-export const locationScheduleArraySchema: z.ZodType<LocationScheduleResponseDto[]> = z.array(z.object({
+export const locationScheduleArraySchema = z.array(z.object({
   id: numericId,
   moduloId: numericId,
   fecha: z.string().datetime(),
@@ -125,7 +114,7 @@ export const locationScheduleArraySchema: z.ZodType<LocationScheduleResponseDto[
   }).passthrough(),
 }).passthrough())
 
-export const locationCargoResponseSchema: z.ZodType<LocationCargoResponseDto> = z.object({
+export const locationCargoResponseSchema = z.object({
   id: numericId,
   creadoEn: z.string().trim().min(1),
   pago: amount,
@@ -140,3 +129,20 @@ export const locationCargoResponseSchema: z.ZodType<LocationCargoResponseDto> = 
   idioma: z.object({ nombre: z.string().trim().min(1) }).passthrough(),
   nivel: z.object({ nombre: z.string().trim().min(1) }).passthrough(),
 }).passthrough()
+
+export function filterLocationTypeResponse(value: unknown): unknown {
+  if (!Array.isArray(value)) return value
+  return value.filter(
+    (item) => item && typeof item === 'object' && Number((item as { id?: unknown }).id) === 7,
+  )
+}
+
+export type LocationStudentResponseDto = z.output<typeof locationStudentResponseSchema>
+export type LocationStudentLookupResponseDto = z.output<typeof locationStudentLookupResponseSchema>
+export type LocationCreateResponseDto = z.output<typeof locationCreateResponseSchema>
+export type LocationDuplicateResponseDto = z.output<typeof locationDuplicateResponseArraySchema>[number]
+export type LocationTypeResponseDto = z.output<typeof locationTypeArraySchema>[number]
+export type LocationLanguageResponseDto = z.output<typeof locationLanguageArraySchema>[number]
+export type LocationTextResponseDto = z.output<typeof locationTextArraySchema>[number]
+export type LocationScheduleResponseDto = z.output<typeof locationScheduleArraySchema>[number]
+export type LocationCargoResponseDto = z.output<typeof locationCargoResponseSchema>

@@ -6,7 +6,7 @@ import {
   StudentUbicacionGateway,
 } from '@/modules/solicitud-ubicacion/application/ports/register-solicitud-ubicacion.ports';
 import { RegistrationOutcome } from '@/modules/shared/application/results/registration-outcome';
-import { parseSolicitudUbicacion } from '@/modules/solicitud-ubicacion/schemas/solicitud-ubicacion-domain.schema'
+import { parseSolicitudUbicacion } from '@/modules/solicitud-ubicacion/application/validation/solicitud-ubicacion.schema'
 
 type Dependencies = {
   studentGateway: StudentUbicacionGateway;

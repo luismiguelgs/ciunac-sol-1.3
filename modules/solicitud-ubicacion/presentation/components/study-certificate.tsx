@@ -7,12 +7,12 @@ import { Form } from '@/components/ui/form'
 import { StepperControl } from '@/components/stepper'
 import MyAlert from '@/components/forms/myAlert'
 import UploadImage from '@/components/upload-image'
-import { validateLocationStudyCertificateMetadata } from '@/modules/solicitud-ubicacion/domain/study-certificate-policy'
 import { LocationText } from '@/modules/solicitud-ubicacion/domain/solicitud-ubicacion'
 import {
   LocationDocumentsFormValues,
   locationDocumentsFormSchema,
-} from '@/modules/solicitud-ubicacion/schemas/location-documents.schema'
+} from '@/modules/solicitud-ubicacion/presentation/schemas/location-documents.schema'
+import { validateStudyCertificateFile } from '@/modules/solicitud-ubicacion/presentation/location-file.presenter'
 
 type Props = {
   activeStep: number
@@ -53,11 +53,10 @@ export default function StudyCertificate({
           folder="becas"
           label="Certificado de estudios CIUNAC"
           accept=".pdf"
-          validateFile={validateLocationStudyCertificateMetadata}
+          validateFile={validateStudyCertificateFile}
         />
         <StepperControl activeStep={activeStep} steps={steps} setActiveStep={setActiveStep} type="submit" />
       </form>
     </Form>
   )
 }
-

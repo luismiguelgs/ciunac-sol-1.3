@@ -2,15 +2,18 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AppError } from '@/modules/shared/application/errors/app-error'
 import { dataResult, emptyResult, errorResult } from '@/modules/shared/application/results/app-result'
 import { resourceApiRepository } from '@/modules/shared/infrastructure/api/resource-api.repository'
-import { resolveCiunacBodySchema } from '@/modules/security/server/schemas'
 import { RegisterNewStudentUseCase } from '@/modules/solicitud-nuevo/application/use-cases/register-new-student.use-case'
+import { newStudentSchema } from '@/modules/solicitud-nuevo/application/validation/new-student.schema'
 import { NewStudent } from '@/modules/solicitud-nuevo/domain/new-student'
 import { Q10StudentGateway } from '@/modules/solicitud-nuevo/infrastructure/api/q10-student.gateway'
 import { toQ10StudentRequestDto, isVisibleNewStudentProgram } from '@/modules/solicitud-nuevo/infrastructure/mappers/q10-api.mapper'
-import { q10ProgramArraySchema, q10RegistrationResponseSchema } from '@/modules/solicitud-nuevo/infrastructure/validation/q10-api.schemas'
+import {
+  q10ProgramArraySchema,
+  q10RegistrationResponseSchema,
+  q10StudentRequestSchema,
+} from '@/modules/solicitud-nuevo/infrastructure/validation/q10-api.schemas'
 import { toNewStudentBasicData } from '@/modules/solicitud-nuevo/presentation/new-student-form.mapper'
 import useNewStudentStore from '@/modules/solicitud-nuevo/presentation/new-student.store'
-import { newStudentSchema } from '@/modules/solicitud-nuevo/schemas/new-student.schema'
 
 const programs = [{ code: 'ING', name: 'INGLES' }]
 
@@ -51,7 +54,7 @@ describe('new student domain and DTO contracts', () => {
       Celular: '999888777',
       Codigo_programa: 'ING',
     })
-    expect(resolveCiunacBodySchema('POST', 'q10/estudiantes').safeParse(dto).success).toBe(true)
+    expect(q10StudentRequestSchema.safeParse(dto).success).toBe(true)
   })
 
   it('maps a valid form and rejects an unavailable program', () => {

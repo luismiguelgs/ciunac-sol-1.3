@@ -4,6 +4,10 @@
 
 Aceptado e implementado en Fase 2C.
 
+La autorizacion por sesion y documento fue reemplazada posteriormente por
+ADR-017. El modelo tipado, la validacion runtime y las capas definidas aqui se
+mantienen vigentes.
+
 ## Contexto
 
 `consulta-certificado/[id]` concentraba acceso HTTP, cast a una interfaz compartida,
@@ -66,10 +70,31 @@ Las notas se ordenan de forma estable por el numero final del ciclo.
   conocido dentro de una sesion valida.
 - Los textos con codificacion danada quedan corregidos en la nueva vista.
 
+## Encapsulamiento Modular
+
+La revision posterior del feature establece dos entradas publicas:
+
+- `@/modules/consulta-certificado`: vista y contratos seguros para presentacion.
+- `@/modules/consulta-certificado/server`: consulta server-only que compone caso de
+  uso y repository.
+
+Las rutas App Router no importan dominio, infraestructura o componentes internos.
+Los consumidores externos tampoco pueden usar rutas profundas del feature. La
+presentacion depende del resultado de aplicacion y delega etiquetas y fechas a un
+presenter propio.
+
+El DTO de respuesta se infiere desde el schema Zod para evitar divergencias entre
+tipo estatico y validacion runtime. La tabla de precios que estaba dentro de
+`consulta-certificado` se elimina porque solo envolvia el componente transversal
+`RequestTypesPriceTable` y generaba una dependencia desde `solicitud-certificados`.
+
+ESLint hace cumplir estos limites exclusivamente para el feature migrado. La regla
+no se generaliza mientras otros modulos conserven imports legacy.
+
 ## Limites
 
-- La sesion se crea mediante la consulta por documento; no se cambia el flujo de
-  acceso QR en esta fase.
+- El acceso QR no se cambio durante Fase 2C; esta limitacion fue resuelta por
+  ADR-017 mediante verificacion publica de solo lectura.
 - La aceptacion y descarga del documento digital siguen perteneciendo a
   `consulta-solicitud` y conservan la deuda registrada en ADR-010.
 - El detalle de examen de ubicacion queda fuera hasta Fase 2D.

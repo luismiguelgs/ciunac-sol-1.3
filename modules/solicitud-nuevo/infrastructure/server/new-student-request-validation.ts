@@ -1,7 +1,7 @@
 import 'server-only'
 
 import { NextRequest } from 'next/server'
-import { Q10StudentRequestDto } from '@/modules/solicitud-nuevo/infrastructure/dto/q10-api.dto'
+import { Q10StudentRequestDto } from '@/modules/solicitud-nuevo/infrastructure/dto/q10-student-request.dto'
 import { getNewStudentPrograms } from '@/modules/solicitud-nuevo/infrastructure/server/q10-program.repository'
 import { q10StudentRequestSchema } from '@/modules/solicitud-nuevo/infrastructure/validation/q10-api.schemas'
 import { readVerifiedSessionFromRequest } from '@/modules/security/server/session'

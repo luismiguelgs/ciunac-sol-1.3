@@ -13,18 +13,20 @@ import SwithField from '@/components/forms/switch.field'
 import MyAlert from '@/components/forms/myAlert'
 import GeneralDialog from '@/components/dialogs/general-dialog'
 import { finalSchema, IFinalSchema, initialValues } from '@/modules/shared/schemas/final.schema'
+import type { ConstanciaCatalogs } from '@/modules/solicitud-constancia/domain/solicitud-constancia'
+import { solicitudConstanciaSchema } from '@/modules/solicitud-constancia/application/validation/solicitud-constancia.schema'
 import useSolicitudConstanciaStore from '@/modules/solicitud-constancia/presentation/solicitud-constancia.store'
 import { useRegisterSolicitudConstancia } from '@/modules/solicitud-constancia/presentation/use-register-solicitud-constancia'
 import SolicitudSummary from '@/modules/solicitud-constancia/presentation/components/solicitud-summary'
-import { solicitudConstanciaSchema } from '@/modules/solicitud-constancia/schemas/solicitud-constancia.schema'
 
 type Props = {
   activeStep: number
   steps: string[]
+  catalogs: ConstanciaCatalogs
   setActiveStep: React.Dispatch<React.SetStateAction<number>>
 }
 
-export default function Register({ activeStep, steps, setActiveStep }: Props) {
+export default function Register({ activeStep, steps, catalogs, setActiveStep }: Props) {
   const router = useRouter()
   const workflow = useSolicitudConstanciaStore((state) => state.workflow)
   const requestResult = solicitudConstanciaSchema.safeParse({
@@ -63,7 +65,7 @@ export default function Register({ activeStep, steps, setActiveStep }: Props) {
         description="Revise la informacion antes de registrar su solicitud de constancia."
         type="warning"
       />
-      {solicitud ? <SolicitudSummary solicitud={solicitud} /> : (
+      {solicitud ? <SolicitudSummary solicitud={solicitud} catalogs={catalogs} /> : (
         <MyAlert
           title="Solicitud incompleta"
           description="Complete los datos basicos y de pago antes de finalizar."
