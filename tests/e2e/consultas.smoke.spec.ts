@@ -15,6 +15,15 @@ test('consulta una solicitud por documento', async ({ page }) => {
   await expect(page.getByText(/PRUEBA E2E MARIA/i).first()).toBeVisible()
   await expect(page.getByText(/CERTIFICADO DE ESTUDIOS/i)).toBeVisible()
   await expect(page.getByText('EXAMEN DE UBICACION', { exact: true })).toHaveCount(0)
+
+  const cargoButtons = page.getByRole('button', { name: '12345678-INGLES-BASICO.pdf' })
+  await expect(cargoButtons).toHaveCount(2)
+  for (const index of [0, 1]) {
+    const downloadPromise = page.waitForEvent('download')
+    await cargoButtons.nth(index).click()
+    const download = await downloadPromise
+    expect(download.suggestedFilename()).toBe('12345678-INGLES-BASICO.pdf')
+  }
 })
 
 test('mantiene las solicitudes visibles cuando fallan los textos auxiliares', async ({ page, request }) => {
@@ -68,6 +77,64 @@ test('muestra la constancia digital con su variante independiente cuando esta li
   await page.getByRole('button', { name: 'Buscar' }).click()
 
   await expect(page.getByRole('button', { name: /Descargar Constancia/i })).toBeVisible()
+})
+
+test('bloquea descargas duplicadas de una constancia aceptada', async ({ page, request }) => {
+  await setMockScenario(request, { readyDigitalConstancia: true })
+  await page.goto('/consulta-solicitud')
+  await page.locator('input[name="documento"]').fill('12345678')
+  await page.getByRole('button', { name: 'Buscar' }).click()
+
+  let downloadCount = 0
+  page.on('download', () => { downloadCount += 1 })
+
+  const downloadPromise = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Descargar Constancia' }).click()
+  await downloadPromise
+
+  const busyButton = page.getByRole('button', { name: 'Descargando Constancia...' })
+  await expect(busyButton).toBeDisabled()
+  await expect(busyButton).toHaveAttribute('aria-busy', 'true')
+
+  await busyButton.evaluate((element) => {
+    element.removeAttribute('disabled')
+    element.click()
+  })
+  await page.waitForTimeout(100)
+  expect(downloadCount).toBe(1)
+
+  await expect(page.getByRole('button', { name: 'Descargar Constancia' })).toBeEnabled()
+})
+
+test('evita aceptar dos veces una constancia pendiente', async ({ page, request }) => {
+  await setMockScenario(request, {
+    readyDigitalConstancia: true,
+    pendingDigitalConstancia: true,
+    constanciaAcceptanceDelayMs: 300,
+  })
+  await page.goto('/consulta-solicitud')
+  await page.locator('input[name="documento"]').fill('12345678')
+  await page.getByRole('button', { name: 'Buscar' }).click()
+
+  await page.getByRole('button', { name: 'Descargar Constancia' }).click()
+  await page.getByLabel(/Declaro haber leido y aceptar/i).check()
+
+  const acceptButton = page.getByRole('button', { name: 'Aceptar y descargar' })
+  const downloadPromise = page.waitForEvent('download')
+  await acceptButton.click()
+
+  const processingButton = page.getByRole('button', { name: 'Procesando...' })
+  await expect(processingButton).toBeDisabled()
+  await processingButton.evaluate((element) => {
+    element.removeAttribute('disabled')
+    element.click()
+  })
+  await downloadPromise
+
+  const providerRequests = await getMockRequests(request)
+  expect(providerRequests.filter((item) => (
+    item.method === 'PATCH' && item.path === '/constancias/CONST-E2E'
+  ))).toHaveLength(1)
 })
 
 test('consulta un certificado y muestra sus notas', async ({ page }) => {
@@ -153,7 +220,12 @@ test('muestra estado vacio y conserva el cargo cuando aun no hay notas de ubicac
   await openLocationConsultation(page)
 
   await expect(page.getByText(/Aún no se encontraron notas/i)).toBeVisible()
-  await expect(page.getByRole('button', { name: /Descargar Cargo/i })).toBeVisible()
+  const downloadButton = page.getByRole('button', { name: /Descargar Cargo/i })
+  await expect(downloadButton).toBeVisible()
+  const downloadPromise = page.waitForEvent('download')
+  await downloadButton.click()
+  const download = await downloadPromise
+  expect(download.suggestedFilename()).toBe('UBICACION-12345678-1002.pdf')
 
   const providerRequests = await getMockRequests(request)
   expect(providerRequests.filter((item) => item.path === '/solicitudes/1002')).toHaveLength(0)

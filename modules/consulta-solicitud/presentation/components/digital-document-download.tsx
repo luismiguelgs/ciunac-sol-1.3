@@ -63,6 +63,14 @@ export default function DigitalDocumentDownload({
   const [open, setOpen] = React.useState(false)
   const [acceptedTerms, setAcceptedTerms] = React.useState(false)
   const [attempt, setAttempt] = React.useState(0)
+  const [isDownloading, setIsDownloading] = React.useState(false)
+  const acceptingRef = React.useRef(false)
+  const downloadingRef = React.useRef(false)
+  const downloadTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  React.useEffect(() => () => {
+    if (downloadTimeoutRef.current) clearTimeout(downloadTimeoutRef.current)
+  }, [])
 
   React.useEffect(() => {
     let mounted = true
@@ -91,11 +99,29 @@ export default function DigitalDocumentDownload({
       setOpen(true)
       return
     }
-    downloadDocument(loadState.document)
+    startDownload(loadState.document)
+  }
+
+  const startDownload = (document: DigitalDocumentResult) => {
+    if (downloadingRef.current) return
+
+    downloadingRef.current = true
+    setIsDownloading(true)
+
+    try {
+      downloadDocument(document)
+    } finally {
+      downloadTimeoutRef.current = setTimeout(() => {
+        downloadingRef.current = false
+        setIsDownloading(false)
+        downloadTimeoutRef.current = null
+      }, 1500)
+    }
   }
 
   const acceptAndDownload = async () => {
-    if (loadState.status !== 'data' || !acceptedTerms || acceptanceState.status === 'accepting') return
+    if (loadState.status !== 'data' || !acceptedTerms || acceptingRef.current) return
+    acceptingRef.current = true
     setAcceptanceState({ status: 'accepting' })
     try {
       await acceptDocument({
@@ -106,17 +132,19 @@ export default function DigitalDocumentDownload({
       setLoadState({ status: 'data', document: acceptedDocument })
       setAcceptanceState({ status: 'idle' })
       setOpen(false)
-      downloadDocument(acceptedDocument)
+      startDownload(acceptedDocument)
     } catch (cause) {
       setAcceptanceState({
         status: 'error',
         message: normalizeAppError(cause, 'No se pudo confirmar la descarga.').message,
       })
+    } finally {
+      acceptingRef.current = false
     }
   }
 
   if (loadState.status === 'loading') {
-    return <Button disabled className="w-full"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Buscando documento...</Button>
+    return <Button disabled className="w-full"><Loader2 data-icon="inline-start" className="animate-spin" />Buscando documento...</Button>
   }
 
   if (loadState.status === 'error') {
@@ -141,8 +169,25 @@ export default function DigitalDocumentDownload({
     <div className="flex w-full flex-col gap-2">
       <div className="flex items-center gap-1">
         <Image src={pdfImage} alt="Documento digital PDF" width={50} height={50} className="mr-3" />
-        <Button variant="default" size="lg" className="flex-1 gap-2" onClick={requestDownload}>
-          <Download className="h-4 w-4" />{labels.button}
+        <Button
+          variant="default"
+          size="lg"
+          className="flex-1"
+          onClick={requestDownload}
+          disabled={isDownloading}
+          aria-busy={isDownloading}
+        >
+          {isDownloading ? (
+            <>
+              <Loader2 data-icon="inline-start" className="animate-spin" />
+              {`Descargando ${tipoDocumento === 'constancia' ? 'Constancia' : 'Certificado'}...`}
+            </>
+          ) : (
+            <>
+              <Download data-icon="inline-start" />
+              {labels.button}
+            </>
+          )}
         </Button>
       </div>
       <p className="pl-2 text-sm font-medium text-destructive">{labels.available}</p>
@@ -189,7 +234,12 @@ export default function DigitalDocumentDownload({
               onClick={acceptAndDownload}
               disabled={!acceptedTerms || acceptanceState.status === 'accepting'}
             >
-              {acceptanceState.status === 'accepting' ? 'Procesando...' : 'Aceptar y descargar'}
+              {acceptanceState.status === 'accepting' ? (
+                <>
+                  <Loader2 data-icon="inline-start" className="animate-spin" />
+                  Procesando...
+                </>
+              ) : 'Aceptar y descargar'}
             </Button>
           </div>
         </div>

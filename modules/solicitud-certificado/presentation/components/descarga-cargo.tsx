@@ -2,7 +2,6 @@
 
 import React from 'react'
 import Image from 'next/image'
-import { pdf } from '@react-pdf/renderer'
 import { AlertCircle, CloudDownloadIcon, Loader2 } from 'lucide-react'
 import pdfImage from '@/assets/pdf.png'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -10,7 +9,6 @@ import { Button } from '@/components/ui/button'
 import { AppError, normalizeAppError } from '@/modules/shared/application/errors/app-error'
 import { getCertificateCargo } from '@/modules/solicitud-certificado/client'
 import { CertificateCargo, CertificateText } from '@/modules/solicitud-certificado/domain/solicitud-certificado'
-import CertificateCargoPdf from '@/modules/solicitud-certificado/presentation/components/cargo-pdf'
 
 const REQUIRED_TEXTS = ['TEXTO_NOMBREAN', 'TEXTO_1_FINAL', 'TEXTO_1_DISCLAMER', 'TEXTO_2_DISCLAMER']
 
@@ -23,6 +21,7 @@ type CargoLoadState =
 export default function DescargaCargo({ solicitudId, texts }: { solicitudId: number; texts: CertificateText[] }) {
   const [state, setState] = React.useState<CargoLoadState>({ status: 'loading' })
   const [pdfError, setPdfError] = React.useState<string | null>(null)
+  const [generating, setGenerating] = React.useState(false)
   const [attempt, setAttempt] = React.useState(0)
 
   React.useEffect(() => {
@@ -43,17 +42,24 @@ export default function DescargaCargo({ solicitudId, texts }: { solicitudId: num
   }, [attempt, solicitudId])
 
   const exportPdf = async () => {
-    if (state.status !== 'data') return
+    if (state.status !== 'data' || generating) return
     if (!hasRequiredTexts(texts)) {
       setPdfError('Los textos institucionales necesarios para generar el cargo no estan disponibles.')
       return
     }
     try {
       setPdfError(null)
+      setGenerating(true)
+      const [{ pdf }, { default: CertificateCargoPdf }] = await Promise.all([
+        import('@react-pdf/renderer'),
+        import('@/modules/solicitud-certificado/presentation/components/cargo-pdf'),
+      ])
       const blob = await pdf(<CertificateCargoPdf texts={texts} solicitud={state.data} />).toBlob()
       downloadBlob(blob, `CERTIFICADO-${state.data.student.documentNumber}-${state.data.id}.pdf`)
     } catch (cause) {
       setPdfError(normalizeAppError(cause, 'No se pudo generar el cargo PDF').message)
+    } finally {
+      setGenerating(false)
     }
   }
 
@@ -93,8 +99,10 @@ export default function DescargaCargo({ solicitudId, texts }: { solicitudId: num
       ) : null}
       <div className="flex items-center gap-10">
         <Image src={pdfImage.src} alt="Documento PDF" width={50} height={50} />
-        <Button onClick={exportPdf} disabled={!hasRequiredTexts(texts)}>
-          Descargar Cargo <CloudDownloadIcon className="ml-2" />
+        <Button onClick={exportPdf} disabled={!hasRequiredTexts(texts) || generating}>
+          {generating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+          {generating ? 'Generando cargo...' : 'Descargar Cargo'}
+          {!generating ? <CloudDownloadIcon className="ml-2" /> : null}
         </Button>
       </div>
       {!hasRequiredTexts(texts) ? <p className="text-sm text-destructive">Los textos del cargo no estan disponibles.</p> : null}

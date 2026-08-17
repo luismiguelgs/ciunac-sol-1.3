@@ -2,13 +2,11 @@
 
 import React from 'react'
 import Image from 'next/image'
-import { pdf } from '@react-pdf/renderer'
 import { AlertCircle, Loader2 } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import pdfImage from '@/assets/pdf.png'
 import type { ConsultationText, ConsultedRequest } from '@/modules/consultas'
-import AdministrativeCargoPdf from '@/modules/shared/components/administrative-cargo-pdf'
 import { toConsultationCargoDocument } from '@/modules/consulta-solicitud/presentation/consultation-cargo.presenter'
 
 type Props = {
@@ -30,6 +28,10 @@ export default function DownloadCargo({ request, texts }: Props) {
     setState({ status: 'generating' })
     try {
       const document = toConsultationCargoDocument(request, texts)
+      const [{ pdf }, { default: AdministrativeCargoPdf }] = await Promise.all([
+        import('@react-pdf/renderer'),
+        import('@/modules/shared/components/administrative-cargo-pdf'),
+      ])
       const blob = await pdf(<AdministrativeCargoPdf document={document} />).toBlob()
       downloadBlob(blob, fileName)
       setState({ status: 'idle' })

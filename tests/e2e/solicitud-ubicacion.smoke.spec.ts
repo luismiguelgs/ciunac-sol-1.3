@@ -97,7 +97,12 @@ test('registra el examen de ubicacion no CIUNAC con tarifa S/ 30', async ({ page
   await confirmAndSubmit(page)
 
   await expect(page).toHaveURL(/\/solicitud-ubicacion\/finalizar\?id=1002&receipt=/)
-  await expect(page.getByRole('button', { name: /Descargar cargo/i })).toBeEnabled()
+  const downloadButton = page.getByRole('button', { name: /Descargar cargo/i })
+  await expect(downloadButton).toBeEnabled()
+  const downloadPromise = page.waitForEvent('download')
+  await downloadButton.click()
+  const download = await downloadPromise
+  expect(download.suggestedFilename()).toBe('UBICACION-12345678-1002.pdf')
   const requests = await getMockRequests(request)
   const created = requests.find((item) => item.method === 'POST' && item.path === '/solicitudes')
   expect(created?.body).toMatchObject({

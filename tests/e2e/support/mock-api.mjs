@@ -272,6 +272,9 @@ const server = createServer(async (request, response) => {
   }
 
   if (method === 'GET' && path.startsWith('constancias/solicitud/')) {
+    if (scenario.pendingDigitalConstancia) {
+      return sendJson(response, 200, { ...fixture.constancia, aceptado: false })
+    }
     if (scenario.legacyConstanciaAliases) {
       const { solicitudId, numeroDocumento, ...legacyConstancia } = fixture.constancia
       return sendJson(response, 200, {
@@ -283,7 +286,19 @@ const server = createServer(async (request, response) => {
     return sendJson(response, 200, fixture.constancia)
   }
   if (method === 'PATCH' && path.startsWith('constancias/')) {
+    if (scenario.constanciaAcceptanceDelayMs) {
+      await new Promise((resolve) => setTimeout(resolve, Number(scenario.constanciaAcceptanceDelayMs)))
+    }
     return sendJson(response, 200, fixture.constancia)
+  }
+  if (method === 'GET' && path.startsWith('files/')) {
+    response.writeHead(200, {
+      ...corsHeaders(),
+      'Content-Disposition': `attachment; filename="${path.split('/').at(-1)}"`,
+      'Content-Type': 'application/pdf',
+    })
+    response.end('%PDF-1.4\n%%EOF')
+    return
   }
 
   if (method === 'POST' && path === 'mailer') {

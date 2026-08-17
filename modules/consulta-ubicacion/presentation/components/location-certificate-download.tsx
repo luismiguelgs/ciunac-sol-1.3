@@ -2,11 +2,9 @@
 
 import React from 'react'
 import Image from 'next/image'
-import { pdf } from '@react-pdf/renderer'
 import { FileDown } from 'lucide-react'
 import pdfImage from '@/assets/pdf.png'
 import { Button } from '@/components/ui/button'
-import LocationCertificatePdf from '@/modules/consulta-ubicacion/presentation/components/location-certificate-pdf'
 import type { LocationCertificateDocument } from '@/modules/consulta-ubicacion/presentation/location-consultation.presenter'
 
 type Props = {
@@ -24,6 +22,10 @@ export default function LocationCertificateDownload({ document, fileName }: Prop
     setState('generating')
 
     try {
+      const [{ pdf }, { default: LocationCertificatePdf }] = await Promise.all([
+        import('@react-pdf/renderer'),
+        import('@/modules/consulta-ubicacion/presentation/components/location-certificate-pdf'),
+      ])
       const blob = await pdf(<LocationCertificatePdf document={document} />).toBlob()
       downloadBlob(blob, fileName)
       setState('idle')

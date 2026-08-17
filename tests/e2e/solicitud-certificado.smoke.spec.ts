@@ -128,7 +128,12 @@ test('registra una solicitud de certificado de extremo a extremo', async ({ page
   await page.getByRole('button', { name: 'Finalizar' }).click()
 
   await expect(page).toHaveURL(/\/solicitud-certificados\/finalizar\?id=1001&receipt=/)
-  await expect(page.getByRole('button', { name: /Descargar Cargo/i })).toBeVisible()
+  const downloadButton = page.getByRole('button', { name: /Descargar Cargo/i })
+  await expect(downloadButton).toBeVisible()
+  const downloadPromise = page.waitForEvent('download')
+  await downloadButton.click()
+  const download = await downloadPromise
+  expect(download.suggestedFilename()).toBe('CERTIFICADO-12345678-1001.pdf')
 
   const requests = await getMockRequests(request)
   expect(requests).toEqual(

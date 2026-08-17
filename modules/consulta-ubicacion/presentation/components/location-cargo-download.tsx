@@ -2,14 +2,11 @@
 
 import React from 'react'
 import Image from 'next/image'
-import { pdf } from '@react-pdf/renderer'
 import { AlertCircle, CloudDownloadIcon } from 'lucide-react'
 import pdfImage from '@/assets/pdf.png'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import AdministrativeCargoPdf, {
-  type AdministrativeCargoDocument,
-} from '@/modules/shared/components/administrative-cargo-pdf'
+import type { AdministrativeCargoDocument } from '@/modules/shared/components/administrative-cargo-pdf'
 
 export default function LocationCargoDownload({
   document,
@@ -25,6 +22,10 @@ export default function LocationCargoDownload({
     setStatus('generating')
 
     try {
+      const [{ pdf }, { default: AdministrativeCargoPdf }] = await Promise.all([
+        import('@react-pdf/renderer'),
+        import('@/modules/shared/components/administrative-cargo-pdf'),
+      ])
       const blob = await pdf(<AdministrativeCargoPdf document={document} />).toBlob()
       downloadBlob(blob, fileName)
       setStatus('idle')
