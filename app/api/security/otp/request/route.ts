@@ -3,7 +3,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyCaptchaToken } from '@/modules/security/server/captcha';
 import { ciunacRequest } from '@/modules/security/server/ciunac-client';
 import { getOtpSessionSecret } from '@/modules/security/server/environment';
-import { createOtpChallenge } from '@/modules/security/server/otp';
+import {
+  createOtpChallenge,
+  OTP_EXPIRATION_SECONDS,
+  OTP_RESEND_DELAY_SECONDS,
+} from '@/modules/security/server/otp';
 import { assertTrustedOrigin, parseJsonBody } from '@/modules/security/server/request-security';
 import { securityErrorResponse } from '@/modules/security/server/responses';
 import { otpRequestSchema } from '@/modules/security/server/schemas';
@@ -36,7 +40,11 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const response = NextResponse.json({ ok: true }, { status: 202 });
+    const response = NextResponse.json({
+      ok: true,
+      expiresInSeconds: OTP_EXPIRATION_SECONDS,
+      resendInSeconds: OTP_RESEND_DELAY_SECONDS,
+    }, { status: 202 });
     writeOtpChallenge(response, challenge);
     return response;
   } catch (error) {

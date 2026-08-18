@@ -23,7 +23,7 @@ async function verifyCertificateEmail(page: Page, request: Parameters<typeof get
   await expect(verifyButton).toBeDisabled()
   await page.locator('input[name="email"]').fill('e2e@example.com')
   await page.getByRole('button', { name: /Comprobar correo y enviar c.digo/i }).click()
-  await expect(page.getByText(/C.digo enviado/i)).toBeVisible()
+  await expect(page.getByText(/C.digo v.lido por 05:00.*solicitar otro en 03:00/i)).toBeVisible()
 
   await expect(otp).toBeEnabled()
   await expect(verifyButton).toBeEnabled()
@@ -92,7 +92,7 @@ test('verifica el correo y entra al proceso de certificados', async ({ page, req
   expect(browserSentApiKeys).toEqual([])
 })
 
-test('registra una solicitud de certificado de extremo a extremo', async ({ page, request }) => {
+test('@smoke registra una solicitud de certificado de extremo a extremo', async ({ page, request }) => {
   await verifyCertificateEmail(page, request)
 
   await selectOption(page, 'Solicitud', /CERTIFICADO DE ESTUDIOS/i)
@@ -146,7 +146,7 @@ test('registra una solicitud de certificado de extremo a extremo', async ({ page
   )
 })
 
-test('rechaza el acceso directo al proceso sin una sesion verificada', async ({ page }) => {
+test('@smoke rechaza el acceso directo al proceso sin una sesion verificada', async ({ page }) => {
   await page.goto('/solicitud-certificados/proceso')
 
   await expect(page).toHaveURL(/\/solicitud-certificados$/)

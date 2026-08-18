@@ -1,0 +1,70 @@
+name: Scheduled Regression
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: '0 8 * * 1-5'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: regression-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: 24.11.1
+
+jobs:
+  full-e2e:
+    name: full-e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v5
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-full-regression
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  advisory-reports:
+    name: advisory-reports
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: Generate full dependency audit
+        shell: bash
+        run: |
+          mkdir -p test-results
+          npm audit --json > test-results/dependency-audit-full.json || true
+      - name: Generate complete Knip report
+        shell: bash
+        run: npm run dead-code:report > test-results/dead-code-full.txt
+      - uses: actions/upload-artifact@v5
+        if: ${{ !cancelled() }}
+        with:
+          name: advisory-quality-reports
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 14

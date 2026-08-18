@@ -1,4 +1,4 @@
-import { ITexto, IFacultad, IIdioma, IEscuela, ITipoSolicitud } from "@/modules/shared/interfaces/types.interface";
+import { ITexto } from "@/modules/shared/interfaces/types.interface";
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 
@@ -34,8 +34,4 @@ function createGenericStore<T>(name: string) {
   )
 }
 
-export const useEscuelasStore = createGenericStore<IEscuela>('escuelas-storage')
 export const useTextsStore = createGenericStore<ITexto>('text-storage')
-export const useDocumentsStore = createGenericStore<ITipoSolicitud>('documents-storage')
-export const useFacultiesStore = createGenericStore<IFacultad>('faculties-storage')
-export const useSubjectsStore = createGenericStore<IIdioma>('idiomas-storage')

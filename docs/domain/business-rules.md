@@ -13,7 +13,7 @@ Consolidar reglas funcionales relevantes para solicitudes y consultas. Este docu
 | RN-005 | Cuando el monto es mayor que cero, numero de voucher de 15 digitos, fecha de pago y archivo cargado son obligatorios. Con monto cero, esos datos son opcionales. |
 | RN-006 | La solicitud de beca requiere los documentos definidos por el flujo de beca. |
 | RN-007 | La solicitud de ubicacion debe bloquear duplicados con estado en proceso para el mismo documento, idioma y tipo. |
-| RN-008 | La verificacion usa un OTP server-side de 6 digitos, vigencia de 5 minutos, 5 intentos y uso unico en el estado actual. |
+| RN-008 | La verificacion usa un OTP server-side de 6 digitos, vigencia de 5 minutos, reenvio despues de 3 minutos, 5 intentos y uso unico en el estado actual. |
 
 ## Reglas de Solicitud de Ubicacion
 | ID | Regla |

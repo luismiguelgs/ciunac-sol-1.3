@@ -23,6 +23,7 @@ async function verifyScholarshipEmail(page: Page, request: Parameters<typeof get
   await expect(page.locator('[data-e2e-recaptcha="ready"]')).toBeAttached()
   await page.locator('input[name="email"]').fill('e2e@example.com')
   await page.getByRole('button', { name: /Comprobar correo y enviar código/i }).click()
+  await expect(page.getByText(/Código válido por 05:00.*solicitar otro en 03:00/i)).toBeVisible()
   const otp = page.locator('input[data-input-otp]')
   await expect(otp).toBeEnabled()
   await otp.fill(await getMockOtp(request))
@@ -68,7 +69,7 @@ test.beforeEach(async ({ page, request }) => {
   await installBrowserMocks(page)
 })
 
-test('registra una beca con cinco documentos tipados', async ({ page, request }) => {
+test('@smoke registra una beca con cinco documentos tipados', async ({ page, request }) => {
   await verifyScholarshipEmail(page, request)
   await completeScholarshipForm(page)
   await page.getByRole('button', { name: 'Finalizar' }).click()
@@ -93,7 +94,7 @@ test('registra una beca con cinco documentos tipados', async ({ page, request })
   ]))
 })
 
-test('rechaza acceso directo al proceso de beca sin sesión', async ({ page }) => {
+test('@smoke rechaza acceso directo al proceso de beca sin sesión', async ({ page }) => {
   await page.goto('/solicitud-beca/proceso')
   await expect(page).toHaveURL(/\/solicitud-beca$/)
 })

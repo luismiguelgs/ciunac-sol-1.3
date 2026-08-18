@@ -54,7 +54,11 @@ async function postSecurity<TResponse, TBody>(path: string, body: TBody): Promis
 }
 
 export function requestOtp(email: string, purpose: OtpPurpose, captchaToken: string) {
-  return postSecurity<{ ok: true }, { email: string; purpose: OtpPurpose; captchaToken: string }>(
+  return postSecurity<{
+    ok: true;
+    expiresInSeconds: number;
+    resendInSeconds: number;
+  }, { email: string; purpose: OtpPurpose; captchaToken: string }>(
     '/api/security/otp/request',
     { email, purpose, captchaToken },
   );

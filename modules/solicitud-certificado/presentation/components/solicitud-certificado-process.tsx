@@ -18,7 +18,7 @@ import useSolicitudCertificadoStore from '@/modules/solicitud-certificado/presen
 import BasicData from '@/modules/solicitud-certificado/presentation/components/basic-data'
 import Register from '@/modules/solicitud-certificado/presentation/components/register'
 
-const STEPS = ['Datos basicos', 'Datos de Pago', 'Finalizar']
+const STEPS = ['Datos Básicos', 'Datos de Pago', 'Finalizar']
 
 type Props = { email: string; catalogs: CertificateCatalogs }
 

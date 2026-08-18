@@ -1,0 +1,103 @@
+name: Quality Gates
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main, codex-dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: 24.11.1
+
+jobs:
+  static-quality:
+    name: static-quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run dead-code:check
+      - run: npm ls --depth=0
+      - run: npm run audit:dependencies
+      - uses: actions/upload-artifact@v5
+        if: ${{ !cancelled() }}
+        with:
+          name: dependency-audit-production
+          path: test-results/dependency-audit.json
+          if-no-files-found: ignore
+          retention-days: 14
+
+  unit-integration:
+    name: unit-integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npm run test:unit
+      - run: npm run test:integration
+
+  build-security:
+    name: build-security
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      API_URL: https://api-ciunac.invalid
+      API_KEY: ci-governance-private-api-key
+      API_KEY_Q10: ci-governance-private-q10-key
+      APP_BASE_URL: http://127.0.0.1:3100
+      RECAPTCHA_SECRET_KEY: ci-governance-private-recaptcha-key
+      NEXT_PUBLIC_RECAPTCHA_SITE_KEY: ci-governance-public-recaptcha-key
+      OTP_SESSION_SECRET: ci-governance-otp-session-secret-at-least-32-bytes
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npm run env:check
+      - run: npm run build
+      - run: npm run security:bundle-check
+
+  browser-smoke-a11y:
+    name: browser-smoke-a11y
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e:ci
+      - uses: actions/upload-artifact@v5
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-smoke-a11y
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 14

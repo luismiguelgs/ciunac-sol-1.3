@@ -20,7 +20,7 @@ flowchart LR
 
 La API key, el secreto CAPTCHA y el secreto de sesion se leen solo desde variables privadas. El proxy generico usa una allowlist de rutas y metodos, y excluye `mailer`.
 
-El OTP tiene seis digitos criptograficos, expira en cinco minutos, permite cinco intentos, exige 60 segundos entre reenvios y limita cinco envios cada 15 minutos. El desafio se cifra con AES-GCM y el codigo se compara mediante HMAC y `timingSafeEqual`.
+El OTP tiene seis digitos criptograficos, expira en cinco minutos, permite cinco intentos, exige tres minutos entre reenvios y limita cinco envios cada 15 minutos. El desafio se cifra con AES-GCM y el codigo se compara mediante HMAC y `timingSafeEqual`.
 
 ## Cookies Firmadas Sin Persistencia
 La Fase 1C almacena desafio, intentos y rate limit en una cookie cifrada `HttpOnly`, `SameSite=Strict`. Esta alternativa evita infraestructura adicional y protege el flujo normal del navegador.

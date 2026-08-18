@@ -15,6 +15,7 @@ import MyAlert from '@/components/forms/myAlert'
 import MyInputOpt from '@/components/forms/input.otp'
 import InputField from '@/components/forms/input.field'
 import { requestOtp, verifyOtp } from '@/modules/security/client/security-client'
+import { formatOtpTime, useOtpTimers } from '@/modules/security/client/use-otp-timers'
 import {
   initialValues,
   IVerificationSchema,
@@ -32,22 +33,18 @@ export default function Verification({ activeStep, steps, setActiveStep, handleN
   const [requesting, setRequesting] = React.useState(false)
   const [verifying, setVerifying] = React.useState(false)
   const [codeRequested, setCodeRequested] = React.useState(false)
-  const [timeLeft, setTimeLeft] = React.useState<number | null>(null)
   const captchaRef = React.useRef<ReCAPTCHA>(null)
+  const otpTimers = useOtpTimers()
   const form = useForm<IVerificationSchema>({
     resolver: zodResolver(verificationSchema),
     defaultValues: initialValues,
   })
 
   React.useEffect(() => {
-    if (timeLeft === null) return
-    if (timeLeft <= 0) {
-      setTimeLeft(null)
-      return
-    }
-    const timeoutId = window.setTimeout(() => setTimeLeft((value) => (value ?? 1) - 1), 1000)
-    return () => window.clearTimeout(timeoutId)
-  }, [timeLeft])
+    if (!otpTimers.expired) return
+    form.setValue('code', '')
+    form.clearErrors('code')
+  }, [form, otpTimers.expired])
 
   const onSubmit = async (data: IVerificationSchema) => {
     if (!codeRequested) {
@@ -81,10 +78,10 @@ export default function Verification({ activeStep, steps, setActiveStep, handleN
 
     setRequesting(true)
     try {
-      await requestOtp(form.getValues('email'), 'NUEVO', captchaToken)
+      const timing = await requestOtp(form.getValues('email'), 'NUEVO', captchaToken)
       setCodeRequested(true)
       form.setValue('code', '')
-      setTimeLeft(60)
+      otpTimers.start(timing)
       window.requestAnimationFrame(() => form.setFocus('code'))
     } catch (error) {
       toast.error('No se pudo enviar el código', {
@@ -98,14 +95,12 @@ export default function Verification({ activeStep, steps, setActiveStep, handleN
 
   const changeEmail = () => {
     setCodeRequested(false)
-    setTimeLeft(null)
+    otpTimers.reset()
     form.setValue('code', '')
     form.clearErrors('code')
     captchaRef.current?.reset()
     window.requestAnimationFrame(() => form.setFocus('email'))
   }
-
-  const formattedTime = timeLeft === null ? null : `00:${timeLeft.toString().padStart(2, '0')}`
 
   return (
     <Form {...form}>
@@ -133,7 +128,7 @@ export default function Verification({ activeStep, steps, setActiveStep, handleN
               </CardHeader>
               <CardContent className="flex flex-col gap-4">
                 <InputField control={form.control} name="email" type="email" disabled={codeRequested || requesting || verifying} />
-                {(!codeRequested || timeLeft === null) && (
+                {(!codeRequested || otpTimers.canResend) && (
                   <div className="flex flex-col gap-2">
                     {codeRequested && <p className="text-center text-sm text-muted-foreground">Confirma nuevamente el CAPTCHA para reenviar el código.</p>}
                     <div className="flex justify-center overflow-x-auto p-1">
@@ -142,8 +137,17 @@ export default function Verification({ activeStep, steps, setActiveStep, handleN
                   </div>
                 )}
                 {codeRequested && (
-                  <p aria-live="polite" className="text-center text-sm font-medium text-primary">
-                    {formattedTime ? `Código enviado. Podrás solicitar otro en ${formattedTime}.` : 'El código fue enviado. Ya puedes solicitar uno nuevo si lo necesitas.'}
+                  <p
+                    aria-live="polite"
+                    className={otpTimers.expired
+                      ? 'text-center text-sm font-medium text-destructive'
+                      : 'text-center text-sm font-medium text-primary'}
+                  >
+                    {otpTimers.expired
+                      ? 'El código expiró. Solicita uno nuevo.'
+                      : `Código válido por ${formatOtpTime(otpTimers.expirationSeconds)}. ${otpTimers.canResend
+                        ? 'Ya puedes solicitar uno nuevo si lo necesitas.'
+                        : `Podrás solicitar otro en ${formatOtpTime(otpTimers.resendSeconds)}.`}`}
                   </p>
                 )}
               </CardContent>
@@ -153,9 +157,15 @@ export default function Verification({ activeStep, steps, setActiveStep, handleN
                     <Pencil data-icon="inline-start" /> Cambiar correo
                   </Button>
                 )}
-                <Button disabled={requesting || verifying || timeLeft !== null} onClick={requestCode} type="button" className="w-full sm:w-auto">
+                <Button disabled={requesting || verifying || (codeRequested && !otpTimers.canResend)} onClick={requestCode} type="button" className="w-full sm:w-auto">
                   {requesting ? <Loader2 data-icon="inline-start" className="animate-spin" /> : <CheckCircle data-icon="inline-start" />}
-                  {requesting ? 'Enviando código...' : codeRequested ? formattedTime ? `Reenviar en ${formattedTime}` : 'Reenviar código' : 'Comprobar correo y enviar código'}
+                  {requesting
+                    ? 'Enviando código...'
+                    : codeRequested
+                      ? otpTimers.canResend
+                        ? 'Reenviar código'
+                        : `Reenviar en ${formatOtpTime(otpTimers.resendSeconds)}`
+                      : 'Comprobar correo y enviar código'}
                 </Button>
               </CardFooter>
             </Card>
@@ -165,12 +175,12 @@ export default function Verification({ activeStep, steps, setActiveStep, handleN
                 <CardDescription>{codeRequested ? 'Ingresa el código de 6 dígitos recibido por correo.' : 'Este paso se habilitará después de comprobar tu correo.'}</CardDescription>
               </CardHeader>
               <CardContent>
-                <MyInputOpt name="code" label="Código de verificación" control={form.control} disabled={!codeRequested || requesting || verifying} description="Ingresa el código de verificación de 6 dígitos" />
+                <MyInputOpt name="code" label="Código de verificación" control={form.control} disabled={!codeRequested || requesting || verifying || otpTimers.expired} description="Ingresa el código de verificación de 6 dígitos" />
               </CardContent>
             </Card>
           </div>
         </div>
-        <StepperControl activeStep={activeStep} steps={steps} setActiveStep={setActiveStep} type="submit" disabledNext={!codeRequested || requesting || verifying} nextLabel="Verificar código y continuar" />
+        <StepperControl activeStep={activeStep} steps={steps} setActiveStep={setActiveStep} type="submit" disabledNext={!codeRequested || requesting || verifying || otpTimers.expired} nextLabel="Verificar código y continuar" />
       </form>
     </Form>
   )

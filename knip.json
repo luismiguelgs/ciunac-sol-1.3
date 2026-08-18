@@ -1,0 +1,8 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "scripts/**/*.mjs",
+    "tests/e2e/support/**/*.{ts,mjs}",
+    "tests/e2e/fixtures/**/*.{cjs,mjs,json}"
+  ]
+}

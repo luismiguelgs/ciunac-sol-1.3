@@ -16,7 +16,7 @@ async function verifyNewStudentEmail(page: Page, request: Parameters<typeof getM
   await expect(verifyButton).toBeDisabled()
   await page.locator('input[name="email"]').fill('e2e@example.com')
   await page.getByRole('button', { name: /Comprobar correo y enviar c.digo/i }).click()
-  await expect(page.getByText(/C.digo enviado/i)).toBeVisible()
+  await expect(page.getByText(/C.digo v.lido por 05:00.*solicitar otro en 03:00/i)).toBeVisible()
   await otp.fill(await getMockOtp(request))
   await verifyButton.click()
   await expect(page.getByLabel('Primer Apellido')).toBeVisible()
@@ -68,7 +68,7 @@ test('separa la comprobacion del correo de la verificacion OTP para alumno nuevo
   await verifyNewStudentEmail(page, request)
 })
 
-test('registra un alumno nuevo con DTO Q10 tipado y comprobante de correo', async ({ page, request }) => {
+test('@smoke registra un alumno nuevo con DTO Q10 tipado y comprobante de correo', async ({ page, request }) => {
   await completeNewStudentForm(page, request)
   await page.getByRole('button', { name: 'Finalizar' }).click()
 

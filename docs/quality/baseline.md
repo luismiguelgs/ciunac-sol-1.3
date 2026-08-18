@@ -691,3 +691,31 @@ El build inicial fallo por la descarga de Geist bloqueada en el sandbox; la
 repeticion con red termino correctamente. Los 10 smoke y 93 E2E globales emitieron
 resultado correcto antes de quedar abiertos durante el teardown conocido de
 Playwright en Windows.
+
+## Resultado de Gobierno Tecnico Automatizado
+
+- Fecha: 2026-08-17.
+- Alcance: CI, clasificacion de pruebas, accesibilidad, auditoria, codigo muerto y
+  documentacion; sin cambios funcionales ni de contratos HTTP.
+- Aplicacion: 1.6.4; Next.js: 16.2.12; Node.js de CI: 24.11.1.
+- `npm ci`: correcto; lockfile alineado con la version 1.6.4.
+- `npm run lint`: correcto.
+- `npm run typecheck`: correcto.
+- `npm run test:unit`: 227 de 227 en 13 archivos.
+- `npm run test:integration`: 15 de 15 en 2 archivos.
+- `npm run test:e2e:smoke`: 34 de 34.
+- `npm run test:a11y`: 9 de 9, sin violaciones nuevas critical/serious.
+- `npm run test:e2e`: 104 de 104.
+- `npm run build`: correcto con acceso de red; 22 paginas generadas.
+- `npm run dead-code:check`: correcto.
+- `npm ls --depth=0`: sin dependencias faltantes o extraneous.
+- `npm run audit:dependencies`: cuatro high conocidas, cero critical y ningun
+  hallazgo nuevo; excepciones vigentes hasta 2026-09-17.
+- `npm run env:check` y `npm run security:bundle-check`: correctos.
+- `git diff --check`: correcto, con avisos informativos LF/CRLF.
+
+Se crearon los workflows `quality.yml` y `regression.yml`. Los cuatro jobs
+obligatorios deberan configurarse manualmente como branch protection tras el push.
+La ejecucion local de Playwright sigue necesitando cerrar los listeners 3100/4100
+despues del ultimo caso en Windows; todos los escenarios terminan antes del
+bloqueo. El build sigue dependiendo de red para Geist.

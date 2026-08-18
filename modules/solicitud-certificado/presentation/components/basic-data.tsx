@@ -124,7 +124,9 @@ export default function BasicData({ activeStep, steps, catalogs, defaultData, se
               getOptionValue={(item) => String(item.id)}
               getOptionLabel={(item) => item.name}
             />
-            <MySelect name="nivel" control={form.control} label="Nivel" placeholder="Selecciona un nivel" options={NIVEL} />
+            <div className="md:-mt-1">
+              <MySelect name="nivel" control={form.control} label="Nivel" placeholder="Selecciona un nivel" options={NIVEL} />
+            </div>
           </CardContent>
         </Card>
         <Card className="shadow-md transition-shadow duration-300 hover:shadow-lg">

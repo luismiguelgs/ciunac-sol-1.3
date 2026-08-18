@@ -20,6 +20,7 @@ import {
 import { Form } from '@/components/ui/form'
 import { OtpPurpose } from '@/modules/security/domain/security.types'
 import { requestOtp, verifyOtp } from '@/modules/security/client/security-client'
+import { formatOtpTime, useOtpTimers } from '@/modules/security/client/use-otp-timers'
 import {
     initialValues,
     IVerificationSchema,
@@ -35,9 +36,9 @@ export default function FormEmail({ action, purpose }: Props) {
     const [requesting, setRequesting] = React.useState(false)
     const [verifying, setVerifying] = React.useState(false)
     const [codeRequested, setCodeRequested] = React.useState(false)
-    const [timeLeft, setTimeLeft] = React.useState<number | null>(null)
     const [dialog, setDialog] = React.useState<string | null>(null)
     const captchaRef = React.useRef<ReCAPTCHA>(null)
+    const otpTimers = useOtpTimers()
 
     const form = useForm<IVerificationSchema>({
         resolver: zodResolver(verificationSchema),
@@ -45,15 +46,10 @@ export default function FormEmail({ action, purpose }: Props) {
     })
 
     React.useEffect(() => {
-        if (timeLeft === null) return
-        if (timeLeft <= 0) {
-            setTimeLeft(null)
-            return
-        }
-
-        const timeoutId = window.setTimeout(() => setTimeLeft((value) => (value ?? 1) - 1), 1000)
-        return () => window.clearTimeout(timeoutId)
-    }, [timeLeft])
+        if (!otpTimers.expired) return
+        form.setValue('code', '')
+        form.clearErrors('code')
+    }, [form, otpTimers.expired])
 
     const onSubmit = async (data: IVerificationSchema) => {
         if (!codeRequested) {
@@ -87,10 +83,10 @@ export default function FormEmail({ action, purpose }: Props) {
 
         setRequesting(true)
         try {
-            await requestOtp(form.getValues('email'), purpose, captchaToken)
+            const timing = await requestOtp(form.getValues('email'), purpose, captchaToken)
             setCodeRequested(true)
             form.setValue('code', '')
-            setTimeLeft(60)
+            otpTimers.start(timing)
             window.requestAnimationFrame(() => form.setFocus('code'))
         } catch (error) {
             setDialog(error instanceof Error ? error.message : 'No se pudo enviar el código.')
@@ -102,16 +98,12 @@ export default function FormEmail({ action, purpose }: Props) {
 
     const changeEmail = () => {
         setCodeRequested(false)
-        setTimeLeft(null)
+        otpTimers.reset()
         form.setValue('code', '')
         form.clearErrors('code')
         captchaRef.current?.reset()
         window.requestAnimationFrame(() => form.setFocus('email'))
     }
-
-    const formattedTime = timeLeft === null
-        ? null
-        : `00:${timeLeft.toString().padStart(2, '0')}`
 
     return (
         <>
@@ -139,7 +131,7 @@ export default function FormEmail({ action, purpose }: Props) {
                                 disabled={codeRequested || requesting || verifying}
                             />
 
-                            {(!codeRequested || timeLeft === null) && (
+                            {(!codeRequested || otpTimers.canResend) && (
                                 <div className="flex flex-col gap-2">
                                     {codeRequested && (
                                         <p className="text-center text-sm text-muted-foreground">
@@ -156,10 +148,17 @@ export default function FormEmail({ action, purpose }: Props) {
                             )}
 
                             {codeRequested && (
-                                <p aria-live="polite" className="text-center text-sm font-medium text-primary">
-                                    {formattedTime
-                                        ? `Código enviado. Podrás solicitar otro en ${formattedTime}.`
-                                        : 'El código fue enviado. Ya puedes solicitar uno nuevo si lo necesitas.'}
+                                <p
+                                    aria-live="polite"
+                                    className={otpTimers.expired
+                                        ? 'text-center text-sm font-medium text-destructive'
+                                        : 'text-center text-sm font-medium text-primary'}
+                                >
+                                    {otpTimers.expired
+                                        ? 'El código expiró. Solicita uno nuevo.'
+                                        : `Código válido por ${formatOtpTime(otpTimers.expirationSeconds)}. ${otpTimers.canResend
+                                            ? 'Ya puedes solicitar uno nuevo si lo necesitas.'
+                                            : `Podrás solicitar otro en ${formatOtpTime(otpTimers.resendSeconds)}.`}`}
                                 </p>
                             )}
                         </CardContent>
@@ -177,7 +176,7 @@ export default function FormEmail({ action, purpose }: Props) {
                                 </Button>
                             )}
                             <Button
-                                disabled={requesting || verifying || timeLeft !== null}
+                                disabled={requesting || verifying || (codeRequested && !otpTimers.canResend)}
                                 onClick={requestCode}
                                 type="button"
                                 className="w-full sm:w-auto"
@@ -190,9 +189,9 @@ export default function FormEmail({ action, purpose }: Props) {
                                 {requesting
                                     ? 'Enviando código...'
                                     : codeRequested
-                                        ? formattedTime
-                                            ? `Reenviar en ${formattedTime}`
-                                            : 'Reenviar código'
+                                        ? otpTimers.canResend
+                                            ? 'Reenviar código'
+                                            : `Reenviar en ${formatOtpTime(otpTimers.resendSeconds)}`
                                         : 'Comprobar correo y enviar código'}
                             </Button>
                         </CardFooter>
@@ -212,13 +211,13 @@ export default function FormEmail({ action, purpose }: Props) {
                                 name="code"
                                 label="Código de verificación"
                                 control={form.control}
-                                disabled={!codeRequested || requesting || verifying}
+                                disabled={!codeRequested || requesting || verifying || otpTimers.expired}
                                 description="Ingresa el código de verificación de 6 dígitos"
                             />
                         </CardContent>
                         <CardFooter className="justify-end">
                             <Button
-                                disabled={!codeRequested || requesting || verifying}
+                                disabled={!codeRequested || requesting || verifying || otpTimers.expired}
                                 type="submit"
                                 className="w-full sm:w-auto"
                             >

@@ -25,7 +25,7 @@ async function verifyLocationEmail(page: Page, isCiunacStudent = false) {
   await expect(page.locator('[data-e2e-recaptcha="ready"]')).toBeAttached()
   await page.locator('input[name="email"]').fill('e2e@example.com')
   await page.getByRole('button', { name: /Comprobar correo y enviar c.digo/i }).click()
-  await expect(page.getByText(/C.digo enviado/i)).toBeVisible()
+  await expect(page.getByText(/C.digo v.lido por 05:00.*solicitar otro en 03:00/i)).toBeVisible()
   await page.locator('input[data-input-otp]').fill(await getMockOtp(page.request))
   await page.getByRole('button', { name: /Verificar c.digo y continuar/i }).click()
   await expect(page.getByRole('heading', { name: /Verificacion de informacion adicional/i })).toBeVisible()
@@ -91,7 +91,7 @@ test.beforeEach(async ({ page, request }) => {
   await installBrowserMocks(page)
 })
 
-test('registra el examen de ubicacion no CIUNAC con tarifa S/ 30', async ({ page, request }) => {
+test('@smoke registra el examen de ubicacion no CIUNAC con tarifa S/ 30', async ({ page, request }) => {
   await verifyLocationEmail(page)
   await completeLocationForm(page)
   await confirmAndSubmit(page)
@@ -135,7 +135,7 @@ test('registra un alumno CIUNAC con certificado PDF y nivel seleccionado', async
   expect(requests.filter((item) => item.path === '/upload/becas')).toHaveLength(1)
 })
 
-test('rechaza acceso directo al proceso sin sesion y perfil verificados', async ({ page }) => {
+test('@smoke rechaza acceso directo al proceso sin sesion y perfil verificados', async ({ page }) => {
   await page.goto('/solicitud-ubicacion/proceso')
   await expect(page).toHaveURL(/\/solicitud-ubicacion$/)
   await expect(page.getByRole('heading', { name: /correo electronico/i })).toBeVisible()

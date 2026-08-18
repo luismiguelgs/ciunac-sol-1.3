@@ -23,6 +23,18 @@ Usar este checklist para PRs que agreguen o cambien flujos.
 
 ## Calidad
 - `npm run lint` pasa.
-- `npx tsc --noEmit` pasa.
+- `npm run typecheck` pasa.
+- `npm run test:unit` y `npm run test:integration` pasan.
+- El smoke del feature y las guardas de sesion afectadas pasan.
+- No se introducen violaciones axe `critical` o `serious`.
 - `npm run build` pasa antes de merge.
-- Nuevas reglas puras o mappers criticos tienen prueba planificada o documentada.
+- `npm run dead-code:check` no reporta archivos o dependencias nuevas sin uso.
+- `npm run audit:dependencies` no reporta vulnerabilidades high/critical nuevas.
+- `npm ls --depth=0` no reporta dependencias faltantes o extraneous.
+- Nuevas reglas puras, mappers y contratos externos tienen pruebas automatizadas.
+
+## Documentacion y Gobierno
+- Los cambios de arquitectura actualizan el SDD y, si corresponde, un ADR.
+- Los requisitos afectados enlazan implementacion y pruebas en la matriz de trazabilidad.
+- Una excepcion temporal de seguridad o accesibilidad tiene responsable y fecha de vencimiento.
+- Los cuatro checks obligatorios de GitHub Actions permanecen verdes antes del merge.

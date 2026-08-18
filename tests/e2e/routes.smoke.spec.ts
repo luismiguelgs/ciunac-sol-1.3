@@ -31,7 +31,7 @@ const routes = [
   },
 ]
 
-test.describe('Rutas publicas actuales', () => {
+test.describe('@smoke Rutas publicas actuales', () => {
   for (const route of routes) {
     test(`${route.path} responde y muestra contenido`, async ({ page }) => {
       await installBrowserMocks(page)
@@ -49,7 +49,7 @@ test.describe('Rutas publicas actuales', () => {
   }
 })
 
-test('la portada navega al flujo de certificados', async ({ page }) => {
+test('@smoke la portada navega al flujo de certificados', async ({ page }) => {
   await installBrowserMocks(page)
   await page.goto('/')
 

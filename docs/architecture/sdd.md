@@ -1,4 +1,6 @@
-# Software Design Description (SDD) v1
+# Software Design Description (SDD) v1.1
+
+- Ultima actualizacion: 2026-08-17.
 
 ## 1. Contexto del sistema
 El frontend CIUNAC gestiona procesos academicos y administrativos para postulantes y estudiantes. La aplicacion guia al usuario por formularios multi-step, consulta catalogos, registra solicitudes, envia notificaciones y genera comprobantes consumiendo APIs externas.
@@ -37,6 +39,9 @@ Quedan dentro del alcance:
 - Infraestructura compartida para HTTP, errores, repositories y mappers.
 - BFF con Route Handlers para credenciales, OTP, CAPTCHA y operaciones protegidas.
 - Features principales organizadas por capas internas.
+- Vitest para pruebas unitarias e integracion; Playwright para smoke, accesibilidad
+  y regresion E2E.
+- GitHub Actions con cuatro gates obligatorios y regresion completa programada.
 
 ## 4. Arquitectura objetivo
 Cada feature principal sigue una arquitectura modular con capas internas:
@@ -167,7 +172,6 @@ Infraestructura compartida:
 - `modules/shared/infrastructure/http/http-client.ts`
 - `modules/shared/infrastructure/api/*`
 - `modules/shared/infrastructure/mappers/*`
-- `hooks/useCatalogStore.ts`
 - `hooks/useCachedFetch.ts`
 - `modules/security/server/*`
 - `modules/security/client/security-client.ts`
@@ -175,7 +179,7 @@ Infraestructura compartida:
 - `app/api/ciunac/[...path]/route.ts`
 
 Estado compartido y de flujo:
-- `stores/types.stores.ts`: catalogos por sesion.
+- `stores/types.stores.ts`: cache de textos con consumidores activos.
 - `modules/solicitud-certificado/presentation/solicitud-certificado.store.ts`: workflow tipado de certificados.
 - `modules/solicitud-constancia/presentation/solicitud-constancia.store.ts`: borrador exclusivo de constancias.
 - `modules/solicitud-beca/presentation/solicitud-beca.store.ts`: workflow tipado de beca.
@@ -204,12 +208,14 @@ flowchart LR
 ## 8. Vista de estado
 - React Hook Form: estado local de formulario.
 - Zustand de flujo: datos que sobreviven entre pasos del wizard.
-- Zustand de catalogos: cache por sesion con hidratacion explicita.
+- Zustand compartido: solo cache de textos con hidratacion explicita.
 - Hooks de presentation: loading, submit, mensajes y dialogos.
 - Server Components: candidatos preferentes para datos de solo lectura cuando el flujo lo permita.
 
 ## 9. Vista de despliegue
-La aplicacion compila como frontend Next.js. Las rutas se generan como contenido estatico o dinamico segun App Router.
+La aplicacion compila como frontend Next.js. Las rutas se generan como contenido
+estatico o dinamico segun App Router. GitHub Actions valida cada cambio antes de
+su integracion y ejecuta regresion completa en Ubuntu despues del merge.
 
 ```mermaid
 flowchart TD
@@ -221,6 +227,20 @@ flowchart TD
     BFF --> Captcha[reCAPTCHA]
     Next --> Q10[API Q10]
 ```
+
+```mermaid
+flowchart LR
+    Change["Push o pull request"] --> CI["GitHub Actions"]
+    CI --> Static["Calidad estatica"]
+    CI --> Tests["Unitarias e integracion"]
+    CI --> Build["Build y bundle seguro"]
+    CI --> Browser["Smoke y axe"]
+    Main["main / cron"] --> E2E["Regresion Playwright completa"]
+```
+
+Los workflows usan Node.js `24.11.1`, instalacion reproducible con `npm ci` y
+variables sinteticas. No contienen secretos reales. Los artefactos de navegador y
+auditoria se retienen durante 14 dias.
 
 ## 10. Decisiones arquitectonicas
 Las decisiones quedan registradas como ADRs en `docs/architecture/adr/`.
@@ -250,6 +270,8 @@ ADRs vigentes:
 - ADR-022 Aplicar limites modulares y APIs publicas a solicitud de constancias.
 - ADR-023 Aplicar limites modulares y APIs publicas a solicitud de ubicacion.
 - ADR-024 Aplicar limites modulares y APIs publicas a solicitud de alumno nuevo.
+- ADR-025 Establecer gates automaticos de calidad y baselines temporales.
+- ADR-026 Clasificar niveles de prueba y usar dobles deterministas.
 
 ## 11. Riesgos y mitigaciones
 - Riesgo: extraer demasiada logica a `shared`.
@@ -262,11 +284,21 @@ ADRs vigentes:
   Mitigacion: mantenerlos como fachada y mover nueva integracion a infrastructure.
 - Riesgo: replay deliberado de una cookie OTP antigua.
   Mitigacion: limitacion documentada; migrar intentos y uso unico a Redis o persistencia backend.
+- Riesgo: cuatro vulnerabilidades altas conocidas en dependencias de produccion.
+  Mitigacion: baseline que vence el `2026-09-17` y actualizacion aislada de Next.js.
+- Riesgo: axe no identifica todas las barreras de accesibilidad.
+  Mitigacion: mantener revision manual con teclado, lector de pantalla, zoom y contraste.
+- Riesgo: teardown de Playwright bloqueado en Windows y build dependiente de Google Fonts.
+  Mitigacion: ejecutar CI en Ubuntu y planificar fuente local/reproducible.
 
 ## 12. Criterios de calidad
-- `npm run lint` sin errores.
-- `npx tsc --noEmit` sin errores.
-- `npm run build` exitoso.
-- Nuevos flujos con casos de uso testeables.
-- Nuevas reglas de negocio puras en `domain`.
-- Componentes `register` sin orquestacion de API directa.
+- Instalacion reproducible con `npm ci`.
+- `npm run lint`, `npm run typecheck` y `npm run build` exitosos.
+- Unitarias e integracion Vitest exitosas.
+- Smoke E2E y accesibilidad automatizada exitosos antes del merge.
+- Regresion E2E completa ejecutada en `main`, manualmente y por cron.
+- Knip sin nuevos archivos, dependencias o imports no declarados.
+- Auditoria sin vulnerabilidades criticas ni high nuevas; excepciones con vencimiento.
+- Bundle cliente sin valores de secretos privados.
+- Requisitos afectados vinculados con implementacion y pruebas en trazabilidad.
+- Reglas de negocio puras en `domain` y componentes sin orquestacion HTTP directa.

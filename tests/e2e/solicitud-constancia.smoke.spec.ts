@@ -23,7 +23,7 @@ async function verifyConstanciaEmail(page: Page, request: Parameters<typeof getM
   await expect(verifyButton).toBeDisabled()
   await page.locator('input[name="email"]').fill('e2e@example.com')
   await page.getByRole('button', { name: /Comprobar correo y enviar c.digo/i }).click()
-  await expect(page.getByText(/C.digo enviado/i)).toBeVisible()
+  await expect(page.getByText(/C.digo v.lido por 05:00.*solicitar otro en 03:00/i)).toBeVisible()
   await expect(otp).toBeEnabled()
   await expect(verifyButton).toBeEnabled()
   await otp.fill(await getMockOtp(request))
@@ -62,7 +62,7 @@ test.beforeEach(async ({ page, request }) => {
   await installBrowserMocks(page)
 })
 
-test('registra constancia como slice independiente con pago compartido', async ({ page, request }) => {
+test('@smoke registra constancia como slice independiente con pago compartido', async ({ page, request }) => {
   await verifyConstanciaEmail(page, request)
   await completeConstanciaForm(page)
   await page.getByRole('button', { name: 'Finalizar' }).click()
@@ -94,7 +94,7 @@ test('registra constancia como slice independiente con pago compartido', async (
   ]))
 })
 
-test('rechaza acceso directo al proceso de constancias sin sesion', async ({ page }) => {
+test('@smoke rechaza acceso directo al proceso de constancias sin sesion', async ({ page }) => {
   await page.goto('/solicitud-constancias/proceso')
   await expect(page).toHaveURL(/\/solicitud-constancias$/)
 })

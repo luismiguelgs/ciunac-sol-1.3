@@ -1,0 +1,27 @@
+{
+  "generatedOn": "2026-08-17",
+  "expiresOn": "2026-09-17",
+  "scope": "production",
+  "advisories": [
+    {
+      "source": "1124066",
+      "package": "sharp",
+      "severity": "high"
+    },
+    {
+      "source": "1124252",
+      "package": "postcss",
+      "severity": "high"
+    },
+    {
+      "source": "1139427",
+      "package": "nanoid",
+      "severity": "high"
+    },
+    {
+      "source": "1139510",
+      "package": "postcss",
+      "severity": "high"
+    }
+  ]
+}

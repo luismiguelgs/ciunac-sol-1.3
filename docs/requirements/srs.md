@@ -99,7 +99,7 @@ flowchart LR
 | RN-005 | Cuando el monto es mayor que cero, numero de voucher de 15 digitos, fecha de pago y archivo cargado son obligatorios. |
 | RN-006 | La solicitud de beca requiere constancia de matricula, historial academico, constancia de tercio, carta de compromiso y declaracion jurada; cada documento debe ser PDF y no superar 8 MiB. |
 | RN-007 | La solicitud de ubicacion debe bloquear duplicados con estado en proceso para el mismo documento, idioma y tipo de solicitud. |
-| RN-008 | La verificacion por correo usa un OTP generado y validado en servidor, con vigencia de 5 minutos y maximo de 5 intentos. |
+| RN-008 | La verificacion por correo usa un OTP generado y validado en servidor, con vigencia de 5 minutos, reenvio despues de 3 minutos y maximo de 5 intentos. |
 | RN-009 | En ubicacion, un alumno CIUNAC debe adjuntar certificado de estudios PDF; un usuario no CIUNAC no debe adjuntarlo. |
 | RN-010 | El precio normal depende del catalogo externo vigente y debe verificarse nuevamente en el BFF antes del registro. |
 | RN-011 | Las constancias aplican la politica comun de pago; el voucher no es una regla especial del flujo. Los tipos actuales `5` y `6` tienen monto positivo. |

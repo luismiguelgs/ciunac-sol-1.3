@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   createOtpChallenge,
+  generateOtpCode,
   OTP_EXPIRATION_MS,
   OTP_RESEND_DELAY_MS,
   verifyOtpCode,
@@ -22,11 +23,32 @@ function challengeAt(now = 1_000) {
 }
 
 describe('OTP security policy', () => {
+  it('generates exactly six visible digits without a leading zero', () => {
+    for (let sample = 0; sample < 100; sample += 1) {
+      expect(generateOtpCode()).toMatch(/^[1-9]\d{5}$/)
+    }
+  })
+
+  it('rejects an injected code with a leading zero', () => {
+    expect(() => createOtpChallenge({
+      email,
+      purpose,
+      secret,
+      generateCode: () => '012345',
+    })).toThrowError(/without a leading zero/)
+  })
+
   it('rejects an expired OTP', () => {
     const challenge = challengeAt()
     const result = verifyOtpCode(challenge, '123456', secret, 1_000 + OTP_EXPIRATION_MS + 1)
 
     expect(result).toMatchObject({ ok: false, code: 'OTP_EXPIRED' })
+  })
+
+  it('keeps the OTP valid through the five-minute boundary', () => {
+    const result = verifyOtpCode(challengeAt(), '123456', secret, 1_000 + OTP_EXPIRATION_MS)
+
+    expect(result.ok).toBe(true)
   })
 
   it('rejects an incorrect OTP and decrements attempts', () => {
@@ -60,7 +82,7 @@ describe('OTP security policy', () => {
     expect(secondResult).toMatchObject({ ok: false, code: 'OTP_REUSED' })
   })
 
-  it('rejects a resend before 60 seconds', () => {
+  it('rejects a resend before three minutes', () => {
     const previous = challengeAt()
 
     expect(() => createOtpChallenge({
@@ -71,6 +93,19 @@ describe('OTP security policy', () => {
       now: 1_000 + OTP_RESEND_DELAY_MS - 1,
       generateCode: () => '654321',
     })).toThrowError(expect.objectContaining<Partial<SecurityError>>({ code: 'RESEND_TOO_SOON' }))
+  })
+
+  it('allows a resend after the three-minute delay', () => {
+    const previous = challengeAt()
+
+    expect(() => createOtpChallenge({
+      email,
+      purpose,
+      secret,
+      previous,
+      now: 1_000 + OTP_RESEND_DELAY_MS,
+      generateCode: () => '654321',
+    })).not.toThrow()
   })
 
   it('limits sends to five in a 15-minute window', () => {

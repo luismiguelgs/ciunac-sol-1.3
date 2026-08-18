@@ -2,9 +2,11 @@ import { createHmac, randomInt, randomUUID, timingSafeEqual } from 'node:crypto'
 import { OtpPurpose } from '@/modules/security/domain/security.types';
 import { SecurityError } from '@/modules/security/server/security-error';
 
-export const OTP_EXPIRATION_MS = 5 * 60 * 1000;
+export const OTP_EXPIRATION_SECONDS = 5 * 60;
+export const OTP_EXPIRATION_MS = OTP_EXPIRATION_SECONDS * 1000;
 export const OTP_MAX_ATTEMPTS = 5;
-export const OTP_RESEND_DELAY_MS = 60 * 1000;
+export const OTP_RESEND_DELAY_SECONDS = 3 * 60;
+export const OTP_RESEND_DELAY_MS = OTP_RESEND_DELAY_SECONDS * 1000;
 export const OTP_RATE_WINDOW_MS = 15 * 60 * 1000;
 export const OTP_MAX_SENDS_PER_WINDOW = 5;
 
@@ -33,7 +35,7 @@ export type OtpVerificationResult =
   | { ok: false; code: 'OTP_EXPIRED' | 'OTP_REUSED' | 'MAX_ATTEMPTS' | 'VERIFICATION_FAILED'; challenge: OtpChallenge };
 
 export function generateOtpCode(): string {
-  return randomInt(0, 1_000_000).toString().padStart(6, '0');
+  return randomInt(100_000, 1_000_000).toString();
 }
 
 function hashOtp(challengeId: string, code: string, secret: string): string {
@@ -48,7 +50,7 @@ function hashesMatch(actual: string, expected: string): boolean {
 
 export function createOtpChallenge(input: CreateChallengeInput): { challenge: OtpChallenge; code: string } {
   const now = input.now ?? Date.now();
-  const recentSends = (input.previous?.sentAt ?? []).filter((sentAt) => sentAt > now - OTP_RATE_WINDOW_MS);
+  const recentSends = (input.previous?.sentAt ?? []).filter((sentAt) => sentAt >= now - OTP_RATE_WINDOW_MS);
   const lastSentAt = recentSends.at(-1);
 
   if (lastSentAt && now - lastSentAt < OTP_RESEND_DELAY_MS) {
@@ -60,8 +62,8 @@ export function createOtpChallenge(input: CreateChallengeInput): { challenge: Ot
   }
 
   const code = (input.generateCode ?? generateOtpCode)();
-  if (!/^\d{6}$/.test(code)) {
-    throw new Error('OTP generator must return exactly six digits');
+  if (!/^[1-9]\d{5}$/.test(code)) {
+    throw new Error('OTP generator must return exactly six digits without a leading zero');
   }
 
   const challengeId = randomUUID();

@@ -35,7 +35,7 @@ const eslintConfig = defineConfig([
             },
             {
               name: "@/hooks/useStore",
-              message: "useStore fue retirado; usa hooks especificos de estado o useCatalogStore.",
+              message: "useStore fue retirado; usa un store tipado del feature o carga server-side.",
             },
           ],
           patterns: [

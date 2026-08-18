@@ -6,7 +6,7 @@ test.beforeEach(async ({ page, request }) => {
   await installBrowserMocks(page)
 })
 
-test('consulta una solicitud por documento', async ({ page }) => {
+test('@smoke consulta una solicitud por documento', async ({ page }) => {
   await page.goto('/consulta-solicitud')
   await page.locator('input[name="documento"]').fill('12345678')
   await page.getByRole('button', { name: 'Buscar' }).click()
@@ -98,7 +98,7 @@ test('bloquea descargas duplicadas de una constancia aceptada', async ({ page, r
 
   await busyButton.evaluate((element) => {
     element.removeAttribute('disabled')
-    element.click()
+    if (element instanceof HTMLElement) element.click()
   })
   await page.waitForTimeout(100)
   expect(downloadCount).toBe(1)
@@ -127,7 +127,7 @@ test('evita aceptar dos veces una constancia pendiente', async ({ page, request 
   await expect(processingButton).toBeDisabled()
   await processingButton.evaluate((element) => {
     element.removeAttribute('disabled')
-    element.click()
+    if (element instanceof HTMLElement) element.click()
   })
   await downloadPromise
 
@@ -137,7 +137,7 @@ test('evita aceptar dos veces una constancia pendiente', async ({ page, request 
   ))).toHaveLength(1)
 })
 
-test('consulta un certificado y muestra sus notas', async ({ page }) => {
+test('@smoke consulta un certificado y muestra sus notas', async ({ page }) => {
   const browserRequests: string[] = []
   let browserSentApiKey = false
   page.on('request', (request) => {
@@ -155,7 +155,7 @@ test('consulta un certificado y muestra sus notas', async ({ page }) => {
   expect(browserSentApiKey).toBe(false)
 })
 
-test('consulta el resultado del examen de ubicacion', async ({ page }) => {
+test('@smoke consulta el resultado del examen de ubicacion', async ({ page }) => {
   await openLocationConsultation(page)
   await expect(page.getByText(/MARIA PRUEBA E2E/i)).toBeVisible()
   await expect(page.getByText('88/100')).toBeVisible()
