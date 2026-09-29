@@ -1,27 +1,25 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { resourceApiRepository } from '@/modules/shared/infrastructure/api/resource-api.repository'
+import * as api from '@/lib/api.service'
 import { ADMINISTRATIVE_CARGO_PAGE_SIZE } from '@/modules/shared/components/administrative-cargo-pdf'
-import { GetConsultationRequestsUseCase } from '@/modules/consultas/application/get-consultation-requests.use-case'
+import { loadConsultationRequests } from '@/modules/consultas/operations'
 import {
   matchesConsultationType,
   normalizeConsultationDocument,
   resolveRequestKind,
   resolveRequestStep,
-} from '@/modules/consultas/domain/consulted-request'
-import { toConsultedRequest } from '@/modules/consultas/infrastructure/mappers/consultation.mapper'
+} from '@/modules/consultas/model'
+import { toConsultedRequest } from '@/modules/consultas/infrastructure/consultation.mapper'
 import {
   consultationCheckResponseSchema,
   consultedRequestArrayResponseSchema,
-} from '@/modules/consultas/infrastructure/validation/consultation.schemas'
-import { GetDigitalDocumentUseCase } from '@/modules/consulta-solicitud/application/use-cases/get-digital-document.use-case'
-import { AcceptDigitalDocumentUseCase } from '@/modules/consulta-solicitud/application/use-cases/accept-digital-document.use-case'
-import type { DigitalDocumentPort } from '@/modules/consulta-solicitud/application/ports/digital-document.port'
-import { ApiDigitalDocumentGateway } from '@/modules/consulta-solicitud/infrastructure/api/digital-document.gateway'
-import { toConsultationCargoDocument } from '@/modules/consulta-solicitud/presentation/consultation-cargo.presenter'
+} from '@/modules/consultas/infrastructure/consultation.schemas'
+import { getDigitalDocument, acceptDigitalDocument } from '@/modules/consulta-solicitud/operations'
+import { findDigitalDocument, confirmDigitalDocumentAcceptance } from '@/modules/consulta-solicitud/infrastructure/digital-document.client'
+import { toConsultationCargoDocument } from '@/modules/consulta-solicitud/components/consultation-cargo.presenter'
 import {
   certificateDigitalDocumentResponseSchema,
   constanciaDigitalDocumentResponseSchema,
-} from '@/modules/consulta-solicitud/infrastructure/validation/digital-document.schemas'
+} from '@/modules/consulta-solicitud/infrastructure/digital-document.schemas'
 
 describe('consultation request contracts', () => {
   it('validates and maps a complete backend request', () => {
@@ -88,24 +86,24 @@ describe('consultation use case', () => {
       tiposSolicitud: { id: 7, solicitud: 'EXAMEN DE UBICACION' },
     })
     const location = toConsultedRequest(consultedRequestArrayResponseSchema.parse([locationDto])[0])
-    const useCase = new GetConsultationRequestsUseCase({
-      requests: { findByDocument: vi.fn().mockResolvedValue([certificate, location]) },
-      texts: { list: vi.fn().mockResolvedValue([{ code: 'NOTICE', content: 'Texto' }]) },
-    })
+    const dependencies = {
+      findRequests: vi.fn().mockResolvedValue([certificate, location]),
+      listTexts: vi.fn().mockResolvedValue([{ code: 'NOTICE', content: 'Texto' }]),
+    }
 
-    const certificateResult = await useCase.execute('12345678', 'CERTIFICADO')
+    const certificateResult = await loadConsultationRequests('12345678', 'CERTIFICADO', dependencies)
     expect(certificateResult.requests).toEqual([certificate])
     expect(matchesConsultationType(location, 'CERTIFICADO')).toBe(false)
   })
 
   it('keeps requests available when auxiliary texts fail', async () => {
     const certificate = toConsultedRequest(consultedRequestArrayResponseSchema.parse([requestResponse()])[0])
-    const useCase = new GetConsultationRequestsUseCase({
-      requests: { findByDocument: vi.fn().mockResolvedValue([certificate]) },
-      texts: { list: vi.fn().mockRejectedValue(new Error('text provider failed')) },
-    })
+    const dependencies = {
+      findRequests: vi.fn().mockResolvedValue([certificate]),
+      listTexts: vi.fn().mockRejectedValue(new Error('text provider failed')),
+    }
 
-    await expect(useCase.execute('12345678', 'CERTIFICADO')).resolves.toMatchObject({
+    await expect(loadConsultationRequests('12345678', 'CERTIFICADO', dependencies)).resolves.toMatchObject({
       requests: [certificate],
       texts: [],
       textStatus: 'unavailable',
@@ -116,7 +114,6 @@ describe('consultation use case', () => {
 describe('digital document contracts', () => {
   afterEach(() => vi.restoreAllMocks())
 
-  const gateway = new ApiDigitalDocumentGateway()
 
   it('validates safe certificate and constancia URLs', () => {
     expect(certificateDigitalDocumentResponseSchema.safeParse(certificateDocument()).success).toBe(true)
@@ -161,17 +158,17 @@ describe('digital document contracts', () => {
   })
 
   it('distinguishes an absent document and maps both document kinds', async () => {
-    const getOptional = vi.spyOn(resourceApiRepository, 'getOptional')
+    const getOptional = vi.spyOn(api, 'apiFetchOptional')
     getOptional.mockResolvedValueOnce(null)
-    await expect(gateway.findByRequest({ kind: 'certificate', requestId: 1001 })).resolves.toBeNull()
+    await expect(findDigitalDocument({ kind: 'certificate', requestId: 1001 })).resolves.toBeNull()
 
     getOptional.mockResolvedValueOnce(certificateDocument())
-    await expect(gateway.findByRequest({ kind: 'certificate', requestId: 1001 })).resolves.toMatchObject({
+    await expect(findDigitalDocument({ kind: 'certificate', requestId: 1001 })).resolves.toMatchObject({
       kind: 'certificate', id: 'CERT-1', requestId: 1001, descriptor: 'INGLES', accepted: false,
     })
 
     getOptional.mockResolvedValueOnce([constanciaDocument()])
-    await expect(gateway.findByRequest({ kind: 'constancia', requestId: 1003 })).resolves.toMatchObject({
+    await expect(findDigitalDocument({ kind: 'constancia', requestId: 1003 })).resolves.toMatchObject({
       kind: 'constancia', id: 'CONST-1', requestId: 1003, descriptor: 'ESTUDIOS', accepted: true,
     })
 
@@ -181,7 +178,7 @@ describe('digital document contracts', () => {
       id_solicitud: solicitudId,
       dni: numeroDocumento,
     })
-    await expect(gateway.findByRequest({ kind: 'constancia', requestId: 1003 })).resolves.toMatchObject({
+    await expect(findDigitalDocument({ kind: 'constancia', requestId: 1003 })).resolves.toMatchObject({
       kind: 'constancia',
       id: 'CONST-1',
       requestId: 1003,
@@ -190,17 +187,17 @@ describe('digital document contracts', () => {
   })
 
   it('rejects malformed documents and sends a typed acceptance command', async () => {
-    vi.spyOn(resourceApiRepository, 'getOptional').mockResolvedValueOnce({ id: 'CERT-1' })
-    await expect(gateway.findByRequest({ kind: 'certificate', requestId: 1001 })).rejects.toMatchObject({
+    vi.spyOn(api, 'apiFetchOptional').mockResolvedValueOnce({ id: 'CERT-1' })
+    await expect(findDigitalDocument({ kind: 'certificate', requestId: 1001 })).rejects.toMatchObject({
       code: 'EXTERNAL_SERVICE',
     })
 
-    const update = vi.spyOn(resourceApiRepository, 'updateCommand').mockResolvedValueOnce(undefined)
-    await gateway.accept({
+    const update = vi.spyOn(api, 'apiCommand').mockResolvedValueOnce(undefined)
+    await confirmDigitalDocumentAcceptance({
       kind: 'certificate',
       documentId: 'CERT-1',
     })
-    expect(update).toHaveBeenCalledWith('certificados/CERT-1', expect.objectContaining({ aceptado: true }))
+    expect(update).toHaveBeenCalledWith('certificados/CERT-1', 'PATCH', expect.objectContaining({ aceptado: true }))
   })
 
   it('rejects a document that does not belong to the requested operation', async () => {
@@ -217,28 +214,25 @@ describe('digital document contracts', () => {
         issuedAt: null,
       }),
     })
-    const useCase = new GetDigitalDocumentUseCase(port)
 
-    await expect(useCase.execute({ kind: 'certificate', requestId: 1001 })).rejects.toMatchObject({
+    await expect(getDigitalDocument({ kind: 'certificate', requestId: 1001 }, port.findByRequest)).rejects.toMatchObject({
       code: 'EXTERNAL_SERVICE',
     })
   })
 
   it('validates queries and acceptance commands before calling infrastructure', async () => {
     const port = digitalDocumentPort()
-    const getDocument = new GetDigitalDocumentUseCase(port)
-    const acceptDocument = new AcceptDigitalDocumentUseCase(port)
 
-    await expect(getDocument.execute({ kind: 'certificate', requestId: 0 })).rejects.toMatchObject({
+    await expect(getDigitalDocument({ kind: 'certificate', requestId: 0 }, port.findByRequest)).rejects.toMatchObject({
       code: 'VALIDATION',
     })
-    await expect(acceptDocument.execute({ kind: 'constancia', documentId: '  ' })).rejects.toMatchObject({
+    await expect(acceptDigitalDocument({ kind: 'constancia', documentId: '  ' }, port.accept)).rejects.toMatchObject({
       code: 'VALIDATION',
     })
     expect(port.findByRequest).not.toHaveBeenCalled()
     expect(port.accept).not.toHaveBeenCalled()
 
-    await acceptDocument.execute({ kind: 'constancia', documentId: ' CONST-1 ' })
+    await acceptDigitalDocument({ kind: 'constancia', documentId: ' CONST-1 ' }, port.accept)
     expect(port.accept).toHaveBeenCalledWith({ kind: 'constancia', documentId: 'CONST-1' })
   })
 })
@@ -280,6 +274,11 @@ describe('consultation cargo presentation', () => {
     expect(ADMINISTRATIVE_CARGO_PAGE_SIZE).toEqual([595.28, 841.89])
   })
 })
+
+type DigitalDocumentPort = {
+  findByRequest: Parameters<typeof getDigitalDocument>[1]
+  accept: Parameters<typeof acceptDigitalDocument>[1]
+}
 
 function digitalDocumentPort(
   overrides: Partial<DigitalDocumentPort> = {},

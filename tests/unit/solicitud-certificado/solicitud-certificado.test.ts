@@ -1,37 +1,41 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AppError } from '@/modules/shared/application/errors/app-error'
-import { resourceApiRepository } from '@/modules/shared/infrastructure/api/resource-api.repository'
-import { RegisterSolicitudCertificadoUseCase } from '@/modules/solicitud-certificado/application/use-cases/register-solicitud-certificado.use-case'
-import { FindCertificateStudentUseCase } from '@/modules/solicitud-certificado/application/use-cases/find-certificate-student.use-case'
-import { GetCertificateCargoUseCase } from '@/modules/solicitud-certificado/application/use-cases/get-certificate-cargo.use-case'
+import * as api from '@/lib/api.service'
+import { registerCertificate, findCertificateStudent, getCertificateCargo } from '@/modules/solicitud-certificado/operations'
+import { mailApiRepository } from '@/modules/shared/infrastructure/api/mail-api.repository'
 import {
   CertificateCatalogs,
   SolicitudCertificado,
   hasConsistentCertificateCatalogs,
   isDigitalCertificateType,
-} from '@/modules/solicitud-certificado/domain/solicitud-certificado'
-import { SolicitudApiGateway } from '@/modules/solicitud-certificado/infrastructure/api/solicitud-api.gateway'
-import { CertificateStudentApiGateway } from '@/modules/solicitud-certificado/infrastructure/api/certificate-student-api.gateway'
-import { CertificateCargoApiGateway } from '@/modules/solicitud-certificado/infrastructure/api/certificate-cargo-api.gateway'
+} from '@/modules/solicitud-certificado/model'
+import {
+  createCertificateRequest,
+  fetchCertificateCargo,
+  fetchCertificateStudent,
+  saveCertificateStudent,
+  sendCertificateNotification,
+} from '@/modules/solicitud-certificado/infrastructure/certificate-client'
 import {
   toCertificateCargo,
   toCertificateRequestDto,
   toCertificateStudentRequestDto,
-} from '@/modules/solicitud-certificado/infrastructure/mappers/certificate-api.mapper'
+} from '@/modules/solicitud-certificado/infrastructure/certificate-api.mapper'
 import {
   certificateCargoResponseSchema,
   certificateCreateResponseSchema,
   certificateStudentLookupResponseSchema,
   certificateStudentResponseSchema,
   certificateTypeArraySchema,
-} from '@/modules/solicitud-certificado/infrastructure/validation/certificate-api.schemas'
+} from '@/modules/solicitud-certificado/infrastructure/certificate-api.schemas'
 import {
   toCertificateBasicData,
   toCertificatePayment,
-} from '@/modules/solicitud-certificado/presentation/certificate-form.mapper'
-import useSolicitudCertificadoStore from '@/modules/solicitud-certificado/presentation/solicitud-certificado.store'
-import { CertificateBasicDataFormValues } from '@/modules/solicitud-certificado/presentation/schemas/basic-data.schema'
-import { solicitudCertificadoSchema } from '@/modules/solicitud-certificado/application/validation/solicitud-certificado.schema'
+  toCompleteCertificateRequest,
+} from '@/modules/solicitud-certificado/components/certificate-form.mapper'
+import useSolicitudCertificadoStore from '@/modules/solicitud-certificado/store'
+import { CertificateBasicDataFormValues } from '@/modules/solicitud-certificado/components/basic-data.schema'
+import { solicitudCertificadoSchema } from '@/modules/solicitud-certificado/schemas'
 
 const catalogs: CertificateCatalogs = {
   requestTypes: [
@@ -47,6 +51,16 @@ const catalogs: CertificateCatalogs = {
 }
 
 describe('certificate domain and form mapping', () => {
+  it('builds a complete typed draft without parsing it during rendering', () => {
+    const request = certificate()
+    expect(toCompleteCertificateRequest(request)).toEqual(request)
+    expect(toCompleteCertificateRequest({ ...request, email: '' })).toBeNull()
+    expect(toCompleteCertificateRequest({ ...request, basicData: null })).toBeNull()
+    expect(toCompleteCertificateRequest({ ...request, payment: null })).toBeNull()
+    expect(toCompleteCertificateRequest({ ...request, payment: { amount: 0, voucher: null } }))
+      .toMatchObject({ payment: { amount: 0, voucher: null } })
+  })
+
   it.each([1, 2, 3, 4] as const)('accepts a complete request for certificate type %s', (typeId) => {
     expect(solicitudCertificadoSchema.safeParse(certificate({ typeId })).success).toBe(true)
   })
@@ -130,6 +144,35 @@ describe('certificate domain and form mapping', () => {
 
 describe('certificate API contracts and mappers', () => {
   beforeEach(() => vi.restoreAllMocks())
+
+  it.each(['NETWORK', 'AUTHENTICATION', 'AUTHORIZATION', 'VALIDATION', 'EXTERNAL_SERVICE'] as const)(
+    'preserves %s mail errors with their status, correlation and retryability', async (code) => {
+      const error = new AppError({ code, status: 503, correlationId: 'mail-test', retryable: false, message: 'Correo no disponible' })
+      vi.spyOn(mailApiRepository, 'send').mockRejectedValueOnce(error)
+      await expect(sendCertificateNotification('request-1')).rejects.toBe(error)
+      expect(mailApiRepository.send).toHaveBeenCalledWith({ type: 'CERTIFICADO', reference: 'request-1' })
+    },
+  )
+
+  it('uses a safe message for unexpected mail failures', async () => {
+    vi.spyOn(mailApiRepository, 'send').mockRejectedValueOnce(new Error('private provider detail'))
+    await expect(sendCertificateNotification('request-1')).rejects.toMatchObject({
+      code: 'UNEXPECTED', message: 'La solicitud se guardo, pero el correo no pudo enviarse',
+    })
+  })
+
+  it('maps student lookup and preserves absence and malformed responses', async () => {
+    const getOptional = vi.spyOn(api, 'apiFetchOptional')
+      .mockResolvedValueOnce({ id: 'student-1', nombres: 'Maria', apellidos: 'Perez', celular: '999888777' })
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: 'student-1' })
+    await expect(fetchCertificateStudent('12345678')).resolves.toEqual({
+      id: 'student-1', names: 'Maria', lastNames: 'Perez', phone: '999888777',
+    })
+    expect(getOptional).toHaveBeenCalledWith('estudiantes/buscar/12345678', 'GET')
+    await expect(fetchCertificateStudent('12345678')).resolves.toBeNull()
+    await expect(fetchCertificateStudent('12345678')).rejects.toMatchObject({ code: 'EXTERNAL_SERVICE' })
+  })
 
   it('maps the exact student and request DTOs', () => {
     const request = certificate()
@@ -226,54 +269,49 @@ describe('certificate API contracts and mappers', () => {
   })
 
   it('distinguishes an absent cargo from malformed data and network errors', async () => {
-    const getOptional = vi.spyOn(resourceApiRepository, 'getOptional')
+    const getOptional = vi.spyOn(api, 'apiFetchOptional')
     getOptional.mockResolvedValueOnce(null)
-    const gateway = new CertificateCargoApiGateway()
-    await expect(gateway.findById(1001)).resolves.toBeNull()
+    await expect(fetchCertificateCargo(1001)).resolves.toBeNull()
     getOptional.mockResolvedValueOnce({ id: 1001 })
-    await expect(gateway.findById(1001)).rejects.toMatchObject({ code: 'EXTERNAL_SERVICE' })
+    await expect(fetchCertificateCargo(1001)).rejects.toMatchObject({ code: 'EXTERNAL_SERVICE' })
     const networkError = new AppError({ code: 'NETWORK', message: 'Sin conexion', retryable: true })
     getOptional.mockRejectedValueOnce(networkError)
-    await expect(gateway.findById(1001)).rejects.toBe(networkError)
+    await expect(fetchCertificateCargo(1001)).rejects.toBe(networkError)
   })
 
   it('updates an existing student and rejects a malformed response', async () => {
-    const update = vi.spyOn(resourceApiRepository, 'update').mockResolvedValueOnce({ id: 'student-1' })
+    const update = vi.spyOn(api, 'apiFetch').mockResolvedValueOnce({ id: 'student-1' })
     const request = certificate({
       basicData: { ...certificate().basicData, existingStudentId: 'student-1' },
     })
-    await expect(new CertificateStudentApiGateway().save(request)).resolves.toBe('student-1')
-    expect(update).toHaveBeenCalledWith('estudiantes/student-1', expect.any(Object))
+    await expect(saveCertificateStudent(request)).resolves.toBe('student-1')
+    expect(update).toHaveBeenCalledWith('estudiantes/student-1', 'PATCH', expect.any(Object))
 
     update.mockResolvedValueOnce({})
-    await expect(new CertificateStudentApiGateway().save(request)).rejects.toMatchObject({ code: 'EXTERNAL_SERVICE' })
+    await expect(saveCertificateStudent(request)).rejects.toMatchObject({ code: 'EXTERNAL_SERVICE' })
   })
 
   it('preserves a 409 validation error returned by price verification', async () => {
     const priceError = new AppError({ code: 'VALIDATION', status: 409, message: 'El tarifario cambio.' })
-    vi.spyOn(resourceApiRepository, 'create').mockRejectedValueOnce(priceError)
-    await expect(new SolicitudApiGateway().create(certificate(), 'student-1')).rejects.toBe(priceError)
+    vi.spyOn(api, 'apiFetch').mockRejectedValueOnce(priceError)
+    await expect(createCertificateRequest(certificate(), 'student-1')).rejects.toBe(priceError)
   })
 })
 
 describe('certificate read use cases', () => {
   it('normalizes a valid document and rejects invalid input before integration', async () => {
     const findByDocument = vi.fn().mockResolvedValue(null)
-    const useCase = new FindCertificateStudentUseCase({ findByDocument })
-
-    await expect(useCase.execute(' ab123456 ')).resolves.toBeNull()
+    await expect(findCertificateStudent(' ab123456 ', findByDocument)).resolves.toBeNull()
     expect(findByDocument).toHaveBeenCalledWith('AB123456')
 
-    await expect(useCase.execute('123')).rejects.toMatchObject({ code: 'VALIDATION' })
+    await expect(findCertificateStudent('123', findByDocument)).rejects.toMatchObject({ code: 'VALIDATION' })
     expect(findByDocument).toHaveBeenCalledTimes(1)
   })
 
   it('rejects an invalid cargo id before integration and preserves absence', async () => {
     const findById = vi.fn().mockResolvedValue(null)
-    const useCase = new GetCertificateCargoUseCase({ findById })
-
-    await expect(useCase.execute(1001)).resolves.toBeNull()
-    await expect(useCase.execute(0)).rejects.toMatchObject({ code: 'VALIDATION' })
+    await expect(getCertificateCargo(1001, findById)).resolves.toBeNull()
+    await expect(getCertificateCargo(0, findById)).rejects.toMatchObject({ code: 'VALIDATION' })
     expect(findById).toHaveBeenCalledTimes(1)
   })
 })
@@ -326,22 +364,40 @@ describe('certificate workflow store', () => {
 })
 
 describe('certificate registration use case', () => {
+  it('keeps the persisted id and original mail error in a partial result', async () => {
+    const error = new AppError({ code: 'NETWORK', status: 503, correlationId: 'mail-failed', retryable: true, message: 'Sin conexion' })
+    const result = await registerCertificate(certificate(), {
+      saveStudent: vi.fn().mockResolvedValue('student-1'),
+      createRequest: vi.fn().mockResolvedValue('request-1'),
+      sendNotification: vi.fn().mockRejectedValue(error),
+    })
+    expect(result).toEqual({ status: 'saved_notification_failed', requestId: 'request-1', error })
+    if (result.status === 'saved_notification_failed') expect(result.error).toBe(error)
+  })
+
+  it('stops before request and email when student persistence fails', async () => {
+    const error = new AppError({ code: 'NETWORK', retryable: true, message: 'Sin conexion' })
+    const createRequest = vi.fn()
+    const sendNotification = vi.fn()
+    await expect(registerCertificate(certificate(), {
+      saveStudent: vi.fn().mockRejectedValue(error), createRequest, sendNotification,
+    })).rejects.toBe(error)
+    expect(createRequest).not.toHaveBeenCalled()
+    expect(sendNotification).not.toHaveBeenCalled()
+  })
+
   it('returns partial success and retries only the notification', async () => {
     const save = vi.fn().mockResolvedValue('student-1')
     const create = vi.fn().mockResolvedValue('request-1')
     const sendSolicitudCreada = vi.fn()
       .mockRejectedValueOnce(new AppError({ code: 'EXTERNAL_SERVICE', message: 'Correo no disponible' }))
       .mockResolvedValueOnce('receipt-1')
-    const useCase = new RegisterSolicitudCertificadoUseCase({
-      studentGateway: { save },
-      solicitudGateway: { create },
-      notificationGateway: { sendSolicitudCreada },
-    })
+    const dependencies = { saveStudent: save, createRequest: create, sendNotification: sendSolicitudCreada }
 
-    await expect(useCase.execute({ solicitud: certificate() })).resolves.toMatchObject({
+    await expect(registerCertificate(certificate(), dependencies)).resolves.toMatchObject({
       status: 'saved_notification_failed', requestId: 'request-1',
     })
-    await expect(useCase.retryNotification('request-1')).resolves.toBe('receipt-1')
+    await expect(dependencies.sendNotification('request-1')).resolves.toBe('receipt-1')
     expect(save).toHaveBeenCalledTimes(1)
     expect(create).toHaveBeenCalledTimes(1)
     expect(sendSolicitudCreada).toHaveBeenCalledTimes(2)
@@ -351,21 +407,16 @@ describe('certificate registration use case', () => {
     const save = vi.fn()
     const create = vi.fn()
     const notify = vi.fn()
-    const useCase = new RegisterSolicitudCertificadoUseCase({
-      studentGateway: { save },
-      solicitudGateway: { create },
-      notificationGateway: { sendSolicitudCreada: notify },
-    })
-    await expect(useCase.execute({
-      solicitud: { ...certificate(), email: 'invalid' },
-    })).rejects.toMatchObject({ code: 'VALIDATION' })
+    const dependencies = { saveStudent: save, createRequest: create, sendNotification: notify }
+    await expect(registerCertificate({ ...certificate(), email: 'invalid' }, dependencies))
+      .rejects.toMatchObject({ code: 'VALIDATION' })
     expect(save).not.toHaveBeenCalled()
     expect(create).not.toHaveBeenCalled()
     expect(notify).not.toHaveBeenCalled()
 
     save.mockResolvedValueOnce('student-1')
     create.mockRejectedValueOnce(new AppError({ code: 'EXTERNAL_SERVICE', message: 'Sin identificador' }))
-    await expect(useCase.execute({ solicitud: certificate() })).rejects.toMatchObject({ code: 'EXTERNAL_SERVICE' })
+    await expect(registerCertificate(certificate(), dependencies)).rejects.toMatchObject({ code: 'EXTERNAL_SERVICE' })
     expect(notify).not.toHaveBeenCalled()
   })
 })

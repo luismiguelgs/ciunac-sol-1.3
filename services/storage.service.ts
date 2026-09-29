@@ -1,16 +1,26 @@
-import { storageApiRepository } from '@/modules/shared/infrastructure/api/storage-api.repository';
+import { z } from 'zod'
+import { apiUpload } from '@/lib/api.service'
+import { parseExternalResponse } from '@/modules/shared/infrastructure/validation/external-response'
+
+const uploadResponseSchema = z.object({
+	id: z.string().min(1),
+	name: z.string().min(1),
+	folder: z.string().min(1),
+	viewLink: z.string().min(1),
+	downloadLink: z.string().min(1),
+})
 
 export async function uploadFile(file: File, folder: 'dnis' | 'vouchers' | 'becas', dni: string = '', name: string = '') {
-	try {
-		const formData = new FormData();
-		formData.append('file', file);
-		if (dni) formData.append('nombre', getFileName(dni, folder, name));
+	const formData = new FormData()
+	formData.append('file', file)
+	if (dni) formData.append('nombre', getFileName(dni, folder, name))
 
-		return await storageApiRepository.upload(folder, formData);
-	} catch (error: unknown) {
-		const message = error instanceof Error ? error.message : 'Error al subir archivo';
-		throw new Error(message);
-	}
+	const response = await apiUpload<unknown>(`upload/${folder}`, formData)
+	return parseExternalResponse(
+		uploadResponseSchema,
+		response,
+		'El servicio de archivos devolvio datos incompletos',
+	)
 }
 
 function getFileName(dni: string, folder: 'dnis' | 'vouchers' | 'becas', originalName: string): string {

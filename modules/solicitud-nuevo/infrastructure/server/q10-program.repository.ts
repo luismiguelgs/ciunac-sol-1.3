@@ -1,13 +1,13 @@
 import 'server-only'
 
 import { AppError } from '@/modules/shared/application/errors/app-error'
-import { NewStudentProgramOption } from '@/modules/solicitud-nuevo/domain/new-student'
+import { NewStudentProgramOption } from '../../model'
 import { getQ10ApiKey } from '@/modules/security/server/environment'
 import {
   isVisibleNewStudentProgram,
   toNewStudentProgramOption,
-} from '@/modules/solicitud-nuevo/infrastructure/mappers/q10-api.mapper'
-import { q10ProgramArraySchema } from '@/modules/solicitud-nuevo/infrastructure/validation/q10-api.schemas'
+} from '../q10-api.mapper'
+import { q10ProgramArraySchema } from '../q10-api.schemas'
 
 const Q10_PROGRAMS_URL = 'https://api.q10.com/v1/programas?Limit=30'
 

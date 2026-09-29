@@ -1,61 +1,28 @@
 # Arquitectura del Frontend CIUNAC
 
-## Estado actual
-- Aplicacion Next.js 16 con App Router.
-- UI basada en `shadcn/ui`, React Hook Form y Zod.
-- Organizacion principal por modulos de negocio en `modules/`.
-- Estado local y de flujo con Zustand.
-- Integracion con API externa mediante `services/` y `lib/api.service.ts`.
+Estado implementado al 2026-09-28, aplicacion 1.6.6.
 
-## Problemas detectados
-- Los componentes de UI mezclan render, orquestacion, side effects y persistencia.
-- Los modelos de formulario, dominio e integracion con API se reutilizan de forma ambigua.
-- Hay duplicacion estructural entre `solicitud-certificado`, `solicitud-beca` y `solicitud-ubicacion`.
-- La documentacion tecnica del repositorio era insuficiente para sostener decisiones de largo plazo.
+Next.js App Router combina Server Components con formularios cliente. El sistema
+esta organizado por feature, con reglas puras separadas de UI e integracion.
+No se exige una carpeta, command, port o clase por responsabilidad.
 
-## Arquitectura objetivo
-Cada feature debe evolucionar hacia cuatro capas internas:
+- Cinco solicitudes: certificado, constancia, beca, ubicacion y alumno nuevo.
+- Consultas de solicitudes y ubicacion con sesion; certificado publico por QR.
+- React Hook Form para edicion y Zustand para workflows entre pasos.
+- BFF para API key privada, OTP, CAPTCHA, autorizacion y validacion server-side.
+- Capacidades compartidas estables: pago, archivos, HTTP browser, UI y renderer PDF.
+- Cargos generados en frontend bajo demanda; documentos digitales externos no se regeneran.
+- Funciones testeables y entradas publicas index/client/server, sin imports internos cruzados.
 
-```text
-modules/<feature>/
-  presentation/
-  application/
-  domain/
-  infrastructure/
-```
+La simplificacion de los pasos 1 a 8 esta cerrada. No equivale a aprobar despliegue:
+la auditoria de dependencias tiene hallazgos bloqueantes y excepciones vencidas.
 
-## Reglas base
-- `presentation` puede coordinar eventos de UI, pero no construir payloads HTTP.
-- `application` define casos de uso y orquesta dependencias.
-- `domain` no conoce `fetch`, router, componentes ni librerias de infraestructura.
-- `infrastructure` adapta APIs externas, DTOs y mappers.
-- `modules/shared` contiene solo piezas realmente transversales.
+## Leer segun la necesidad
 
-## Flujo piloto implementado
-`solicitud-certificado` se usa como slice vertical inicial:
-- `presentation/components/solicitud-certificado-process.tsx`
-- `presentation/hooks/use-register-solicitud-certificado.ts`
-- `domain/rules/*`
-- `application/use-cases/register-solicitud-certificado.use-case.ts`
-- `application/ports/register-solicitud-certificado.ports.ts`
-- `infrastructure/api/*`
-- `infrastructure/mappers/*`
-
-El componente `register.tsx` queda enfocado en estado visual, submit y navegacion final.
-
-El mismo patron ya se replico en:
-- `solicitud-beca`
-- `solicitud-ubicacion`
-
-## Duplicaciones prioritarias a reducir
-- Secuencia guardar entidad -> guardar solicitud -> enviar correo.
-- Dialogos de carga/error/finalizacion.
-- Generacion y descarga de cargos PDF.
-- Carga de catalogos y persistencia temporal por sesion.
-
-## Gobierno tecnico
-- Las decisiones se documentan como ADRs en `docs/architecture/adr/`.
-- El SDD se mantiene en `docs/architecture/sdd.md`.
-- Las revisiones usan `docs/architecture/review-checklist.md`.
-- La estrategia de pruebas vive en `docs/architecture/testing-strategy.md`.
-- Las reglas de dependencia se resumen en `docs/architecture/architecture-rules.md`.
+- [Mapa con diagramas](complete-architecture.md): como se conectan navegador, features y BFF.
+- [SDD](sdd.md): diseno implementado, contratos, estado, despliegue y riesgos.
+- [Lectura de codigo: consulta-certificado](walkthroughs/consulta-certificado.md): archivos, llamadas, datos y seguridad del QR publico.
+- [Lectura de codigo: consulta-solicitud](walkthroughs/consulta-solicitud.md): CAPTCHA, sesion, resultados, cargo local y descarga digital.
+- [Convenciones](conventions.md): como agregar un feature sin ceremonia.
+- [ADR-031](adr/031-pragmatic-feature-architecture.md): decision general y alternativas.
+- [Evidencia de cierre](../quality/pragmatic-simplification-baseline.md#paso-8-cierre-documental-y-limpieza).

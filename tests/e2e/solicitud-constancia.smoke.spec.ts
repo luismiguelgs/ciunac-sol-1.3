@@ -79,6 +79,9 @@ test('@smoke registra constancia como slice independiente con pago compartido', 
 
   const requests = await getMockRequests(request)
   const solicitudRequest = requests.find((item) => item.path === '/solicitudes')
+  expect(requests.filter((item) => item.method === 'POST'
+    && ['/upload/vouchers', '/estudiantes', '/solicitudes'].includes(item.path))
+    .map((item) => item.path)).toEqual(['/upload/vouchers', '/estudiantes', '/solicitudes'])
   expect(solicitudRequest?.body).toMatchObject({
     tipoSolicitudId: 5,
     pago: 30,
@@ -159,5 +162,7 @@ test('reintenta solo el correo de constancia', async ({ page, request }) => {
 
   const afterRetry = await getMockRequests(request)
   expect(afterRetry.filter((item) => item.path === '/solicitudes')).toHaveLength(1)
+  expect(afterRetry.filter((item) => item.method === 'POST' && item.path === '/estudiantes')).toHaveLength(1)
+  expect(afterRetry.filter((item) => item.method === 'POST' && item.path === '/upload/vouchers')).toHaveLength(1)
   expect(afterRetry.filter((item) => item.path === '/mailer' && (item.body as { type?: string })?.type === 'CERTIFICADO')).toHaveLength(2)
 })

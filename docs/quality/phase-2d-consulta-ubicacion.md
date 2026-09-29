@@ -1,5 +1,8 @@
 # Fase 2D y Refactor Modular de Consulta de Ubicación
 
+Las secciones iniciales conservan la fase historica. El paso 6 pragmatico,
+posterior, se registra al final.
+
 ## Alcance
 
 `consulta-ubicacion/[dni]` consulta solicitudes, resultados, exámenes, ciclos y
@@ -73,3 +76,26 @@ oficial registrado de S/ 30.00.
 - Resolver el lifecycle de Playwright en Windows.
 - Servir Roboto localmente para que el PDF no dependa de Google Fonts.
 - Mantener la verificación de autenticidad académica en el backend externo.
+
+## Simplificacion Pragmatica: Paso 6
+
+Revision 2026-09-24. Se pasa de 13 a 12 archivos y de cinco clases sin estado a
+cero. El modelo local y las reglas permanecen en `model.ts`; la funcion
+`loadLocationConsultation` de `operations.ts` recibe cuatro funciones para
+contexto, notas, examenes y ciclos. UI, presenter y PDFs viven en `components/`.
+Los adaptadores siguen marcados `server-only`, con mappers y schemas externos
+separados. La API publica `getLocationConsultation` no cambia.
+
+Se conservan las cinco lecturas paralelas, el filtro por documento, seleccion
+determinista de solicitud, join parcial, año requerido y cargo derivado sin un
+GET adicional. Los PDFs conservan formato y carga diferida; no se modifica
+ningun flujo de registro, cache o contrato externo.
+
+Las integraciones nuevas prueban el arranque concurrente de las cinco lecturas,
+su cantidad exacta, datos vacios, respuestas mal formadas, textos fallidos y
+cargo con S/ 30. Las unitarias mantienen joins, relaciones ajenas, orden y
+presenter. Los E2E verifican nota completa/parcial, ausencia, fallos y cargo.
+
+Ver [cierre del paso 6](baseline.md#simplificacion-pragmatica-consultas-paso-6)
+para resultados reales de toda la suite. No se inicia el paso 7. La fuente
+Roboto remota y la autenticidad de resultados del backend siguen como limites.

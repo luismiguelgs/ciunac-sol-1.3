@@ -6,11 +6,11 @@ import { getLocationEntryData } from '@/modules/solicitud-ubicacion/server'
 export const dynamic = 'force-dynamic'
 
 export default async function SolicitudUbicacionPage() {
-  const { catalogs, schedules } = await getLocationEntryData()
+  const { requestType, texts, schedules } = await getLocationEntryData()
   const priceRows = [{
-    id: catalogs.requestType.id,
-    solicitud: catalogs.requestType.name,
-    precio: catalogs.requestType.price,
+    id: requestType.id,
+    solicitud: requestType.name,
+    precio: requestType.price,
   }]
   return (
     <div className="p-4">
@@ -19,7 +19,7 @@ export default async function SolicitudUbicacionPage() {
         <VerificacionEmail
           priceTable={<RequestTypesPriceTable data={priceRows} emptyLabel="Examen de ubicacion no disponible." />}
         />
-        <LocationScheduleVerification schedules={schedules} texts={catalogs.texts} />
+        <LocationScheduleVerification schedules={schedules} texts={texts} />
       </div>
     </div>
   )

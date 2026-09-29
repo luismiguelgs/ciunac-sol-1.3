@@ -1,2 +1,2 @@
-export { default as ScholarshipEmailForm } from '@/modules/solicitud-beca/presentation/components/form-email'
-export { default as SolicitudBecaProcess } from '@/modules/solicitud-beca/presentation/components/solicitud-beca-process'
+export { default as ScholarshipEmailForm } from './components/form-email'
+export { default as SolicitudBecaProcess } from './components/solicitud-beca-process'

@@ -13,7 +13,33 @@ El navegador solo consume rutas same-origin de Next.js. `/api/ciunac/[...path]` 
 | `/api/security/consulta` | `POST` | CAPTCHA valido | `{ ok, found }` |
 | `/api/security/notifications` | `POST` | Sesion de email verificada | `202 { ok: true, receiptId }` |
 | `/api/security/ubicacion/profile` | `POST` | Sesion OTP `UBICACION` | `200 { ok: true }` + cookie `HttpOnly` |
-| `/api/ciunac/[...path]` | `GET/POST/PATCH` | Segun allowlist | Payload, `204` sin cuerpo o error normalizado |
+| `/api/ciunac/[...path]` | `GET/POST/PATCH` | Operacion y proposito exactos | Payload, `204` sin cuerpo o error normalizado |
+
+### Politica del Proxy CIUNAC
+
+| Recurso | Proposito permitido |
+| --- | --- |
+| Estudiantes | `CERTIFICADO`, `CONSTANCIA`, `UBICACION`; email igual a sesion |
+| Solicitudes tipos `1..4` | `CERTIFICADO` |
+| Solicitudes tipos `5..6` | `CONSTANCIA` |
+| Solicitud tipo `7` | `UBICACION` |
+| Cargo de solicitud | Mismo proposito que el tipo devuelto |
+| Beca | `BECA`; email igual a sesion |
+| Q10 | `NUEVO` |
+| Voucher | `CERTIFICADO`, `CONSTANCIA`, `UBICACION` |
+| DNI | `UBICACION` |
+| Documentos en `upload/becas` | `BECA` o certificado academico `UBICACION` |
+| Certificado o constancia digital | Sesion de consulta `CERTIFICADO` |
+
+El proxy no expone catalogos al navegador. Catalogos, certificado publico por QR,
+detalles de ubicacion y consultas agregadas usan `ciunacRequest` server-side. No se
+modificaron los endpoints externos ni la API key deja el servidor.
+
+La politica metodo/ruta/proposito y el dispatch HTTP viven junto al Route Handler
+en `app/api/ciunac`. Los DTOs de certificado, constancia, beca, ubicacion y Q10 se
+validan una sola vez mediante la API publica `server.ts` de cada feature; el valor
+parseado es exactamente el que se reenvia. `modules/security/server/schemas.ts`
+solo contiene los contratos de OTP, consulta y notificacion.
 
 ## Resultado Comun
 
@@ -99,6 +125,12 @@ a la facultad elegida.
 El payload conserva nombres snake_case y el campo historico `contancia_tercio`. No
 acepta IDs de respuesta, estado, observaciones ni fechas como parte del request.
 
+Antes de persistir, el BFF compara el email con la sesion, consulta facultades y
+escuelas, valida su relacion y reemplaza sus nombres por los valores canonicos.
+`periodo` se calcula server-side. Un catalogo no disponible bloquea la operacion
+con `503`; una seleccion inexistente o inconsistente devuelve `400` sin invocar
+`solicitudbecas`.
+
 La respuesta valida contiene `_id` o `id` como string no vacio de hasta 80 caracteres.
 Una respuesta `204`, `{}`, un ID vacio o un tipo inesperado produce
 `EXTERNAL_SERVICE`; no se invoca `mailer` sin un identificador confirmado.
@@ -120,10 +152,15 @@ App Router consume `@/modules/solicitud-beca` y
 de `/upload/becas` desde la misma entrada server-only. Ningún consumidor externo
 importa gateways, DTOs, schemas o componentes internos.
 
-`ScholarshipRequestDto` permanece explícito porque es el contrato de escritura.
-Los tipos de `_id`/`id`, facultades y escuelas se infieren desde Zod. Además de la
-estructura individual, el repositorio comprueba que cada escuela pertenezca a una
-facultad disponible antes de mostrar el wizard.
+En el paso 5, `operations.ts` conserva la orquestacion y
+`infrastructure/scholarship-client.ts` el transporte. El reintento publico llama
+solo a notificaciones y no cambia el DTO historico ni repite `POST solicitudbecas`.
+Los errores normalizados se propagan sin reconstruir ni alterar `retryable`.
+
+`ScholarshipRequestDto`, `_id`/`id`, facultades y escuelas se infieren desde sus
+schemas Zod. El mapper conserva la traduccion entre dominio y nombres historicos
+del proveedor. La aplicacion usa funciones inyectables, sin clases ni ports de un
+solo metodo.
 
 ## Solicitud de Certificado
 
@@ -173,10 +210,18 @@ App Router consume `@/modules/solicitud-certificado` y
 de precio desde la entrada server-only. Ningun consumidor externo importa
 gateways, DTOs, schemas, repositories o componentes internos.
 
-`CertificateStudentRequestDto` y `CertificateRequestDto` permanecen explicitos por
-ser contratos de escritura. Identificadores, catalogos, estudiante consultado y
-cargo se infieren desde sus schemas Zod. Los casos de uso de lectura validan
-documento e identificador antes de ejecutar sus puertos.
+`CertificateRequestDto` se infiere desde el schema Zod externo y el DTO de
+estudiante permanece junto al mapper que lo construye. Identificadores,
+catalogos, estudiante consultado y cargo se infieren desde sus schemas Zod.
+Las funciones de `operations.ts` validan documento e identificador antes de
+invocar la integracion. `client.ts` conserva las firmas publicas de registro,
+reintento, busqueda y cargo; los endpoints y payloads no cambian.
+
+La simplificacion del piloto preserva los errores normalizados del correo,
+incluidos categoria, status, correlationId y retryable. Ya no reclasifica todos
+los fallos como `EXTERNAL_SERVICE`. Las pruebas de integracion verifican que una
+respuesta vacia, nula, incompleta o con JSON invalido detenga la secuencia y no
+dispare correo ni una segunda escritura automatica.
 
 ## Solicitud de Constancia
 
@@ -201,6 +246,26 @@ App Router consume `@/modules/solicitud-constancia` y
 `@/modules/solicitud-constancia/server`. Los componentes cliente consumen casos de
 uso desde `client.ts`; ningun consumidor externo importa gateways, schemas, DTOs o
 componentes internos.
+
+El paso 5 conserva estas entradas y todas sus firmas. `operations.ts` orquesta
+las mismas funciones de `infrastructure/location-client.ts`; se conserva el
+envelope `{ documentNumber, request }`, `imgDoc`, tipo 7, S/ 30 y el endpoint
+historico `upload/becas` para el certificado academico. Cookies, precio,
+duplicidad, proposito y firmas binarias mantienen sus validaciones server-side.
+El renderer PDF continua cargandose solo al pulsar descarga.
+
+El paso 4 pragmatico conserva esas firmas publicas: `registerSolicitudConstancia({
+solicitud })`, `retrySolicitudConstanciaNotification(requestId)`,
+`findConstanciaStudent(documentNumber)` y `getConstanciaCargo(requestId)`.
+`operations.ts` orquesta funciones inyectables e `infrastructure/constancia-client.ts`
+realiza las llamadas. `ConstanciaRequestDto` se infiere desde el schema externo;
+no cambian campos, endpoints, periodos, `digital: true` ni tipos `5` y `6`.
+
+El error de notificacion ya no se reconstruye forzando `EXTERNAL_SERVICE` y
+`retryable: true`: se conserva el `AppError` original. Si falta el comprobante,
+el transporte compartido actualmente lanza un error no tipado; se normaliza como
+`UNEXPECTED` con mensaje seguro y resultado parcial, nunca como exito. La mejora
+de ese contrato compartido queda para la etapa de transporte, sin cambiarlo aqui.
 
 ## Solicitud de Examen de Ubicacion
 
@@ -273,18 +338,38 @@ un segundo registro automatico para evitar duplicados.
 
 La integracion se consume mediante las fronteras modulares:
 
-- `@/modules/solicitud-nuevo/client` compone el caso de uso con los gateways Q10 y
-  correo.
-- `@/modules/solicitud-nuevo/server` expone el schema estricto y la revalidacion
+- `@/modules/solicitud-nuevo/client` compone las funciones de `operations.ts` con
+  `infrastructure/new-student-client.ts`, sin exponer implementaciones internas.
+- `@/modules/solicitud-nuevo/server` expone la validacion estricta y la revalidacion
   server-side usada por el BFF.
-- `Q10StudentRequestDto` permanece explicito; programas y respuestas de registro
-  se infieren desde sus schemas Zod.
+- `Q10StudentRequestDto`, programas y respuestas de registro se infieren desde
+  sus schemas Zod; los campos y nombres del proveedor no cambian.
+
+El paso 4 conserva `registerNewStudent({ student })` y
+`retryNewStudentNotification(documentNumber)`. El contrato HTTP existente admite
+comandos exitosos sin cuerpo (incluido 204; el transporte tambien admite 200 vacio)
+u objeto JSON. `null`, arreglos, primitivos y JSON mal formado detienen la operacion
+antes del correo. No se agrega reintento automatico; red y error externo conservan
+la clasificacion que el workflow utiliza para bloquear una escritura indeterminada.
+
+El correo mantiene `type: REGISTER` y el documento como referencia. Su fallo ya
+no sustituye categoria y retryable por valores fijos: conserva codigo, status,
+correlationId y retryable. Un comprobante ausente produce error seguro y resultado
+parcial; no confirma finalizacion ni repite Q10. Sesion NUEVO, email autoritativo,
+revalidacion de programa y filtros del catalogo permanecen sin cambios.
 
 ## Consulta Por Documento
 
 `POST /api/security/consulta` recibe `documento`, `type` y `captchaToken`. La
 respuesta publica se valida como `{ ok: true, found: boolean }`; un cuerpo vacio o
 mal formado se clasifica como respuesta externa invalida.
+
+El handler usa `findConsultationRequests` desde `@/modules/consultas/server`,
+despues de validar origen, entrada y CAPTCHA. Esta operacion normaliza el documento,
+filtra por tipo y realiza un solo GET de solicitudes, sin pedir textos. Solo una
+coincidencia crea la cookie de consulta; nombres, atributos y expiracion no cambian.
+`getConsultationRequests` conserva solicitudes y textos en paralelo para las
+paginas de resultados. Todas estas lecturas privadas mantienen `no-store`.
 
 Una sesion de consulta valida permite al Server Component recuperar solicitudes por
 documento. La respuesta externa se valida como DTO antes de mapearse a
@@ -293,15 +378,15 @@ documento. La respuesta externa se valida como DTO antes de mapearse a
 ```ts
 type ConsultedRequest = {
   id: number
-  kind: 'certificate' | 'constancia' | 'location' | 'other'
-  step: 'registered' | 'processing' | 'ready' | 'rejected'
-  student: { documentNumber: string; fullName: string }
-  requestType: { id: number; name: string }
-  status: { id: number; name: string }
+  student: { id: string; names: string; lastNames: string; documentNumber: string }
+  requestType: { id: number; name: string; kind: 'certificate' | 'constancia' | 'location' | 'other' }
+  status: { id: number; name: string; reference: string; step: 'registered' | 'processing' | 'ready' | 'rejected' }
   language: { id: number; name: string }
   level: { id: number; name: string }
-  submittedAt: string
-  payment: { amount: number | null; voucherNumber: string | null; paidAt: string | null }
+  createdAt: string
+  digital: boolean
+  observations: string | null
+  payment: { amount: number; voucherNumber: string | null; paidAt: string | null }
 }
 ```
 
@@ -325,8 +410,14 @@ El endpoint historico `GET constancias/solicitud/{id}` devuelve `id_solicitud` y
 infraestructura normaliza estos aliases antes de validar y mapear. Los nombres
 historicos no se propagan a aplicacion, dominio ni presentacion.
 
-Limitacion vigente: estas operaciones aun atraviesan el BFF generico. La sesion
-autentica el flujo de consulta, pero falta un endpoint especializado que compruebe
+El paso 6 simplifica estas operaciones a funciones de `operations.ts`, conectadas
+al cliente HTTP por `client.tsx`. Se mantienen GET por solicitud y PATCH con
+`aceptado: true` y `fechaAceptacion` ISO; el navegador nunca envia la API key.
+El reintento manual de aceptacion no vuelve a leer el documento ni repite el
+registro de solicitud. Las URLs, cuerpos y normalizacion externa no cambian.
+
+Limitacion vigente: estas operaciones atraviesan una operacion explicita del BFF,
+pero la sesion solo autentica el flujo de consulta. Falta un endpoint especializado que compruebe
 que el recurso solicitado pertenece al documento consultado antes de devolver la
 URL o aceptar el documento.
 
@@ -336,19 +427,20 @@ URL o aceptar el documento.
 el QR. No requiere sesion de `consulta-solicitud`. El identificador admite
 exclusivamente letras, numeros, guion y guion bajo, hasta 80 caracteres.
 
-La respuesta minima valida requiere:
+La respuesta publica minima valida requiere:
 
-- ID, tipo `VIRTUAL/FISICO` y estudiante;
-- idioma, nivel, horas, solicitud y numero de registro;
+- ID y estudiante;
+- idioma, nivel, horas y numero de registro;
 - fechas validas de emision y conclusion;
 - estado de entrega, donde `null` o ausencia significa pendiente, y fecha de
   aceptacion cuando corresponda;
 - notas completas o una lista vacia.
 
-El DTO se valida con Zod y se mapea a `CertificateDetail`. Un `404` o un `2xx` sin
-cuerpo produce ausencia. Un cuerpo incompleto, fecha invalida o nota mal formada
-produce `EXTERNAL_SERVICE`. `numeroDocumento` no se propaga al dominio publico ni
-a presentacion, incluso si el proveedor lo incluye.
+El DTO se valida con Zod y se adapta a `CertificateDetail`. Los campos externos no
+declarados se descartan y el `_id` debe coincidir con el ID solicitado. Un `404` o
+un `2xx` sin cuerpo produce ausencia. Un cuerpo incompleto, fecha invalida, nota
+mal formada o ID inconsistente produce `EXTERNAL_SERVICE`. `numeroDocumento` no se
+propaga al dominio publico ni a presentacion, incluso si el proveedor lo incluye.
 
 La API key permanece server-only y el BFF generico conserva sus guardas. El
 navegador no llama directamente a la API CIUNAC.
@@ -380,9 +472,34 @@ del año disponible.
 
 La ruta App Router consume `@/modules/consulta-ubicacion/server`. El adaptador de
 contexto usa `@/modules/consultas/server`; no accede a repositories, DTOs o dominio
-internos de consultas. Notas, examenes y ciclos conservan repositories propios.
+internos de consultas. Notas, examenes y ciclos conservan funciones de transporte
+server-only propias, inyectadas en `loadLocationConsultation`.
 
 El resultado incluye una proyeccion del cargo construida con la solicitud activa.
 Por ello, el estado sin notas no ejecuta `GET solicitudes/{id}`. El PDF se genera
 en frontend, usa el renderer A4 compartido y mantiene titulo, textos y nombre de
 archivo propios de ubicacion. La tarifa esperada del examen es S/ 30.00.
+
+## Capacidades Compartidas: Paso 7
+
+No cambian endpoints, DTOs de negocio, cookies ni secuencias del proveedor.
+Los campos `pago`, `fechaPago`, `numeroVoucher` e `imgVoucher` se validan y
+convierten en un unico lugar. Un pago positivo sigue exigiendo voucher completo;
+un pago cero permite omitirlo. Cada BFF de feature conserva su control de precio.
+
+Los validadores publicos de uploads delegan metadata y firma a un helper
+server-only. Se conservan PDF/JPEG/PNG para voucher e identidad, PDF para becas y
+certificado academico, y 8 MiB por archivo. El preflight multipart del BFF conserva
+sus rechazos historicos de request, sin cambiar su status publico. La firma de
+cabecera no demuestra que el archivo sea inocuo ni pertenezca al solicitante.
+
+JSON y multipart del navegador comparten `browser-http.ts`: cookies same-origin,
+ninguna API key y timeout de 15 segundos, incluida la lectura del cuerpo. Los
+errores conservan status, correlationId y retryable. HTTP 413/415 se clasifican
+como VALIDATION; 429 es reintentable, pero nunca dispara un reintento automatico.
+Un cuerpo de error no JSON conserva el status HTTP y usa un mensaje seguro.
+Un cuerpo exitoso mal formado es EXTERNAL_SERVICE; un fallo al leerlo es NETWORK.
+
+Se mantienen `data | empty | error`, 404 como ausencia en lecturas opcionales,
+confirmacion Q10 sin cuerpo y bloqueo de escrituras indeterminadas. El cliente
+server-side sigue separado, con API key privada y `no-store`.

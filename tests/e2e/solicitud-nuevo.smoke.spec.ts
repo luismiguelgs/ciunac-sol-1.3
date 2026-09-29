@@ -95,6 +95,9 @@ test('@smoke registra un alumno nuevo con DTO Q10 tipado y comprobante de correo
   expect(requests).toEqual(expect.arrayContaining([
     expect.objectContaining({ method: 'POST', path: '/mailer', body: expect.objectContaining({ type: 'REGISTER' }) }),
   ]))
+  expect(requests.filter((item) => item.path === '/q10/estudiantes'
+    || (item.path === '/mailer' && (item.body as { type?: string })?.type === 'REGISTER'))
+    .map((item) => item.path)).toEqual(['/q10/estudiantes', '/mailer'])
 })
 
 test('acepta una confirmacion Q10 sin cuerpo', async ({ page, request }) => {
@@ -112,6 +115,26 @@ test('detiene el correo ante una respuesta Q10 mal formada', async ({ page, requ
   await expect(page.getByText(/Q10 devolvio una respuesta no valida/i)).toBeVisible()
   const requests = await getMockRequests(request)
   expect(requests.filter((item) => item.path === '/q10/estudiantes')).toHaveLength(1)
+  expect(requests.filter((item) => item.path === '/mailer' && (item.body as { type?: string })?.type === 'REGISTER')).toHaveLength(0)
+  await page.getByRole('button', { name: 'Cerrar', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Finalizar' })).toBeDisabled()
+  await expect(page.getByRole('button', { name: 'Anterior' })).toBeDisabled()
+})
+
+test('bloquea un segundo registro cuando la respuesta Q10 se pierde por red', async ({ page, request }) => {
+  await completeNewStudentForm(page, request)
+  let attempts = 0
+  await page.route('**/api/ciunac/q10/estudiantes', async (route) => {
+    attempts += 1
+    await route.abort('failed')
+  })
+  await page.getByRole('button', { name: 'Finalizar' }).click()
+  await expect(page.getByText(/No vuelva a enviar el formulario/i)).toBeVisible()
+  await page.getByRole('button', { name: 'Cerrar', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Finalizar' })).toBeDisabled()
+  await expect(page.getByRole('button', { name: 'Anterior' })).toBeDisabled()
+  expect(attempts).toBe(1)
+  const requests = await getMockRequests(request)
   expect(requests.filter((item) => item.path === '/mailer' && (item.body as { type?: string })?.type === 'REGISTER')).toHaveLength(0)
 })
 

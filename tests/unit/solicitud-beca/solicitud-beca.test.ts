@@ -1,28 +1,44 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AppError } from '@/modules/shared/application/errors/app-error'
-import { resolveCiunacBodySchema } from '@/modules/security/server/schemas'
-import { RegisterSolicitudBecaUseCase } from '@/modules/solicitud-beca/application/use-cases/register-solicitud-beca.use-case'
-import { solicitudBecaSchema } from '@/modules/solicitud-beca/application/validation/solicitud-beca.schema'
+import { mailApiRepository } from '@/modules/shared/infrastructure/api/mail-api.repository'
+import { retrySolicitudBecaNotification } from '@/modules/solicitud-beca/client'
+import { registerScholarship } from '@/modules/solicitud-beca/operations'
+import { solicitudBecaSchema } from '@/modules/solicitud-beca/schemas'
 import {
   hasConsistentScholarshipCatalogs,
   ScholarshipCatalogs,
   SolicitudBeca,
-} from '@/modules/solicitud-beca/domain/solicitud-beca'
+} from '@/modules/solicitud-beca/model'
 import { getScholarshipDocumentViolation } from '@/modules/solicitud-beca/domain/scholarship-document-policy'
-import { toScholarshipRequestDto } from '@/modules/solicitud-beca/infrastructure/mappers/scholarship-api.mapper'
+import { toScholarshipRequestDto } from '@/modules/solicitud-beca/infrastructure/scholarship-api.mapper'
 import {
   scholarshipCreateResponseSchema,
   scholarshipFacultyArraySchema,
+  scholarshipRequestDtoSchema,
   scholarshipSchoolArraySchema,
-} from '@/modules/solicitud-beca/infrastructure/validation/scholarship-api.schemas'
-import { toScholarshipBasicData, toScholarshipDocuments } from '@/modules/solicitud-beca/presentation/scholarship-form.mapper'
-import type { DocumentsFormValues } from '@/modules/solicitud-beca/presentation/schemas/documents.schema'
-import useSolicitudBecaStore from '@/modules/solicitud-beca/presentation/solicitud-beca.store'
+} from '@/modules/solicitud-beca/infrastructure/scholarship-api.schemas'
+import { toScholarshipBasicData, toScholarshipDocuments } from '@/modules/solicitud-beca/components/scholarship-form.mapper'
+import type { DocumentsFormValues } from '@/modules/solicitud-beca/components/documents.schema'
+import useSolicitudBecaStore from '@/modules/solicitud-beca/store'
 
 const catalogs: ScholarshipCatalogs = {
   faculties: [{ id: 1, name: 'Ingenieria', code: 'FIIS' }],
   schools: [{ id: 2, name: 'Sistemas', facultyId: 1 }],
 }
+
+afterEach(() => vi.restoreAllMocks())
+
+describe('scholarship notification errors', () => {
+  it.each(['NETWORK', 'EXTERNAL_SERVICE', 'AUTHORIZATION'] as const)('preserves an explicit non-retryable %s error', async (code) => {
+    const error = new AppError({
+      code, status: 503, message: 'Correo pendiente', correlationId: 'mail-1',
+      retryable: false, details: { operation: 'notification' },
+    })
+    vi.spyOn(mailApiRepository, 'send').mockRejectedValue(error)
+    await expect(retrySolicitudBecaNotification('beca-1')).rejects.toBe(error)
+    expect(mailApiRepository.send).toHaveBeenCalledExactlyOnceWith({ type: 'BECA', reference: 'beca-1' })
+  })
+})
 
 describe('scholarship domain and DTO contracts', () => {
   it('accepts a complete scholarship request', () => {
@@ -64,12 +80,11 @@ describe('scholarship domain and DTO contracts', () => {
   })
 
   it('validates the exact scholarship payload at the BFF boundary', () => {
-    const schema = resolveCiunacBodySchema('POST', 'solicitudbecas')
     const dto = toScholarshipRequestDto(scholarshipDraft())
 
-    expect(schema.safeParse(dto).success).toBe(true)
-    expect(schema.safeParse({ ...dto, carta_de_compromiso: '' }).success).toBe(false)
-    expect(schema.safeParse({ ...dto, facultadId: '0' }).success).toBe(false)
+    expect(scholarshipRequestDtoSchema.safeParse(dto).success).toBe(true)
+    expect(scholarshipRequestDtoSchema.safeParse({ ...dto, carta_de_compromiso: '' }).success).toBe(false)
+    expect(scholarshipRequestDtoSchema.safeParse({ ...dto, facultadId: '0' }).success).toBe(false)
   })
 
   it.each([{ _id: 'beca-1' }, { id: 'beca-2' }])('accepts supported scholarship identifiers', (response) => {
@@ -171,16 +186,17 @@ describe('scholarship registration use case', () => {
     const sendSolicitudCreada = vi.fn()
       .mockRejectedValueOnce(new AppError({ code: 'EXTERNAL_SERVICE', message: 'Correo no disponible' }))
       .mockResolvedValueOnce('receipt-1')
-    const useCase = new RegisterSolicitudBecaUseCase({
-      solicitudGateway: { create },
-      notificationGateway: { sendSolicitudCreada },
-    })
+    const dependencies = {
+      createRequest: create,
+      sendNotification: sendSolicitudCreada,
+    }
 
-    await expect(useCase.execute({ solicitud: scholarshipDraft() })).resolves.toMatchObject({
+    await expect(registerScholarship(scholarshipDraft(), dependencies)).resolves.toMatchObject({
       status: 'saved_notification_failed',
       requestId: 'beca-1',
     })
-    await expect(useCase.retryNotification('beca-1')).resolves.toBe('receipt-1')
+    vi.spyOn(mailApiRepository, 'send').mockImplementation(({ reference }) => dependencies.sendNotification(reference))
+    await expect(retrySolicitudBecaNotification('beca-1')).resolves.toBe('receipt-1')
     expect(create).toHaveBeenCalledTimes(1)
     expect(sendSolicitudCreada).toHaveBeenCalledTimes(2)
   })
@@ -188,16 +204,38 @@ describe('scholarship registration use case', () => {
   it('does not call integrations for an invalid request', async () => {
     const create = vi.fn()
     const sendSolicitudCreada = vi.fn()
-    const useCase = new RegisterSolicitudBecaUseCase({
-      solicitudGateway: { create },
-      notificationGateway: { sendSolicitudCreada },
-    })
+    const dependencies = {
+      createRequest: create,
+      sendNotification: sendSolicitudCreada,
+    }
 
-    await expect(useCase.execute({
-      solicitud: { ...scholarshipDraft(), email: 'invalid' },
-    })).rejects.toMatchObject({ code: 'VALIDATION' })
+    await expect(registerScholarship(
+      { ...scholarshipDraft(), email: 'invalid' },
+      dependencies,
+    )).rejects.toMatchObject({ code: 'VALIDATION' })
     expect(create).not.toHaveBeenCalled()
     expect(sendSolicitudCreada).not.toHaveBeenCalled()
+  })
+
+  it('preserves a normalized network error and stops before notification', async () => {
+    const networkError = new AppError({
+      code: 'NETWORK',
+      status: 503,
+      message: 'No se pudo conectar con el servicio',
+      correlationId: 'correlation-1',
+      retryable: true,
+    })
+    const sendNotification = vi.fn()
+
+    await expect(registerScholarship(scholarshipDraft(), {
+      createRequest: vi.fn().mockRejectedValue(networkError),
+      sendNotification,
+    })).rejects.toMatchObject({
+      code: 'NETWORK',
+      correlationId: 'correlation-1',
+      retryable: true,
+    })
+    expect(sendNotification).not.toHaveBeenCalled()
   })
 })
 

@@ -1,4 +1,4 @@
-import type { CertificateDetailResult } from '@/modules/consulta-certificado/application/get-certificate-detail.use-case'
+import type { CertificateDetail } from '@/modules/consulta-certificado/domain/certificate-detail'
 
 export type CertificateDetailPresentation = {
   courseLanguage: string
@@ -9,12 +9,9 @@ export type CertificateDetailPresentation = {
   acceptedAt: string | null
 }
 
-export function presentCertificateDetail(certificate: CertificateDetailResult): CertificateDetailPresentation {
-  const firstCycle = certificate.notes[0]?.cycle.trim() ?? ''
-  const cycleParts = firstCycle.split(/\s+/).filter(Boolean)
-
+export function presentCertificateDetail(certificate: CertificateDetail): CertificateDetailPresentation {
   return {
-    courseLanguage: cycleParts.length > 1 ? cycleParts[0] : certificate.language,
+    courseLanguage: certificate.language,
     courseLevel: formatCertificateLevel(certificate.level),
     issuedAt: formatCertificateDate(certificate.issuedAt),
     completedAt: formatCertificateDate(certificate.completedAt),

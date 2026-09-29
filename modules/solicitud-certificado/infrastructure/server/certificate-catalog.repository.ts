@@ -8,15 +8,15 @@ import {
   CertificateText,
   CertificateType,
   hasConsistentCertificateCatalogs,
-} from '@/modules/solicitud-certificado/domain/solicitud-certificado'
-import { toCertificateCatalogs, toCertificateType } from '@/modules/solicitud-certificado/infrastructure/mappers/certificate-api.mapper'
+} from '../../model'
+import { toCertificateCatalogs, toCertificateType } from '../certificate-api.mapper'
 import {
   certificateFacultyArraySchema,
   certificateLanguageArraySchema,
   certificateSchoolArraySchema,
   certificateTextArraySchema,
   certificateTypeArraySchema,
-} from '@/modules/solicitud-certificado/infrastructure/validation/certificate-api.schemas'
+} from '../certificate-api.schemas'
 
 export async function getCertificateTypes(): Promise<CertificateType[]> {
   const response = await ciunacRequest<unknown>('tipossolicitud')

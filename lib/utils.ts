@@ -5,10 +5,6 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function getFileExtension(url: string): string | null {
-  const match = url.match(/\.([a-zA-Z0-9]+)(?=\?|$)/);
-  return match ? match[1] : null;
-}
 export function obtenerPeriodo() {
   const fechaActual = new Date();
   const mes = fechaActual.getMonth() + 1; // Los meses en JavaScript van de 0 a 11, por lo que sumamos 1 para obtener el mes actual
@@ -46,12 +42,4 @@ export const isPdf = (url: string | undefined | null): boolean => {
     // ignore URL parse errors
   }
   return false;
-}
-
-export function omit<T extends object, K extends keyof T>(obj: T, keys: K[]): Omit<T, K> {
-  const copy = { ...obj };
-  keys.forEach((key) => {
-    delete copy[key];
-  });
-  return copy;
 }

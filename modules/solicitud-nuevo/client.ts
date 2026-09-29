@@ -1,19 +1,16 @@
 'use client'
 
-import type { RegisterNewStudentCommand } from '@/modules/solicitud-nuevo/application/commands/register-new-student.command'
-import { RegisterNewStudentUseCase } from '@/modules/solicitud-nuevo/application/use-cases/register-new-student.use-case'
-import { NewStudentEmailGateway } from '@/modules/solicitud-nuevo/infrastructure/api/new-student-email.gateway'
-import { Q10StudentGateway } from '@/modules/solicitud-nuevo/infrastructure/api/q10-student.gateway'
+import type { NewStudent } from './model'
+import { registerStudent, retryStudentNotification } from './operations'
+import { registerQ10Student, sendNewStudentNotification } from './infrastructure/new-student-client'
 
-const registerUseCase = new RegisterNewStudentUseCase({
-  studentGateway: new Q10StudentGateway(),
-  notificationGateway: new NewStudentEmailGateway(),
-})
-
-export function registerNewStudent(command: RegisterNewStudentCommand) {
-  return registerUseCase.execute(command)
+export function registerNewStudent({ student }: { student: NewStudent }) {
+  return registerStudent(student, {
+    registerStudent: registerQ10Student,
+    sendNotification: sendNewStudentNotification,
+  })
 }
 
 export function retryNewStudentNotification(documentNumber: string) {
-  return registerUseCase.retryNotification(documentNumber)
+  return retryStudentNotification(documentNumber, sendNewStudentNotification)
 }

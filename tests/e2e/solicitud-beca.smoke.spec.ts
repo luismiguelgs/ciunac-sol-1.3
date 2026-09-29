@@ -31,7 +31,13 @@ async function verifyScholarshipEmail(page: Page, request: Parameters<typeof get
   await expect(page).toHaveURL(/\/solicitud-beca\/proceso$/)
 }
 
-async function completeBasicData(page: Page) {
+async function completeBasicData(
+  page: Page,
+  document: { type: 'DNI' | 'CE' | 'PASAPORTE'; number: string } = {
+    type: 'DNI',
+    number: '12345678',
+  },
+) {
   await page.locator('input[name="apellidos"]').fill('PEREZ LOPEZ')
   await page.locator('input[name="nombres"]').fill('MARIA')
   await selectOption(page, 'Facultad', /INGENIERIA/i)
@@ -39,7 +45,11 @@ async function completeBasicData(page: Page) {
   await page.locator('input[name="codigo"]').fill('20260001')
   await page.locator('input[name="direccion"]').fill('CALLAO')
   await page.locator('input[name="celular"]').fill('999888777')
-  await page.locator('input[name="dni"]').fill('12345678')
+  if (document.type !== 'DNI') {
+    const label = document.type === 'CE' ? /Carnet de Extranjería/i : /Pasaporte/i
+    await page.getByRole('radio', { name: label }).click()
+  }
+  await page.locator('input[name="dni"]').fill(document.number)
   await page.getByRole('button', { name: 'Siguiente' }).click()
 }
 
@@ -47,6 +57,7 @@ async function completeDocuments(page: Page) {
   const fileInputs = page.locator('input[type="file"]')
   await expect(fileInputs).toHaveCount(5)
   for (let index = 0; index < 5; index += 1) {
+    await expect(fileInputs.nth(index)).toHaveAttribute('accept', '.pdf')
     await fileInputs.nth(index).setInputFiles(PDF_FILE)
   }
   await expect(page.getByText(/Archivo cargado/i)).toHaveCount(5)
@@ -97,6 +108,12 @@ test('@smoke registra una beca con cinco documentos tipados', async ({ page, req
 test('@smoke rechaza acceso directo al proceso de beca sin sesión', async ({ page }) => {
   await page.goto('/solicitud-beca/proceso')
   await expect(page).toHaveURL(/\/solicitud-beca$/)
+})
+
+test('acepta un carnet de extranjería alfanumérico', async ({ page, request }) => {
+  await verifyScholarshipEmail(page, request)
+  await completeBasicData(page, { type: 'CE', number: 'ABC123456' })
+  await expect(page.locator('input[type="file"]')).toHaveCount(5)
 })
 
 test('rechaza un PDF de beca con firma falsificada', async ({ page, request }) => {

@@ -3,8 +3,8 @@
 ## Estado
 
 Aceptado e implementado el 2026-08-10. Reemplaza la autorizacion por sesion y
-documento definida en ADR-011, sin reemplazar su arquitectura modular ni sus
-contratos tipados.
+documento definida en ADR-011. Su acceso publico y contratos tipados siguen
+vigentes; la estructura interna fue simplificada posteriormente por ADR-027.
 
 ## Contexto
 
@@ -34,17 +34,18 @@ el documento no se presenta y una aceptacion nula representa entrega pendiente.
 sequenceDiagram
     participant User as Verificador
     participant Page as Next.js Server Component
-    participant UseCase as GetCertificateDetailUseCase
-    participant Repo as Repository server-only
+    participant Query as Consulta server-only
+    participant Contract as Contrato externo
     participant API as API CIUNAC
 
     User->>Page: Abrir URL del QR con ID opaco
-    Page->>UseCase: Consultar certificateId validado
-    UseCase->>Repo: findById
-    Repo->>API: GET certificados/{id} con API key privada
-    API-->>Repo: DTO externo
-    Repo->>Repo: Validar Zod y omitir documento
-    Repo-->>Page: Detalle publico o ausencia
+    Page->>Query: Consultar certificateId
+    Query->>Query: Validar formato
+    Query->>API: GET certificados/{id} con API key privada
+    API-->>Query: DTO externo
+    Query->>Contract: Validar, comprobar ID y omitir extras
+    Contract-->>Query: Modelo publico seguro
+    Query-->>Page: Detalle publico o ausencia
     Page-->>User: Verificacion de solo lectura
 ```
 

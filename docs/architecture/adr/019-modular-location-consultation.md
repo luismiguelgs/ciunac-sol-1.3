@@ -2,7 +2,7 @@
 
 ## Estado
 
-Aceptado e implementado.
+Aceptado e implementado. Revision pragmatica del paso 6: 2026-09-24.
 
 ## Contexto
 
@@ -24,20 +24,20 @@ Router componían factories y componentes mediante imports profundos.
   del adaptador de infraestructura.
 - Inferir DTOs externos desde los schemas Zod.
 - Construir el cargo con la solicitud activa ya consultada.
-- Mantener el formato específico de la constancia en presentation.
+- Mantener el formato específico de la constancia en `components/`.
 - Reutilizar únicamente el renderer visual A4 `AdministrativeCargoPdf`.
 - Aplicar restricciones ESLint por capa solo al feature estabilizado.
 
 ```mermaid
 flowchart LR
     Route["App Router"] --> Public["consulta-ubicacion/server"]
-    Public --> UseCase["Application use case"]
+    Public --> UseCase["loadLocationConsultation"]
     UseCase --> Domain["Dominio local"]
-    UseCase --> Ports["Puertos internos"]
+    UseCase --> Dependencies["Funciones inyectadas"]
     Context["Adaptador de contexto"] --> Consultas["consultas/server"]
     Repositories["Repositorios CIUNAC"] --> API["API externa"]
-    Ports --> Context
-    Ports --> Repositories
+    Dependencies --> Context
+    Dependencies --> Repositories
     Route --> View["API pública de presentación"]
     View --> Presenter["Presenter"]
     Presenter --> Certificate["Constancia PDF"]
@@ -48,12 +48,18 @@ flowchart LR
 
 - Dominio y aplicación no dependen de otros features.
 - La infraestructura traduce el resultado público de consultas al dominio local.
-- Presentación no importa dominio, infraestructura ni módulos de registro.
+- Presentación puede usar el modelo puro; no importa infraestructura ni módulos
+  de registro.
 - El estado sin notas conserva la descarga del cargo sin ejecutar
   `GET solicitudes/{id}`.
 - La tarifa mostrada en el cargo proviene de la solicitud activa y la cobertura
   automatizada usa el precio oficial de S/ 30.00.
 - Las rutas solo conocen las entradas públicas `index.ts` y `server.ts`.
+- El paso 6 elimina cinco clases sin estado y el archivo de ports: 13 a 12
+  archivos. Modelo, operaciones y componentes se localizan directamente; schemas,
+  mappers y adaptadores server-only permanecen separados por responsabilidad.
+- Se conservan las cinco lecturas paralelas, el join, la seleccion determinista
+  de solicitud y el PDF diferido, sin introducir cache de datos privados.
 
 ## Límites
 

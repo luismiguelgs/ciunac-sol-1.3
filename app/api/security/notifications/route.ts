@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { OtpPurpose } from '@/modules/security/domain/security.types';
 import { ciunacRequest } from '@/modules/security/server/ciunac-client';
 import { assertTrustedOrigin, parseJsonBody } from '@/modules/security/server/request-security';
-import { securityErrorResponse } from '@/modules/security/server/responses';
+import { handleSecurityRoute } from '@/modules/security/server/responses';
 import { notificationSchema } from '@/modules/security/server/schemas';
 import {
   readVerifiedSessionFromRequest,
@@ -22,9 +22,7 @@ const PURPOSES_BY_NOTIFICATION: Record<string, OtpPurpose[]> = {
 };
 
 export async function POST(request: NextRequest) {
-  const correlationId = randomUUID();
-
-  try {
+  return handleSecurityRoute('security.notification.failed', async () => {
     assertTrustedOrigin(request);
     const input = await parseJsonBody(request, notificationSchema);
     const session = readVerifiedSessionFromRequest(request);
@@ -52,7 +50,5 @@ export async function POST(request: NextRequest) {
     const response = NextResponse.json({ ok: true, receiptId }, { status: 202 });
     writeNotificationReceipt(response, receiptId, input.type, input.reference);
     return response;
-  } catch (error) {
-    return securityErrorResponse('security.notification.failed', correlationId, error);
-  }
+  });
 }

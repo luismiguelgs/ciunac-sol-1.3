@@ -3,6 +3,9 @@
 ## Estado
 Aceptado e implementado en Fase 1C.
 
+La organizacion interna fue refinada por ADR-029 y ADR-030. Los controles de
+seguridad y contratos publicos de esta decision permanecen vigentes.
+
 ## Contexto
 El navegador consumia la API CIUNAC con `NEXT_PUBLIC_API_KEY`, generaba el OTP con `Math.random`, lo guardaba en `sessionStorage` y validaba CAPTCHA solo por presencia. Esto permitia extraer la API key del bundle y manipular las verificaciones desde el cliente.
 
@@ -18,7 +21,7 @@ flowchart LR
     BFF --> Cookie["Cookies HttpOnly cifradas"]
 ```
 
-La API key, el secreto CAPTCHA y el secreto de sesion se leen solo desde variables privadas. El proxy generico usa una allowlist de rutas y metodos, y excluye `mailer`.
+La API key, el secreto CAPTCHA y el secreto de sesion se leen solo desde variables privadas. El proxy generico usa una politica cerrada de operaciones y propositos, y excluye `mailer`.
 
 El OTP tiene seis digitos criptograficos, expira en cinco minutos, permite cinco intentos, exige tres minutos entre reenvios y limita cinco envios cada 15 minutos. El desafio se cifra con AES-GCM y el codigo se compara mediante HMAC y `timingSafeEqual`.
 

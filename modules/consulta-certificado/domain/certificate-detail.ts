@@ -1,6 +1,5 @@
 export type CertificateNote = {
   cycle: string
-  period: string
   modality: string
   grade: number
 }
@@ -10,13 +9,10 @@ export type CertificateDelivery =
   | { status: 'accepted'; acceptedAt: string }
 
 export type CertificateDetail = {
-  id: string
-  type: 'VIRTUAL' | 'FISICO'
   studentName: string
   language: string
   level: string
   hours: number
-  requestId: number
   issuedAt: string
   registrationNumber: string
   completedAt: string

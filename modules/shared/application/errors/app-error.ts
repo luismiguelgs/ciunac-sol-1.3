@@ -36,7 +36,7 @@ export class AppError extends Error {
   }
 }
 
-export function isAppError(error: unknown): error is AppError {
+function isAppError(error: unknown): error is AppError {
   return error instanceof AppError;
 }
 

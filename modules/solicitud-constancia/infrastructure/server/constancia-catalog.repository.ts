@@ -7,21 +7,21 @@ import type {
   ConstanciaCatalogs,
   ConstanciaText,
   ConstanciaType,
-} from '@/modules/solicitud-constancia/domain/solicitud-constancia'
+} from '../../model'
 import {
   hasConsistentConstanciaCatalogs,
-} from '@/modules/solicitud-constancia/domain/solicitud-constancia'
+} from '../../model'
 import {
   toConstanciaCatalogs,
   toConstanciaType,
-} from '@/modules/solicitud-constancia/infrastructure/mappers/constancia-api.mapper'
+} from '../constancia-api.mapper'
 import {
   constanciaFacultyArraySchema,
   constanciaLanguageArraySchema,
   constanciaSchoolArraySchema,
   constanciaTextArraySchema,
   constanciaTypeArraySchema,
-} from '@/modules/solicitud-constancia/infrastructure/validation/constancia-api.schemas'
+} from '../constancia-api.schemas'
 
 export async function getConstanciaTypes(): Promise<ConstanciaType[]> {
   const response = await ciunacRequest<unknown>('tipossolicitud')

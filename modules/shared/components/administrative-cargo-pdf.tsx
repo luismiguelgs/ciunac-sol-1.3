@@ -24,7 +24,7 @@ const styles = StyleSheet.create({
   dataBlock: { marginTop: 6, marginBottom: 8 },
 })
 
-export type AdministrativeCargoField = {
+type AdministrativeCargoField = {
   label: string
   value: string
 }

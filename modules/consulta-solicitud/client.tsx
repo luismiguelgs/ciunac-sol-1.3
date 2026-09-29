@@ -1,15 +1,13 @@
 'use client'
 
 import React from 'react'
-import type { DigitalDocumentKind } from '@/modules/consulta-solicitud/application/ports/digital-document.port'
-import { AcceptDigitalDocumentUseCase } from '@/modules/consulta-solicitud/application/use-cases/accept-digital-document.use-case'
-import { GetDigitalDocumentUseCase } from '@/modules/consulta-solicitud/application/use-cases/get-digital-document.use-case'
-import { ApiDigitalDocumentGateway } from '@/modules/consulta-solicitud/infrastructure/api/digital-document.gateway'
-import DigitalDocumentDownloadView from '@/modules/consulta-solicitud/presentation/components/digital-document-download'
+import type { AcceptDigitalDocumentCommand, DigitalDocumentKind, GetDigitalDocumentQuery } from './model'
+import { acceptDigitalDocument, getDigitalDocument } from './operations'
+import { confirmDigitalDocumentAcceptance, findDigitalDocument } from './infrastructure/digital-document.client'
+import DigitalDocumentDownloadView from './components/digital-document-download'
 
-const gateway = new ApiDigitalDocumentGateway()
-const getDigitalDocument = new GetDigitalDocumentUseCase(gateway)
-const acceptDigitalDocument = new AcceptDigitalDocumentUseCase(gateway)
+const getDocument = (query: GetDigitalDocumentQuery) => getDigitalDocument(query, findDigitalDocument)
+const acceptDocument = (command: AcceptDigitalDocumentCommand) => acceptDigitalDocument(command, confirmDigitalDocumentAcceptance)
 
 type Props = {
   solicitudId: number
@@ -18,11 +16,5 @@ type Props = {
 }
 
 export function DigitalDocumentDownload(props: Props) {
-  return (
-    <DigitalDocumentDownloadView
-      {...props}
-      getDocument={(query) => getDigitalDocument.execute(query)}
-      acceptDocument={(command) => acceptDigitalDocument.execute(command)}
-    />
-  )
+  return <DigitalDocumentDownloadView {...props} getDocument={getDocument} acceptDocument={acceptDocument} />
 }

@@ -2,6 +2,7 @@
 
 - Estado: Aceptado.
 - Fecha: 2026-08-17.
+- Revision pragmatica implementada: 2026-09-23, cierre del paso 4.
 
 ## Contexto
 
@@ -14,25 +15,30 @@ los DTOs de respuesta duplicaban los tipos validados por Zod.
 ## Decision
 
 - Exponer presentacion desde `@/modules/solicitud-nuevo`.
-- Componer gateways y caso de uso desde `@/modules/solicitud-nuevo/client`.
+- Componer operaciones e integracion desde `@/modules/solicitud-nuevo/client`.
 - Exponer catalogos y validacion BFF desde `@/modules/solicitud-nuevo/server`.
-- Mantener `application` independiente de implementaciones de infraestructura.
-- Ubicar la validacion del command en `application/validation` y el FormModel en
-  `presentation/schemas`.
-- Conservar un DTO explicito solo para el request Q10 e inferir respuestas desde
-  schemas Zod.
+- Mantener `operations.ts` independiente de infraestructura, con funciones y
+  dependencias inyectables en lugar de command envoltorio, ports y clase.
+- Agrupar modelo, validacion del registro y workflow en `model.ts`, `schemas.ts`
+  y `store.ts`. `components/` contiene UI, hook, formulario y mapper de presentacion.
+- Inferir tambien `Q10StudentRequestDto` de su schema externo, sin cambiar campos
+  ni validaciones. Mantener mapper Q10, schemas, catalogo y validacion server-side
+  separados porque tienen responsabilidades distintas.
+- Consolidar Q10 y correo en `infrastructure/new-student-client.ts`, conservando
+  la respuesta vacia de comandos exitosos y rechazando JSON no objeto o mal formado.
 - Reutilizar el schema OTP compartido sin generalizar la pantalla con Stepper.
-- Aplicar restricciones ESLint inicialmente solo a este feature.
+- Conservar las restricciones ESLint consolidadas en el paso 2, compatibles con
+  capas y con los archivos pragmaticos; no se relajan al mover archivos.
 
 ```mermaid
 flowchart LR
     Route["App Router"] --> Public["solicitud-nuevo"]
     Route --> Server["solicitud-nuevo/server"]
-    Public --> UI["Presentation"]
+    Public --> UI["components / store"]
     UI --> Client["solicitud-nuevo/client"]
-    Client --> UseCase["Application"]
-    UseCase --> Domain["Domain"]
-    Client --> Gateway["Infrastructure"]
+    Client --> UseCase["operations.ts / schemas.ts"]
+    UseCase --> Domain["model.ts"]
+    Client --> Gateway["infrastructure/new-student-client.ts"]
     Server --> Q10["API Q10"]
     Gateway --> BFF["Next.js BFF"]
     BFF --> Q10
@@ -40,6 +46,15 @@ flowchart LR
 
 ## Consecuencias
 
+- El modulo pasa de 25 a 21 archivos y de tres clases delegadoras a cero.
+- La confirmacion construye el alumno completo con guardas de presencia, sin
+  parse durante cada render; se conserva la validacion al registrar y en el BFF.
+- `registerNewStudent({ student })` y `retryNewStudentNotification(documentNumber)`
+  conservan sus firmas y resultados. La referencia sigue siendo el documento,
+  no un ID que Q10 no garantiza devolver.
+- Correo fallido conserva codigo, status, correlationId y retryable; solo se
+  reintenta notificacion, nunca se repite automaticamente una escritura Q10.
+- El workflow y el bloqueo por escritura indeterminada permanecen intactos.
 - Las rutas y el BFF dejan de conocer la estructura interna del feature.
 - El modulo compartido de seguridad deja de depender de infraestructura de alumno
   nuevo.

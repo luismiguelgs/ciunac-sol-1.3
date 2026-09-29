@@ -2,7 +2,10 @@
 
 ## Estado
 
-Aceptado e implementado.
+Aceptado, implementado y simplificado el 2026-09-01.
+
+Revision del paso 5: 2026-09-23. Se conserva la simplificacion funcional previa y
+se ordenan los archivos sin imponer una jerarquia por capa.
 
 ## Contexto
 
@@ -20,29 +23,36 @@ desde sus schemas Zod.
 - Exponer presentación desde `@/modules/solicitud-beca`.
 - Exponer catálogos y validación de uploads desde
   `@/modules/solicitud-beca/server`.
-- Componer gateways y caso de uso en `@/modules/solicitud-beca/client`.
-- Mantener los schemas React Hook Form dentro de presentation y la validación del
-  command dentro de application.
-- Conservar manualmente solo `ScholarshipRequestDto`, porque representa el contrato
+- Componer funciones de aplicacion e infraestructura en
+  `@/modules/solicitud-beca/client`.
+- Mantener los schemas React Hook Form en `components/` y la validacion de la
+  solicitud completa en `schemas.ts`, junto con `model.ts`, `operations.ts` y
+  `store.ts` en la raiz del feature.
+- Definir `ScholarshipRequestDto` desde el schema Zod que representa el contrato
   enviado al backend, incluido `contancia_tercio`.
 - Inferir DTOs de respuesta y catálogos desde Zod.
 - Representar la política PDF con metadatos neutrales y códigos de violación; la
   presentación y la infraestructura traducen esos códigos en sus respectivas
   fronteras.
-- Aplicar reglas ESLint exclusivamente al feature estabilizado.
+- Mantener las reglas ESLint consolidadas del paso 2; reconocen responsabilidades
+  tanto en carpetas por capa como en esta estructura pragmatica.
+- Evitar commands, ports y clases gateway de un solo metodo cuando una funcion con
+  dependencias inyectables conserva la misma separacion y capacidad de prueba.
+- Revalidar en el BFF la relacion facultad-escuela y sustituir nombres y periodo
+  por valores autoritativos antes de persistir.
 
 ```mermaid
 flowchart LR
     Route["App Router"] --> Public["solicitud-beca"]
     Route --> Server["solicitud-beca/server"]
-    Public --> UI["Presentation"]
+    Public --> UI["components / store.ts"]
     UI --> Client["client.ts"]
-    Client --> UseCase["Application"]
-    UseCase --> Domain["Domain"]
-    Client --> Gateways["Infrastructure"]
+    Client --> UseCase["operations.ts"]
+    UseCase --> Domain["model.ts / schemas.ts"]
+    Client --> Adapters["Funciones de infraestructura"]
     Server --> Catalogs["Catálogos CIUNAC"]
     Server --> Upload["Validación PDF"]
-    Gateways --> BFF["Next.js BFF"]
+    Adapters --> BFF["Next.js BFF"]
 ```
 
 ## Consecuencias
@@ -54,10 +64,23 @@ flowchart LR
 - Becas permanece independiente de certificados y constancias.
 - OTP, CAPTCHA, sesión, finalización y notificación continúan como capacidades
   compartidas estables.
+- La solicitud se valida una vez en aplicacion y otra en el BFF, que es la frontera
+  no confiable. Los formularios conservan sus schemas especificos de presentacion.
+- Los errores normalizados mantienen codigo, status, correlation ID y capacidad de
+  reintento al atravesar el adaptador de becas.
+- El reintento publico llama directamente al adaptador de correo: se retira la
+  funcion interior que solo delegaba. No se agrega otro registro ni otra carga.
+- El adaptador deja de reconstruir `AppError`: conserva tambien `details`, causa
+  y un `retryable: false` explicito, antes sobrescrito para ciertos errores.
+- Se mantienen 24 archivos porque mapper, politica PDF pura, validador binario,
+  catalogo y validacion academica tienen responsabilidades reales. No se fuerza
+  una reduccion artificial de archivos ni se mezclan contratos con componentes.
 
 ## Límites
 
 - El backend externo debe validar la propiedad de las URLs cargadas.
+- La revalidacion autoritativa agrega lecturas de facultades y escuelas al registrar;
+  si esos catalogos no estan disponibles, la escritura se bloquea con `503`.
 - La aceptación HTTP del correo no garantiza entrega SMTP.
 - La infraestructura compartida de uploads continúa en el Route Handler genérico;
   el feature solo expone su política específica mediante `server.ts`.

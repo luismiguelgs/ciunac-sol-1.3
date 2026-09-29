@@ -46,3 +46,29 @@ red, errores externos y resultados parciales. No deben ocultar diferencias entre
 - En Windows, Playwright puede dejar abierto el teardown despues de completar los
   escenarios. CI usa Ubuntu para tener una ejecucion determinista.
 - El build requiere red mientras Geist se resuelva mediante Google Fonts.
+
+## Cierre de simplificacion
+
+Las suites mantienen 431 unitarias, 166 integraciones y 113 escenarios E2E,
+con 34 smoke y 9 pruebas axe incluidas en la regresion, no adicionales.
+Los casos de ESLint usan la configuracion efectiva; las integraciones comprueban
+transporte real del frontend contra fetch simulado y no prueban internals del backend.
+
+Para la verificacion local del paso 8 se levantaron mock y app E2E por separado
+en 4100/3100, usando las mismas variables sinteticas y reuseExistingServer de la
+configuracion. No se uso el servidor del usuario en 3000. No se cambiaron
+timeouts, retries, casos ni contratos para obtener un resultado verde.
+
+La ejecucion del 25 de septiembre dejo 112 correctos y un timeout de voucher en
+ubicacion con mensaje de conexion. El caso aislado paso el 28 de septiembre.
+No se atribuye una causa definitiva ni se borra ese resultado anterior.
+La primera repeticion completa del 28 tuvo un timeout de consulta de constancia
+(112/113 correctos). Tras regenerar solo .next-e2e, la repeticion final paso
+113/113 en 310.8 segundos. No se declara resuelta definitivamente una
+intermitencia por obtener un resultado correcto posterior.
+El cierre y resultado de la repeticion completa estan en la
+[linea base](../quality/baseline.md#simplificacion-pragmatica-cierre-documental-paso-8).
+
+Knip y las pruebas no sustituyen revision manual de accesibilidad, revision visual
+de PDF ni validacion de secretos en el hosting. El gate de auditoria sigue siendo
+independiente y bloqueante aunque las pruebas funcionales pasen.

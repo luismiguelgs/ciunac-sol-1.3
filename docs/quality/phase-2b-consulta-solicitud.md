@@ -1,5 +1,8 @@
 # Fase 2B: Tipado y Confiabilidad de Consulta de Solicitudes
 
+Las secciones iniciales describen la fase historica. El cierre pragmatico del
+paso 6 se registra al final de este documento.
+
 ## Alcance
 
 La fase migra el formulario comun de consulta y el resultado de
@@ -136,3 +139,49 @@ El dominio continua exigiendo identificador de solicitud y documento completos.
 La forma del endpoint `constancias/solicitud/{id}` se verifico mediante una lectura
 segura de una constancia digital existente, sin ejecutar aceptacion ni actualizacion.
 La fixture E2E reproduce ese contrato y confirma que la descarga vuelve a mostrarse.
+
+## Simplificacion Pragmatica: Paso 6
+
+Revision 2026-09-24; aplicacion 1.6.5 y Next.js 16.2.12, sin actualizaciones.
+Se preservan los cambios previos del worktree. No se rehace consulta-certificado.
+
+| Modulo | Archivos antes/despues | Clases antes/despues |
+| --- | --- | --- |
+| `consultas` | 9 / 8 | 3 / 0 |
+| `consulta-solicitud` | 14 / 12 | 3 / 0 |
+
+Modelo y reglas puras viven en `model.ts`; funciones testeables en
+`operations.ts`; UI y presenter en `components/`. Contratos Zod, mappers y
+transporte mantienen responsabilidades separadas en `infrastructure/`.
+No se agregan stores o carpetas para completar una plantilla.
+
+Se conserva `getConsultationRequests`, y `findConsultationRequests` ofrece el
+lookup minimo al handler de CAPTCHA. Hace exactamente una lectura de solicitudes
+y no carga textos. El handler cambia solamente a esa entrada publica; origen,
+CAPTCHA, respuesta `{ ok: true, found }` y cookie permanecen iguales. ESLint deja
+de permitir sus dos imports internos anteriores.
+
+La descarga sigue compuesta en `client.tsx`, con callbacks estables en lugar de
+closures nuevas por render. `getDigitalDocument` verifica la solicitud y la
+correspondencia del recurso; `acceptDigitalDocument` valida el ID antes de invocar
+el adaptador. No se cambia la secuencia de aceptacion, descarga, reintento ni la
+compatibilidad con aliases historicos de constancias.
+
+Las nuevas integraciones de `consultation-pipelines.test.ts` prueban contratos
+HTTP reales con fetch simulado, paralelismo, `no-store`, lookup sin textos, vacios,
+errores, API key exclusivamente server-side y aceptacion. Pasaron 15 casos contra
+el codigo anterior y se agregaron dos para la API publica de lookup. Los E2E
+agregan fallo de aceptacion y reintento para certificado y constancia.
+
+La primera regresion dirigida paso 22/22. El primer conjunto completo con los
+dos casos nuevos paso 111/113: ambas pruebas nuevas asumian un solo GET inicial,
+pero el montaje en desarrollo produjo dos. Fallaron despues de verificar el
+bloqueo y la descarga reintentada. Se corrigio la medicion para comparar lecturas
+antes/despues, manteniendo cero descargas ante error, un unico PATCH recibido por
+el proveedor al reintentar y ninguna lectura adicional. No se cambio codigo
+productivo, timeouts ni se omitieron casos para resolver esa asercion.
+
+Los resultados de cierre se registran en
+[linea base](baseline.md#simplificacion-pragmatica-consultas-paso-6).
+Continuan pendientes la propiedad server-side del documento digital por DNI,
+red de fuentes, teardown administrado en Windows y auditoria vencida.

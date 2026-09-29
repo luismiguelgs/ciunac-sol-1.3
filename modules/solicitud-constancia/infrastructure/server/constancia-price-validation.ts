@@ -1,16 +1,20 @@
+import { sameMoney } from '@/modules/shared/domain/payment'
 import 'server-only'
 
 import { ciunacRequest } from '@/modules/security/server/ciunac-client'
 import { SecurityError } from '@/modules/security/server/security-error'
-import { isConstanciaType } from '@/modules/solicitud-constancia/domain/solicitud-constancia'
+import { isConstanciaType } from '../../model'
 import {
+  type ConstanciaRequestDto,
   constanciaRequestDtoSchema,
   constanciaTypeArraySchema,
-} from '@/modules/solicitud-constancia/infrastructure/validation/constancia-api.schemas'
+} from '../constancia-api.schemas'
 
-export async function validateConstanciaRequestPrice(value: unknown): Promise<void> {
+export async function validateConstanciaRequest(value: unknown): Promise<ConstanciaRequestDto> {
   const typeId = readTypeId(value)
-  if (!isConstanciaType(typeId)) return
+  if (!isConstanciaType(typeId)) {
+    throw new SecurityError('FORBIDDEN', 403, 'Constancia session cannot create this request type')
+  }
 
   const requestResult = constanciaRequestDtoSchema.safeParse(value)
   if (!requestResult.success) {
@@ -30,13 +34,11 @@ export async function validateConstanciaRequestPrice(value: unknown): Promise<vo
   if (!sameMoney(requestResult.data.pago, selectedType.precio)) {
     throw new SecurityError('PRICE_CHANGED', 409, 'Constancia price does not match current catalog')
   }
+
+  return requestResult.data
 }
 
 function readTypeId(value: unknown): number {
   if (!value || typeof value !== 'object') return Number.NaN
   return Number((value as { tipoSolicitudId?: unknown }).tipoSolicitudId)
-}
-
-function sameMoney(left: number, right: number): boolean {
-  return Math.round(left * 100) === Math.round(right * 100)
 }

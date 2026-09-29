@@ -1,34 +1,34 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AppError } from '@/modules/shared/application/errors/app-error'
-import { resourceApiRepository } from '@/modules/shared/infrastructure/api/resource-api.repository'
-import { FindConstanciaStudentUseCase } from '@/modules/solicitud-constancia/application/use-cases/find-constancia-student.use-case'
-import { GetConstanciaCargoUseCase } from '@/modules/solicitud-constancia/application/use-cases/get-constancia-cargo.use-case'
+import * as api from '@/lib/api.service'
+import { findConstanciaStudent, getConstanciaCargo, registerConstancia } from '@/modules/solicitud-constancia/operations'
 import {
   ConstanciaCatalogs,
   SolicitudConstancia,
   hasConsistentConstanciaCatalogs,
-} from '@/modules/solicitud-constancia/domain/solicitud-constancia'
-import { ConstanciaCargoApiGateway } from '@/modules/solicitud-constancia/infrastructure/api/constancia-cargo-api.gateway'
-import { ConstanciaStudentApiGateway } from '@/modules/solicitud-constancia/infrastructure/api/constancia-student-api.gateway'
+} from '@/modules/solicitud-constancia/model'
+import { fetchConstanciaCargo, fetchConstanciaStudent, saveConstanciaStudent, sendConstanciaNotification } from '@/modules/solicitud-constancia/infrastructure/constancia-client'
+import { mailApiRepository } from '@/modules/shared/infrastructure/api/mail-api.repository'
 import {
   toConstanciaCargo,
   toConstanciaRequestDto,
   toConstanciaStudentRequestDto,
-} from '@/modules/solicitud-constancia/infrastructure/mappers/constancia-api.mapper'
+} from '@/modules/solicitud-constancia/infrastructure/constancia-api.mapper'
 import {
   constanciaCargoResponseSchema,
   constanciaCreateResponseSchema,
   constanciaStudentLookupResponseSchema,
   constanciaStudentResponseSchema,
   constanciaTypeArraySchema,
-} from '@/modules/solicitud-constancia/infrastructure/validation/constancia-api.schemas'
-import useSolicitudConstanciaStore from '@/modules/solicitud-constancia/presentation/solicitud-constancia.store'
-import { solicitudConstanciaSchema } from '@/modules/solicitud-constancia/application/validation/solicitud-constancia.schema'
+} from '@/modules/solicitud-constancia/infrastructure/constancia-api.schemas'
+import useSolicitudConstanciaStore from '@/modules/solicitud-constancia/store'
+import { solicitudConstanciaSchema } from '@/modules/solicitud-constancia/schemas'
 import {
   toConstanciaBasicData,
   toConstanciaPayment,
-} from '@/modules/solicitud-constancia/presentation/solicitud-constancia-form.mapper'
-import type { ConstanciaBasicDataFormValues } from '@/modules/solicitud-constancia/presentation/schemas/basic-data.schema'
+  toCompleteConstanciaRequest,
+} from '@/modules/solicitud-constancia/components/constancia-form.mapper'
+import type { ConstanciaBasicDataFormValues } from '@/modules/solicitud-constancia/components/basic-data.schema'
 
 const catalogs: ConstanciaCatalogs = {
   requestTypes: [
@@ -177,51 +177,134 @@ describe('solicitud constancia API contracts', () => {
   })
 
   it('distinguishes an absent cargo from malformed data and network errors', async () => {
-    const getOptional = vi.spyOn(resourceApiRepository, 'getOptional')
+    const getOptional = vi.spyOn(api, 'apiFetchOptional')
     getOptional.mockResolvedValueOnce(null)
-    const cargoGateway = new ConstanciaCargoApiGateway()
-    await expect(cargoGateway.findById(81)).resolves.toBeNull()
+    await expect(fetchConstanciaCargo(81)).resolves.toBeNull()
 
     getOptional.mockResolvedValueOnce({ id: 81 })
-    await expect(cargoGateway.findById(81)).rejects.toMatchObject({
+    await expect(fetchConstanciaCargo(81)).rejects.toMatchObject({
       code: 'EXTERNAL_SERVICE',
     })
 
     const networkError = new AppError({ code: 'NETWORK', message: 'Sin conexion', retryable: true })
     getOptional.mockRejectedValueOnce(networkError)
-    await expect(cargoGateway.findById(81)).rejects.toBe(networkError)
+    await expect(fetchConstanciaCargo(81)).rejects.toBe(networkError)
   })
 
   it('updates an existing student and distinguishes absence in lookup', async () => {
-    const gateway = new ConstanciaStudentApiGateway()
-    const update = vi.spyOn(resourceApiRepository, 'update').mockResolvedValueOnce({ id: 'student-1' })
+    const update = vi.spyOn(api, 'apiFetch').mockResolvedValueOnce({ id: 'student-1' })
     const request = constancia({
       basicData: { ...constancia().basicData, existingStudentId: 'student-1' },
     })
-    await expect(gateway.save(request)).resolves.toBe('student-1')
-    expect(update).toHaveBeenCalledWith('estudiantes/student-1', expect.any(Object))
+    await expect(saveConstanciaStudent(request)).resolves.toBe('student-1')
+    expect(update).toHaveBeenCalledWith('estudiantes/student-1', 'PATCH', expect.any(Object))
 
-    vi.spyOn(resourceApiRepository, 'getOptional').mockResolvedValueOnce(null)
-    await expect(gateway.findByDocument('12345678')).resolves.toBeNull()
+    vi.spyOn(api, 'apiFetchOptional').mockResolvedValueOnce(null)
+    await expect(fetchConstanciaStudent('12345678')).resolves.toBeNull()
   })
 })
 
 describe('solicitud constancia read use cases', () => {
   it('normalizes documents and rejects invalid input before integration', async () => {
     const findByDocument = vi.fn().mockResolvedValue(null)
-    const useCase = new FindConstanciaStudentUseCase({ findByDocument })
-    await expect(useCase.execute(' ab123456 ')).resolves.toBeNull()
+    await expect(findConstanciaStudent(' ab123456 ', findByDocument)).resolves.toBeNull()
     expect(findByDocument).toHaveBeenCalledWith('AB123456')
-    await expect(useCase.execute('123')).rejects.toMatchObject({ code: 'VALIDATION' })
+    await expect(findConstanciaStudent('123', findByDocument)).rejects.toMatchObject({ code: 'VALIDATION' })
     expect(findByDocument).toHaveBeenCalledTimes(1)
   })
 
   it('validates the cargo identifier and preserves absence', async () => {
     const findById = vi.fn().mockResolvedValue(null)
-    const useCase = new GetConstanciaCargoUseCase({ findById })
-    await expect(useCase.execute(81)).resolves.toBeNull()
-    await expect(useCase.execute(0)).rejects.toMatchObject({ code: 'VALIDATION' })
+    await expect(getConstanciaCargo(81, findById)).resolves.toBeNull()
+    await expect(getConstanciaCargo(0, findById)).rejects.toMatchObject({ code: 'VALIDATION' })
     expect(findById).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('constancia pragmatic operations', () => {
+  afterEach(() => vi.restoreAllMocks())
+
+  it('builds only complete drafts, including zero payment, without casting', () => {
+    const request = constancia()
+    expect(toCompleteConstanciaRequest(request)).toEqual(request)
+    expect(toCompleteConstanciaRequest({ ...request, email: '' })).toBeNull()
+    expect(toCompleteConstanciaRequest({ ...request, basicData: null })).toBeNull()
+    expect(toCompleteConstanciaRequest({ ...request, payment: null })).toBeNull()
+    const free = constancia({ payment: { amount: 0, voucher: null } })
+    expect(toCompleteConstanciaRequest(free)).toEqual(free)
+  })
+
+  it('registers in order and returns the persisted reference and receipt', async () => {
+    const calls: string[] = []
+    const request = constancia()
+    const outcome = await registerConstancia(request, {
+      saveStudent: async (data) => {
+        expect(data).toEqual(request)
+        calls.push('student')
+        return 'student-1'
+      },
+      createRequest: async (data, studentId) => {
+        expect(data).toEqual(request)
+        expect(studentId).toBe('student-1')
+        calls.push('request')
+        return 'request-1'
+      },
+      sendNotification: async (requestId) => {
+        expect(requestId).toBe('request-1')
+        calls.push('notification')
+        return 'receipt-1'
+      },
+    })
+    expect(calls).toEqual(['student', 'request', 'notification'])
+    expect(outcome).toEqual({ status: 'completed', requestId: 'request-1', notificationReceiptId: 'receipt-1' })
+  })
+
+  it('stops after a failed student write without changing the error', async () => {
+    const error = new AppError({ code: 'NETWORK', message: 'Sin conexion', retryable: true })
+    const createRequest = vi.fn()
+    const sendNotification = vi.fn()
+    await expect(registerConstancia(constancia(), {
+      saveStudent: vi.fn().mockRejectedValue(error), createRequest, sendNotification,
+    })).rejects.toBe(error)
+    expect(createRequest).not.toHaveBeenCalled()
+    expect(sendNotification).not.toHaveBeenCalled()
+  })
+
+  it.each(['VALIDATION', 'AUTHENTICATION', 'AUTHORIZATION', 'NETWORK', 'EXTERNAL_SERVICE'] as const)(
+    'preserves %s notification metadata through infrastructure and the partial outcome', async (code) => {
+      const error = new AppError({ code, status: 403, message: 'Mensaje seguro', correlationId: 'constancia-test', retryable: false })
+      const send = vi.spyOn(mailApiRepository, 'send').mockRejectedValue(error)
+      const result = await registerConstancia(constancia(), {
+        saveStudent: vi.fn().mockResolvedValue('student-1'),
+        createRequest: vi.fn().mockResolvedValue('request-1'),
+        sendNotification: sendConstanciaNotification,
+      })
+      expect(result.status).toBe('saved_notification_failed')
+      if (result.status !== 'saved_notification_failed') throw new Error('Expected partial success')
+      expect(result.requestId).toBe('request-1')
+      expect(result.error).toBe(error)
+      expect(result.error).toMatchObject({ code, status: 403, correlationId: 'constancia-test', retryable: false })
+      expect(send).toHaveBeenCalledExactlyOnceWith({ type: 'CONSTANCIA', reference: 'request-1' })
+    },
+  )
+
+  it('normalizes an unexpected mail failure without exposing provider details', async () => {
+    vi.spyOn(mailApiRepository, 'send').mockRejectedValue(new Error('internal provider detail'))
+    await expect(sendConstanciaNotification('request-1')).rejects.toMatchObject({
+      code: 'UNEXPECTED', message: 'La solicitud se guardo, pero el correo no pudo procesarse.',
+    })
+  })
+
+  it('distinguishes student data, absence and malformed responses', async () => {
+    const get = vi.spyOn(api, 'apiFetchOptional')
+    get.mockResolvedValueOnce({ id: 10, nombres: 'Maria', apellidos: 'Perez', celular: '999888777' })
+    await expect(fetchConstanciaStudent('12345678')).resolves.toEqual({
+      id: '10', names: 'Maria', lastNames: 'Perez', phone: '999888777',
+    })
+    get.mockResolvedValueOnce(null)
+    await expect(fetchConstanciaStudent('12345678')).resolves.toBeNull()
+    get.mockResolvedValueOnce({ id: 10 })
+    await expect(fetchConstanciaStudent('12345678')).rejects.toMatchObject({ code: 'EXTERNAL_SERVICE' })
   })
 })
 

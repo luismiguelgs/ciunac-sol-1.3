@@ -2,7 +2,7 @@
 
 ## Estado
 
-Aceptado e implementado.
+Aceptado e implementado. Revision pragmatica del paso 6: 2026-09-24.
 
 ## Contexto
 
@@ -21,8 +21,8 @@ al pago continuan siendo decisiones propias de cada flujo.
   `@/modules/consultas/server`.
 - Exponer `consulta-solicitud` mediante `@/modules/consulta-solicitud` y
   `@/modules/consulta-solicitud/server`.
-- Organizar documentos digitales en `domain`, `application`, `infrastructure` y
-  `presentation`.
+- Conservar las cuatro responsabilidades, sin exigir cuatro carpetas:
+  `model.ts`, `operations.ts`, `components/` e `infrastructure/`.
 - Usar `client.tsx` como composition root cliente, sin convertirlo en una quinta
   capa de negocio.
 - Inferir los DTOs desde sus schemas Zod.
@@ -35,23 +35,28 @@ al pago continuan siendo decisiones propias de cada flujo.
 flowchart LR
     Route["App Router"] --> Public["consulta-solicitud/server"]
     Public --> Query["consultas/server"]
-    Query --> UseCase["Application"]
-    UseCase --> Domain["Domain"]
-    UseCase --> Gateway["Infrastructure"]
+    Query --> UseCase["Funciones de consulta"]
+    UseCase --> Domain["Modelo y reglas"]
+    Query --> Gateway["Transporte server-only"]
     Route --> View["Public presentation API"]
     View --> Client["Client composition root"]
-    Client --> Digital["Digital document use cases"]
+    Client --> Digital["getDigitalDocument / acceptDigitalDocument"]
     View --> Cargo["Shared A4 renderer"]
 ```
 
 ## Consecuencias
 
 - Las rutas no conocen factories, repositories ni componentes internos.
-- Presentacion no importa infraestructura ni modelos de dominio directamente.
+- Presentacion usa operaciones y modelos puros; no importa infraestructura.
 - Certificados, constancias y consulta de solicitudes no se importan entre si.
 - Un cambio de formato institucional de los cargos se realiza en un unico lugar.
 - Las variantes conservan control sobre sus textos y reglas funcionales.
 - La pagina de resultados continua obteniendo sus datos como Server Component.
+- Se pasa de 14 a 12 archivos y de tres clases a cero. Las funciones reciben solo
+  la dependencia necesaria; no hay un archivo de ports ni aliases del mismo tipo.
+- `client.tsx` mantiene el componente compuesto y callbacks estables. Se conservan
+  aliases historicos, comprobacion del ID de solicitud, URLs validadas, aceptacion
+  previa a descarga, errores reintentables y carga diferida de PDF.
 
 ## Limites
 

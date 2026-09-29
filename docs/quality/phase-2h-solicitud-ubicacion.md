@@ -1,5 +1,8 @@
 # Fase 2H: Tipado y Confiabilidad de Solicitud de Ubicacion
 
+Las secciones iniciales conservan la evidencia historica. La revision actual se
+registra en [Paso 5](#paso-5-cierre-pragmatico-de-ubicacion).
+
 ## Alcance
 
 La fase se limita a solicitud de examen de ubicacion: perfil CIUNAC, catalogos,
@@ -83,3 +86,62 @@ ADR-023 estabiliza las cuatro capas mediante `index.ts`, `client.ts` y `server.t
 Application ya no importa DTOs ni factories de infraestructura; presentation usa
 casos de uso para estudiante y cargo, y App Router/BFF consumen solo APIs publicas.
 Las reglas funcionales y controles server-side de esta fase permanecen vigentes.
+
+## Paso 5: Cierre Pragmatico de Ubicacion
+
+Revision 2026-09-23/24, aplicacion 1.6.5, Next.js 16.2.12. La simplificacion
+funcional anterior ya usaba funciones inyectables. Este paso no las reescribe:
+ordena modelo, schemas, operaciones y Zustand en la raiz; UI, hook, formularios,
+mapper y mensajes de archivos en `components/`; transporte y DTOs inferidos en
+`infrastructure/`; catalogos, perfil y validaciones binarias en
+`infrastructure/server/`. La politica pura de archivos permanece en `domain/`.
+
+Se conservan 31 archivos y cero clases. No se mezclan responsabilidades para
+reducir artificialmente el conteo. No cambian las APIs de `index.ts`, `client.ts`
+y `server.ts`, App Router, BFF, shared, dependencias, contratos o diseno.
+
+Las 18 nuevas integraciones pasaron antes del traslado. Protegen POST/PATCH del
+estudiante, ambos perfiles, DTO exacto y secuencia estudiante -> solicitud ->
+correo, tipo 7, S/ 30, documento de identidad, certificado academico, ausencia
+legitima, errores externos, correo parcial y reintento sin segunda escritura.
+
+Al retomar la verificacion el 2026-09-24, las unitarias detectaron una regresion del
+traslado: el literal `'.'` del separador de extension se habia convertido en
+`'./'`. La auditoria encontro ademas dos filtros PDF alterados en becas y
+ubicacion. Se restauraron los tres literales originales, sin cambiar la politica.
+Se agregaron cuatro casos de extension y aserciones E2E sobre `accept=".pdf"`.
+No se dio por correcto ese intento fallido ni se redujeron las aserciones.
+
+La auditoria posterior no encontro literales relativos ajenos a imports ni
+consumidores productivos externos con imports profundos de becas/ubicacion.
+Se mantienen la comprobacion temprana y autoritativa de duplicidad, cookie
+HttpOnly del perfil, pago compartido, firmas binarias y PDF A4 diferido.
+
+Verificacion final del 2026-09-24, despues de restaurar los tres literales y
+agregar las pruebas de regresion:
+
+| Comprobacion | Resultado del paso 5 |
+| --- | --- |
+| Lint y type-check | Correctos; type-check repetido despues del build |
+| Unitarias e integracion | 406/406 y 107/107 |
+| Regresion Playwright completa | 111/111, exit 0, sin omisiones ni flaky; 308.8 segundos |
+| Smoke y accesibilidad | 34/34 y 9/9 incluidos en la regresion completa |
+| Flujos de beca y ubicacion | 10/10 y 16/16 incluidos en la regresion completa |
+| Build | Correcto con acceso a Google Fonts; 22 paginas generadas |
+| Knip | Correcto; sin nuevos archivos, dependencias o imports sin resolver |
+| Bundle y entorno | Sin valores privados configurados en `.next/static`; entorno valido, sin imprimir secretos |
+| `git diff --check` | Correcto; avisos informativos LF/CRLF existentes |
+
+Reporte E2E local: `%TEMP%/ciunac-step5-final-e2e.json`. Se reutilizaron el mock y
+Next de pruebas en puertos 4100/3100, con entorno sintetico, para evitar el teardown
+administrado de Windows. Ambos servidores se cerraron al terminar. El build se
+ejecuto despues de E2E, no concurrentemente; no se alteraron configuracion,
+timeouts ni aserciones para conseguir el resultado.
+
+Los informes del paso 5 conservan los intentos fallidos anteriores. La migracion
+queda cerrada exclusivamente para becas y ubicacion; no se inicia consultas.
+
+Limites que permanecen: perfil CIUNAC declarado, propiedad backend de URLs,
+duplicidad sin atomicidad backend confirmada, correo sin idempotencia/garantia SMTP,
+avisos previos de mascara en desarrollo y build dependiente de Google Fonts.
+No se renuevan las excepciones de auditoria vencidas el 2026-09-17.

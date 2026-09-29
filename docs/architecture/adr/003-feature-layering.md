@@ -1,7 +1,10 @@
 # ADR-003 Capas internas por feature
 
 ## Estado
-Aceptado
+Parcialmente reemplazado el 2026-09-28 por
+[ADR-031](031-pragmatic-feature-architecture.md).
+La separacion de responsabilidades permanece; las cuatro carpetas siguientes
+describen la decision inicial y ya no son una plantilla obligatoria.
 
 ## Contexto
 Los modulos necesitaban limites mas claros para mejorar mantenibilidad y pruebas.

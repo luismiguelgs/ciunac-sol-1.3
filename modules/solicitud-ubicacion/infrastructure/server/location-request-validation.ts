@@ -2,28 +2,31 @@ import 'server-only'
 
 import { NextRequest } from 'next/server'
 import { ciunacRequest } from '@/modules/security/server/ciunac-client'
-import { readVerifiedSessionFromRequest } from '@/modules/security/server/session'
+import type { VerifiedSession } from '@/modules/security/server/session'
 import { SecurityError } from '@/modules/security/server/security-error'
 import {
-  LOCATION_REQUEST_TYPE_ID,
+  hasPendingLocationRequest,
   isOfficialLocationPrice,
-} from '@/modules/solicitud-ubicacion/domain/solicitud-ubicacion'
-import { readLocationProfileFromRequest } from '@/modules/solicitud-ubicacion/infrastructure/server/location-profile-session'
+} from '../../model'
+import { readLocationProfileFromRequest } from './location-profile-session'
+import { toExistingLocationRequest } from '../location-api.mapper'
 import {
   locationCreateCommandDtoSchema,
   locationDuplicateResponseArraySchema,
   locationStudentRequestDtoSchema,
   locationTypeArraySchema,
   filterLocationTypeResponse,
-} from '@/modules/solicitud-ubicacion/infrastructure/validation/location-api.schemas'
+  type LocationRequestDto,
+  type LocationStudentRequestDto,
+} from '../location-api.schemas'
 
-export async function validateLocationRequest(request: NextRequest, value: unknown): Promise<unknown> {
-  const session = readVerifiedSessionFromRequest(request)
+export async function validateLocationRequest(
+  request: NextRequest,
+  value: unknown,
+  session: VerifiedSession | null,
+): Promise<LocationRequestDto> {
   if (session?.purpose !== 'UBICACION') {
-    if (looksLikeLocationEnvelope(value)) {
-      throw new SecurityError('FORBIDDEN', 403, 'Location request requires an UBICACION session')
-    }
-    return value
+    throw new SecurityError('FORBIDDEN', 403, 'Location request requires an UBICACION session')
   }
 
   const result = locationCreateCommandDtoSchema.safeParse(value)
@@ -46,9 +49,14 @@ export async function validateLocationRequest(request: NextRequest, value: unkno
   return result.data.request
 }
 
-export function validateLocationStudentRequest(request: NextRequest, value: unknown): unknown {
-  const session = readVerifiedSessionFromRequest(request)
-  if (session?.purpose !== 'UBICACION') return value
+export function validateLocationStudentRequest(
+  request: NextRequest,
+  value: unknown,
+  session: VerifiedSession | null,
+): LocationStudentRequestDto {
+  if (session?.purpose !== 'UBICACION') {
+    throw new SecurityError('FORBIDDEN', 403, 'Location student requires an UBICACION session')
+  }
   if (!readLocationProfileFromRequest(request)) {
     throw new SecurityError('FORBIDDEN', 403, 'Location profile is missing')
   }
@@ -64,14 +72,6 @@ async function assertNoDuplicate(documentNumber: string, languageId: number): Pr
   const response = await ciunacRequest<unknown>(`solicitudes/documento/${documentNumber}`)
   const result = locationDuplicateResponseArraySchema.safeParse(response)
   if (!result.success) throw new SecurityError('SERVICE_UNAVAILABLE', 503, 'Duplicate request response is invalid')
-  const duplicate = result.data.some((item) => (
-    item.estadoId === 1
-    && item.idiomaId === languageId
-    && item.tipoSolicitudId === LOCATION_REQUEST_TYPE_ID
-  ))
+  const duplicate = hasPendingLocationRequest(result.data.map(toExistingLocationRequest), languageId)
   if (duplicate) throw new SecurityError('DUPLICATE_REQUEST', 409, 'A location request is already in progress')
-}
-
-function looksLikeLocationEnvelope(value: unknown): boolean {
-  return Boolean(value && typeof value === 'object' && 'request' in value && 'documentNumber' in value)
 }

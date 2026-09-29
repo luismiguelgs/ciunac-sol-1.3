@@ -1,5 +1,9 @@
 # Linea Base de Calidad
 
+Historial de verificaciones, no una descripcion unica del estado actual.
+Ultimo cierre: [paso 8](#simplificacion-pragmatica-cierre-documental-paso-8).
+Las versiones y fallos anteriores se conservan como evidencia fechada.
+
 ## Identificacion
 - Fecha: 2026-08-03.
 - Alcance: Fase 1A, smoke tests E2E del comportamiento actual.
@@ -423,9 +427,9 @@ el sandbox; la repeticion autorizada termino correctamente sin cambios de codigo
   `NEXT_PUBLIC_API_KEY` ausente.
 - `git diff --check`: correcto, con advertencias informativas LF/CRLF de Windows.
 
-ADR-017 reemplaza exclusivamente la autorizacion por sesion de ADR-011. La
-arquitectura modular, la validacion Zod, el repository server-only y el presenter
-permanecen vigentes.
+ADR-017 reemplazo exclusivamente la autorizacion por sesion de ADR-011. Esta fue
+la estructura vigente hasta que ADR-027 simplifico la consulta server-only sin
+retirar el dominio tipado, la validacion Zod ni el presenter.
 
 ## Resultado del Refactor Modular de Consulta de Solicitudes
 
@@ -719,3 +723,419 @@ obligatorios deberan configurarse manualmente como branch protection tras el pus
 La ejecucion local de Playwright sigue necesitando cerrar los listeners 3100/4100
 despues del ultimo caso en Windows; todos los escenarios terminan antes del
 bloqueo. El build sigue dependiendo de red para Geist.
+
+## Simplificacion de Consulta Publica de Certificado
+
+- Fecha: 2026-08-24.
+- Alcance: simplificacion interna de `consulta-certificado`, sin cambios de rutas,
+  contrato HTTP, diseño ni acceso publico por QR.
+- Aplicacion: 1.6.5; Next.js: 16.2.12; sin cambios de dependencias.
+- Archivos del feature: 9 a 6; lineas del feature: 343 a 300.
+- Se retiraron caso de uso, puerto, repository de clase, singleton y mapper
+  separado.
+- Se agrego correspondencia obligatoria entre ID solicitado y `_id` externo, y el
+  contrato Zod ahora descarta campos no declarados.
+- `npm run lint`: correcto.
+- `npm run typecheck`: correcto.
+- `npm run test:unit`: 231 de 231 en 13 archivos.
+- `npm run test:integration`: 15 de 15 en 2 archivos.
+- Smoke E2E de consultas: 22 de 22 escenarios correctos; el proceso fue cerrado
+  manualmente despues del bloqueo conocido del teardown en Windows.
+- `npm run build`: correcto con acceso de red para Geist; 22 paginas generadas.
+- `npm run dead-code:check`: correcto.
+- `npm run security:bundle-check`: correcto; sin secretos en `.next/static`.
+- `npm run env:check`: correcto; variables privadas presentes y API key publica
+  antigua ausente.
+- `git diff --check`: correcto, con advertencias informativas LF/CRLF.
+
+Permanecen pendientes la confirmacion de entropia del ID QR, el rate limiting
+distribuido y la ratificacion funcional de los campos educativos expuestos en la
+verificacion publica.
+
+## Simplificacion de `modules/shared`
+
+- Fecha: 2026-08-31.
+- Aplicacion: 1.6.5; Next.js: 16.2.12; sin cambios de dependencias.
+- `modules/shared`: 24 a 21 archivos y 1061 a 976 lineas.
+- Fetch cliente adicional de `textos` en pago: 1 a 0.
+- Exports y tipos shared sin uso detectados por Knip: 18 a 0.
+- `npm run lint` y `npm run typecheck`: correctos.
+- `npm run test:unit`: 233 de 233.
+- `npm run test:integration`: 15 de 15.
+- Smoke: 33 escenarios correctos en conjunto y la guarda restante correcta en
+  repeticion aislada tras ajustar un matcher de acento del test.
+- `npm run test:a11y`: 9 de 9.
+- `npm run build`: correcto con acceso de red para Geist; 22 paginas generadas.
+- `npm run dead-code:check`, `npm run security:bundle-check`, `npm run env:check`
+  y `git diff --check`: correctos.
+- Auditoria: cuatro excepciones `high` conocidas hasta 2026-09-17, cero
+  `critical` y ningun hallazgo nuevo.
+
+Se retiraron el cache global de textos, dos hooks, el service asociado, las
+fachadas HTTP/storage sin comportamiento y tipos legacy. Los catalogos server-side
+se inyectan a `FinData`; precios y reglas de negocio permanecen en cada feature.
+
+## Simplificacion Segura de las Rutas API
+
+- Fecha: 2026-08-31.
+- Aplicacion: 1.6.5; Next.js: 16.2.12; sin cambios de dependencias.
+- Se reemplazo la allowlist ambigua por 12 operaciones explicitas ligadas a sesion
+  OTP o de consulta.
+- Catalogos y lecturas exclusivamente server-side se retiraron del proxy del
+  navegador sin cambiar sus contratos externos.
+- Las sesiones se descifran una vez por request y se ejecuta un solo validador de
+  solicitud segun el proposito.
+- Email de estudiantes y becas, tipo de solicitud y tipo de cargo se comprueban
+  contra la sesion antes de continuar.
+- `npm run lint` y `npm run typecheck`: correctos.
+- `npm run test:unit`: 284 de 284.
+- `npm run test:integration`: 22 de 22.
+- `npm run test:e2e:smoke`: 34 de 34 en la repeticion final. Una ejecucion previa
+  tuvo una espera intermitente del dialogo de ubicacion; el caso paso aislado y en
+  el lote final sin cambios de producto.
+- `npm run test:a11y`: 9 de 9.
+- `npm run build`: correcto con acceso de red para Geist; 22 paginas generadas.
+- `npm run dead-code:check`: correcto.
+- `npm run audit:dependencies`: cuatro excepciones `high` conocidas hasta
+  2026-09-17, cero `critical` y ningun hallazgo nuevo.
+- `npm run security:bundle-check`: sin secretos privados en `.next/static`.
+- `npm run env:check`: correcto; API key publica antigua ausente.
+- `git diff --check`: correcto, con avisos informativos LF/CRLF de Windows.
+
+Permanece pendiente comprobar en servidor que un documento digital pertenece al
+DNI de la sesion de consulta. No se implemento cache ni se modificaron URLs,
+componentes, stores, formularios o contratos backend.
+
+## Simplificacion Pragmatica de `modules/security`
+
+- Fecha: 2026-09-01.
+- Aplicacion: 1.6.5; Next.js: 16.2.12; sin cambios de dependencias.
+- El Route Handler dinamico paso de 234 a 62 lineas fisicas y quedo limitado a
+  resolver operacion, leer sesiones, autorizar, validar, reenviar y responder.
+- `modules/security/server/schemas.ts` paso de 119 a 28 lineas y solo conserva
+  OTP, consulta y notificacion.
+- El conjunto seguridad/BFF paso de 1326 a 1348 lineas no vacias: aumento 1.7 %
+  por caracterizacion de cookies y dispatch explicito, mientras las reglas dejaron
+  de estar concentradas en un solo archivo.
+- La politica y validacion HTTP viven junto a `app/api/ciunac`; cada feature
+  devuelve su DTO definitivo desde su API publica `server.ts`.
+- `modules/security` no importa internals de consultas ni de features de solicitud.
+- `security-client.ts` conserva sus cuatro funciones publicas y valida localmente
+  la respuesta minima de consulta.
+- Todos los exports publicos de sesiones, nombres de cookies, `HttpOnly`,
+  `SameSite=Strict`, `Secure` en produccion y TTL permanecen compatibles.
+- Se agregaron 6 contratos de Route Handlers/cookies y una integracion de
+  aceptacion digital; integracion paso de 23 a 30 pruebas.
+- `npm run lint` y `npm run typecheck`: correctos.
+- `npm run test:unit`: 284 de 284.
+- `npm run test:integration`: 30 de 30.
+- `npm run test:e2e:smoke`: 34 de 34 escenarios correctos.
+- `npm run test:a11y`: 9 de 9 escenarios correctos.
+- `npm run test:e2e`: 104 de 104 escenarios correctos. La primera ejecucion
+  detecto que la aceptacion digital solicitaba tambien una sesion OTP; se corrigio
+  y la repeticion completa paso.
+- Playwright queda abierto despues del ultimo escenario por el teardown conocido
+  en Windows y se cierra manualmente; no se observaron fallos funcionales finales.
+- `npm run build`: correcto con acceso de red; 22 paginas generadas.
+- `npm run dead-code:check` y `npm ls --depth=0`: correctos.
+- `npm run audit:dependencies`: cuatro excepciones `high` conocidas hasta
+  2026-09-17, cero `critical` y ningun hallazgo nuevo.
+- `npm run security:bundle-check`: sin valores privados en `.next/static`.
+- `npm run env:check`: configuracion privada valida y API key publica ausente.
+- `git diff --check`: correcto, con avisos informativos LF/CRLF de Windows.
+
+Permanecen como deuda el replay OTP sin estado server-side, la propiedad por DNI
+de documentos digitales, las cuatro vulnerabilidades baselineadas y el teardown
+local de Playwright. No se modificaron URLs, contratos backend, componentes,
+stores, diseno, cache ni reglas funcionales.
+
+## Simplificacion Pragmatica: Pasos 1 y 2
+
+- Fecha: 2026-09-22; aplicacion 1.6.5 y Next.js 16.2.12, sin actualizaciones.
+- Se preserva el worktree pendiente; esta entrega solo cambia tooling, pruebas de
+  arquitectura y documentacion, no los modulos funcionales.
+- ESLint aplica una unica regla de dependencias con 63 pruebas de configuracion
+  efectiva y excepciones puntuales compatibles con el codigo actual.
+- Inventario, APIs, secuencias, resultados de cierre y riesgos se registran en
+  [Linea base pragmatica](pragmatic-simplification-baseline.md).
+- Cierre: lint, type-check, 363 unitarias, 38 integraciones, 110 E2E (34 smoke y
+  9 axe incluidos), Knip, build con red, bundle-check y env-check correctos.
+- La regresion usa servidores de prueba independientes para evitar el teardown
+  Windows; no hubo fallos ni escenarios omitidos en la repeticion final.
+- Las excepciones conocidas de auditoria vencidas no se renovaron ni se
+  presentaron como una auditoria aprobada en esta entrega.
+- El piloto de certificados (paso 3) no esta iniciado.
+
+## Simplificacion Pragmatica: Piloto de Certificados (Paso 3)
+
+- Fecha: 2026-09-22; aplicacion 1.6.5 y Next.js 16.2.12 sin actualizaciones.
+- `solicitud-certificado`: 31 a 22 archivos, siete clases delegadoras a cero.
+- Funciones de operacion con dependencias inyectables; modelo, schema y store
+  visibles en la raiz; componentes y adaptadores agrupados por responsabilidad.
+- Se preservan las APIs publicas, el pago/voucher compartido, sesiones, precio
+  autorizado en BFF, resultado parcial de correo y PDF A4 diferido.
+- Unitarias: 377/377 (52 del feature, 67 de arquitectura). Integracion: 48/48.
+- Lint, type-check, Knip, build con red, bundle-check y env-check correctos.
+- El primer lote E2E tuvo un timeout OTP en beca: certificados 15/15 y axe 9/9
+  pasaron. El caso de beca paso aislado sin cambios. La repeticion completa cerro
+  con 110/110, exit 0, cero fallos/omisiones/flaky; incluye 34 smoke y 9 axe.
+- Clasificacion, estructura, contratos, pruebas y riesgos en
+  [Piloto pragmatico de certificados](phase-2f-solicitud-certificado.md#piloto-pragmatico-paso-3).
+- Sin cambios funcionales en otros features, rutas, BFF ni shared. Paso 4 pendiente.
+
+## Simplificacion Pragmatica: Constancias (Primer Feature del Paso 4)
+
+- Fecha: 2026-09-23; aplicacion 1.6.5 y Next.js 16.2.12 sin actualizaciones.
+- `solicitud-constancia`: 31 a 22 archivos y siete clases delegadoras a cero.
+- APIs publicas conservadas; funciones con dependencias inyectables, DTO inferido,
+  guardas de borrador durante render y metadata de errores de correo preservada.
+- Pago, voucher, sesiones, precio validado en BFF, resultado parcial, reintento
+  exclusivo y PDF A4 diferido sin cambios de contrato ni diseno.
+- Lint, type-check, 387 unitarias, 62 integraciones, Knip, build con red,
+  bundle-check, env-check y diff-check correctos.
+- Regresion E2E: 110/110, exit 0, cero omisiones/flaky; incluye 6 de constancias,
+  34 smoke y 9 axe. Antes de mover archivos, los seis E2E del feature tambien pasaron.
+- El primer intento completo no arranco por referencias antiguas del dev server
+  de pruebas; reiniciarlo resolvio el entorno sin ajustes productivos. El build
+  requirio acceso a Google Fonts. Ambos intentos se registran en el informe.
+- Cero cambios productivos fuera de constancias y cero imports profundos externos.
+- [Detalle, contratos y riesgos](phase-2a-constancia-typing.md#simplificacion-pragmatica-paso-4-constancias).
+- Paso 4 parcial: constancias completo; alumno nuevo queda para el siguiente cambio.
+
+## Simplificacion Pragmatica: Alumno Nuevo (Cierre del Paso 4)
+
+- Fecha: 2026-09-23; aplicacion 1.6.5 y Next.js 16.2.12 sin actualizaciones.
+- `solicitud-nuevo`: 25 a 21 archivos y tres clases delegadoras a cero.
+- APIs publicas intactas; funciones inyectables, DTO Q10 inferido y guardas de
+  borrador en lugar de validacion completa durante render.
+- Se conservan OTP, sesion, programa autorizado, respuesta Q10 sin cuerpo,
+  bloqueo de escritura indeterminada y reintento exclusivo del correo.
+- Errores de correo conservan categoria, status, correlationId y retryable.
+- Lint, type-check posterior al build, 399 unitarias, 79 integraciones, Knip,
+  build con red, bundle-check y env-check correctos.
+- E2E dirigido: 11/11 antes de mover archivos. Regresion final: 111/111 en
+  315.4 segundos, exit 0, cero fallos/omisiones/flaky; incluye 34 smoke, 9 axe
+  y 11 escenarios de alumno nuevo. Servidores de prueba independientes.
+- Cero cambios productivos fuera del feature segun comparacion del inventario;
+  cuatro archivos de pruebas adaptados/agregados, documentacion actualizada.
+- `git diff --check` correcto; se preserva todo el trabajo previo pendiente.
+- [Detalle, contratos, cobertura y riesgos](phase-2g-solicitud-nuevo.md#simplificacion-pragmatica-paso-4-alumno-nuevo).
+- Paso 4 completo. No se inicia el paso 5. Google Fonts, idempotencia Q10,
+  teardown administrado de Windows y auditoria vencida siguen como riesgos.
+
+## Simplificacion Pragmatica: Becas y Ubicacion (Paso 5)
+
+- Fecha: 2026-09-24; aplicacion 1.6.5 y Next.js 16.2.12 sin actualizaciones.
+- Organizacion plana por responsabilidad, conservando APIs publicas y operaciones
+  ya simplificadas: 24 archivos en becas, 31 en ubicacion, cero clases en ambos.
+- Se retira un delegado interno de correo y se preservan codigo, status,
+  correlationId, details y retryable de errores de beca. No cambian contratos HTTP.
+- Se conservan cinco documentos PDF de beca, perfil CIUNAC, duplicidad, tarifa
+  S/ 30, pago compartido, validacion binaria, OTP/CAPTCHA y PDF diferido.
+- Se agregan 10 integraciones de beca y 18 de ubicacion, con DTO exacto,
+  respuestas vacias/mal formadas, errores y correo reintentado sin otra escritura.
+- Lint y type-check posterior al build correctos. Unitarias: 406/406.
+  Integracion: 107/107. Knip correcto.
+- Playwright completo: 111/111, exit 0, cero fallos/omisiones/flaky, 308.8 segundos.
+  Incluye 34 smoke, 9 axe, 10 escenarios de beca y 16 de ubicacion. Reporte local:
+  `%TEMP%/ciunac-step5-final-e2e.json`.
+- Los servidores sinteticos independientes evitan el teardown administrado de
+  Windows; se cerraron al terminar y antes de ejecutar el build final.
+- Build con acceso a Google Fonts correcto, 22 paginas generadas. Bundle-check:
+  sin valores privados configurados en `.next/static`. Env-check correcto, sin
+  editar `.env` ni mostrar secretos. `git diff --check` correcto, avisos LF/CRLF.
+- Se corrigieron tres literales alterados durante el traslado (separador de
+  extension y dos filtros PDF), agregando pruebas para evitar la regresion.
+  El primer E2E de beca tuvo dos fallos intermitentes; su repeticion y el cierre
+  conjunto pasaron sin omitir escenarios. La causa inicial no se da por resuelta.
+- Se actualizaron ADR-020, ADR-023, SDD, convenciones, contratos y trazabilidad;
+  no se creo otro ADR para movimientos de archivos.
+- Cambios productivos de esta etapa limitados a becas y ubicacion; se preservan
+  los cambios previos acumulados. No se inicia el paso 6.
+- Informes: [Becas](phase-2e-solicitud-beca.md#paso-5-cierre-pragmatico-de-becas) y
+  [Ubicacion](phase-2h-solicitud-ubicacion.md#paso-5-cierre-pragmatico-de-ubicacion).
+- Pendientes: avisos previos de mascara, dependencia de red de fuentes,
+  propiedad de URLs/idempotencia backend y excepciones de auditoria vencidas
+  el 2026-09-17. Esta entrega no renueva ni aprueba esa auditoria.
+
+## Simplificacion Pragmatica: Consultas (Paso 6)
+
+- Fecha: 2026-09-24; aplicacion 1.6.5 y Next.js 16.2.12 sin actualizaciones.
+- `consultas`: 9 a 8 archivos, tres clases a cero. `consulta-solicitud`: 14 a 12
+  archivos, tres clases a cero. `consulta-ubicacion`: 13 a 12 archivos, cinco
+  clases a cero. Total: 36 a 32 archivos, once clases sin estado retiradas.
+- Funciones inyectables en `operations.ts`, modelo puro en `model.ts`, UI y
+  presenter en `components/`; mappers, schemas y transporte separados.
+- Se conservan APIs existentes, contratos HTTP, sesion/CAPTCHA, ausencia/error,
+  aliases historicos de documentos, aceptacion previa a descarga y PDFs diferidos.
+  No se rehace consulta-certificado ni se modifican registros, shared o seguridad.
+- Cambio productivo externo minimo: el handler de consulta usa la nueva entrada
+  publica `findConsultationRequests`. Misma respuesta y cookie, un GET y ningun
+  texto auxiliar. Se elimina su excepcion de imports profundos en ESLint.
+- Solicitudes y textos mantienen dos lecturas paralelas; ubicacion mantiene cinco,
+  sin un GET adicional para el cargo. Todas las lecturas privadas siguen sin cache.
+- Quince integraciones nuevas pasaron contra la implementacion anterior; dos mas
+  cubren el lookup publico. Se agregan dos E2E de fallo/reintento de aceptacion.
+- Lint y type-check, tambien despues del build, correctos. Unitarias: 406/406.
+  Integracion: 124/124. Knip correcto.
+- E2E dirigido previo: 22/22. Primera suite ampliada: 111/113; dos aserciones
+  nuevas asumian un GET inicial en desarrollo, donde se observaron dos. Se cambio
+  la medicion a lecturas antes/despues del reintento, sin cambiar producto ni
+  omitir aserciones de bloqueo, descarga o escrituras. Repeticion dirigida: 2/2.
+- Regresion final: 113/113, exit 0, cero fallos/omisiones/flaky, 300.3 segundos.
+  Incluye 24 de consultas, 34 smoke y 9 axe. Reporte local:
+  `%TEMP%/ciunac-step6-final-e2e.json`.
+- Se usaron servidores sinteticos independientes en 3100/4100 para evitar el
+  teardown administrado de Windows. Se cerraron antes del build.
+- Build con acceso a Google Fonts correcto; 22 paginas generadas. Bundle-check:
+  sin valores privados configurados en `.next/static`. Env-check correcto,
+  sin editar `.env` ni imprimir valores. `git diff --check` correcto, avisos LF/CRLF.
+- La comparacion de los diez archivos de presentacion, excluyendo imports y tipos,
+  no encontro cambios ejecutables. No se hizo una nueva certificacion visual de
+  los PDFs; el formato se conserva y los E2E prueban las descargas cubiertas.
+- Se actualizaron ADR-010, ADR-012, ADR-018, ADR-019, SDD, convenciones, contratos,
+  trazabilidad y los informes de Fases 2B/2D. No se crea otro ADR por movimientos.
+- Se preserva el worktree previo. Paso 6 completo; no se inician los pasos 7 y 8.
+  Siguen pendientes propiedad por DNI del documento digital, fuentes remotas,
+  avisos de mascara y excepciones de auditoria vencidas; no se renueva esa baseline.
+
+## Simplificacion Pragmatica: Capacidades Compartidas (Paso 7)
+
+Fecha: 2026-09-25. Version 1.6.5 y dependencias sin cambios. Se preserva el diff
+acumulado; no se modifican contratos backend, rutas, precios, OTP/CAPTCHA,
+estado de flujos, diseno ni formato/carga diferida de PDFs.
+
+| Verificacion | Archivos | Pagos | HTTP / cierre |
+| --- | --- | --- | --- |
+| Lint | Correcto | Correcto | Correcto, sin warnings |
+| Type-check | Correcto | Correcto | Correcto, tambien tras build |
+| Unitarias | 417/417 | 431/431 | 431/431 |
+| Integracion | 124/124 | 124/124 | 166/166 |
+| Regresion Playwright | 113/113 | 113/113 | 113/113 |
+| Smoke incluidos | 34 | 34 | 34 |
+| Axe incluidos | 9 | 9 | 9 |
+| Build | 22 paginas | 22 paginas | 22 paginas |
+| Knip | Correcto | Correcto | Correcto |
+| Bundle / entorno | Correctos | Correctos | Correctos |
+| Diff-check con configuracion del repo | Correcto | Correcto | Correcto |
+
+- Los tres reportes terminaron con exit 0, cero omitidos y cero flaky:
+  archivos 290.1 s, pagos 308.4 s, HTTP 329.4 s. Reportes:
+  `%TEMP%/ciunac-step7-files-corrected-e2e.json`,
+  `%TEMP%/ciunac-step7-payments-e2e.json`,
+  `%TEMP%/ciunac-step7-final-e2e.json`.
+- Primer intento del grupo de archivos: detenido tras fallos de voucher. El
+  adaptador copiaba File mediante spread y perdia metadata del prototipo.
+  Corregido con lectura explicita y una unitaria nativa; repeticion completa verde.
+- Primer intento unitario del grupo HTTP: 364 correctas, 67 omitidas por timeout
+  de 30 s al cargar ESLint en beforeAll. Repeticion: 431 correctas, sin omitir
+  pruebas ni aumentar el limite. Se retiro un import que quedo sin uso.
+- El diff-check con autocrlf desactivado por comando detecto CRLF como whitespace;
+  no se alteraron archivos para ello. Con la configuracion real del repo pasa,
+  conservando avisos existentes de conversion LF/CRLF.
+- El navegador comparte un solo fetch/decoder; el servidor mantiene su cliente
+  privado con no-store. Las integraciones existentes protegen secuencias exactas,
+  DTOs, un solo registro y reintento exclusivo de notificacion.
+- Se ejecutaron servidores sinteticos propios en 3100/4100, cerrados antes de
+  cada build. El puerto de desarrollo del usuario no se detuvo. Builds con red
+  por Google Fonts; no se imprimieron ni editaron valores del entorno.
+
+### Gate de Seguridad Pendiente
+
+`npm run audit:dependencies` falla (exit 1): 4 hallazgos de produccion,
+**1 critical y 3 high**. Nuevas referencias informadas por el gate:
+`next:1193676:critical`, `next:1193732:critical`, `sharp:1193725:high`.
+Las excepciones de nanoid/postcss/sharp vencieron el 2026-09-17.
+No se renovaron excepciones ni se actualizaron dependencias. El gate de auditoria
+no se considera aprobado; requiere una correccion de seguridad aislada antes de
+desplegar. Esto no es una regresion de dependencias introducida por el refactor.
+
+Se actualizan ADR-004/028, SDD, convenciones, contratos, trazabilidad e informe
+shared existente. Paso 7 completo; paso 8 no iniciado. Permanecen las deudas de
+propiedad de documentos, replay OTP sin persistencia, fuentes remotas y avisos de
+mascaras. No se realizo una nueva certificacion visual de PDFs.
+
+Detalles e inventario: [capacidades compartidas](shared-simplification.md#paso-7-consolidacion-de-capacidades).
+
+## Simplificacion Pragmatica: Cierre Documental (Paso 8)
+
+Inicio 2026-09-25, continuacion 2026-09-28. Aplicacion 1.6.5, Next.js 16.2.12;
+sin cambios de dependencias, version, contratos, entorno real o diseno.
+Este apartado describe solo el paso 8, no atribuye el diff acumulado a este cierre.
+
+### Alcance
+
+SDD v1.4, convenciones, checklist, mapa Mermaid, overview, README, roadmap,
+trazabilidad e informes de limpieza/auditoria actualizados. ADR-031 documenta
+la decision general y reemplaza parcialmente ADR-003.
+Siete declaraciones sin consumidores retiradas en tres archivos; APIs, schemas
+funcionales, importacion diferida PDF y adaptadores con comportamiento conservados.
+
+### Intentos y evidencia
+
+- 2026-09-25: lint, type-check, 431 unitarias, 166 integraciones, Knip y npm ls
+  correctos. E2E completo: 112 correctos y un timeout de voucher en ubicacion,
+  723.4 segundos; el navegador mostro error de conexion. No se afirma una causa.
+- 2026-09-28: el caso aislado de ubicacion paso en 32.6 segundos sin cambiar tests.
+- Primera repeticion completa del 28: 112 correctos y un timeout de consulta de
+  constancia antes de llegar al detalle, 343.2 segundos. Ubicacion paso.
+  Hubo advertencias de compilacion sobre exports existentes en el fuente.
+- Para comprobar ese estado se detuvieron solo los servidores E2E propios y se
+  elimino exclusivamente la cache ignorada .next-e2e, con ruta verificada.
+  Se reiniciaron mock/app y se repitieron los mismos 113 casos.
+- No se aumentaron timeouts, no se omitieron tests y no se alteraron flujos para
+  obtener un resultado verde. Un resultado posterior no borra fallos anteriores.
+- Un diff-check detecto una linea vacia al final de lib/utils.ts introducida al
+  eliminar omit; se corrigio ese formato, sin modificar la logica restante.
+
+Reportes locales de estas ejecuciones en TEMP: ciunac-step8-final-e2e.json,
+ciunac-step8-ubicacion-recheck.json, ciunac-step8-20260928-e2e.json y
+ciunac-step8-clean-cache-e2e.json. Son artefactos locales, no se versionan.
+
+### Seguridad pendiente
+
+Auditoria del 2026-09-28: exit 1, cuatro paquetes afectados (1 critical, 3 high).
+Nuevas referencias: next:1193676:critical, next:1193732:critical,
+sharp:1193725:high. Excepciones nanoid/postcss/sharp vencidas el 2026-09-17.
+No se renuevan baselines ni se actualizan dependencias en este cierre.
+Ver [auditoria vigente](dependency-audit.md).
+
+Permanecen propiedad backend de archivos/documentos, replay OTP sin persistencia,
+idempotencia no garantizada, filtros Q10 y fuentes remotas. No se verifica
+administracion de branch protection ni se certifica visualmente cada PDF.
+Cerrar la simplificacion no autoriza merge/despliegue con gates bloqueados.
+
+### Resultado final del 2026-09-28
+
+| Comprobacion | Resultado |
+| --- | --- |
+| lint | Correcto, exit 0 |
+| typecheck | Correcto, incluido despues del build |
+| unitarias | 431/431, 16 archivos |
+| integracion | 166/166, 10 archivos |
+| regresion E2E con cache regenerada | 113/113, exit 0, 310.8 segundos |
+| smoke / accesibilidad | 34 / 9 correctos, incluidos en esos 113 |
+| build de produccion | Correcto, 22 paginas generadas |
+| dead-code:check | Correcto; sin archivos/dependencias/imports pendientes en el gate |
+| npm ls --depth=0 | Correcto; sin extraneous ni faltantes |
+| bundle-check | Sin valores privados configurados en .next/static |
+| env-check | Variables requeridas presentes; NEXT_PUBLIC_API_KEY ausente |
+| git diff --check | Correcto; permanecen advertencias historicas LF/CRLF |
+| enlaces documentales | 16 documentos, 84 enlaces/anclas locales sin errores |
+| auditoria de dependencias | BLOQUEADA: 1 critical, 3 high y excepciones vencidas |
+
+El JSON de la ultima regresion registra cero omitidos, inesperados o flaky.
+Los dos timeouts anteriores quedan arriba: este resultado no demuestra una
+solucion definitiva a las advertencias intermitentes de desarrollo. No hubo
+cambio funcional, aumento de timeout ni omision para pasar.
+
+Tras detener los servidores propios se retiraron nueve directorios antiguos
+vacios en consulta-certificado y shared, sin borrado recursivo de fuentes.
+Lint, type-check, unitarias, integracion, Knip y build se ejecutaron despues.
+El build se ejecuto con red por Google Fonts, nunca en paralelo con E2E.
+Env-check no confirma rotacion o validez de las credenciales ante el proveedor.
+
+En los 16 documentos del cierre se revisaron enlaces locales, anclas y bloques
+Markdown. No se afirma una nueva certificacion visual de PDF o render Mermaid.
+Los cambios pendientes anteriores se preservan, sin staging ni commit.
+Los pasos 1 a 8 quedan implementados; no se inicia otro trabajo automaticamente.

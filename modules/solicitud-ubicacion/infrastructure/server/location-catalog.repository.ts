@@ -6,17 +6,18 @@ import { parseExternalResponse } from '@/modules/shared/infrastructure/validatio
 import {
   LocationCatalogs,
   LocationSchedule,
+  LocationRequestType,
   LocationText,
   isOfficialLocationPrice,
-} from '@/modules/solicitud-ubicacion/domain/solicitud-ubicacion'
-import { toLocationCatalogs, toLocationSchedule } from '@/modules/solicitud-ubicacion/infrastructure/mappers/location-api.mapper'
+} from '../../model'
+import { toLocationCatalogs, toLocationSchedule } from '../location-api.mapper'
 import {
   locationLanguageArraySchema,
   locationScheduleArraySchema,
   locationTextArraySchema,
   locationTypeArraySchema,
   filterLocationTypeResponse,
-} from '@/modules/solicitud-ubicacion/infrastructure/validation/location-api.schemas'
+} from '../location-api.schemas'
 
 export async function getLocationCatalogs(): Promise<LocationCatalogs> {
   const [typesResponse, languagesResponse, textsResponse] = await Promise.all([
@@ -43,17 +44,23 @@ export async function getLocationCatalogs(): Promise<LocationCatalogs> {
   return toLocationCatalogs(types[0], languages, texts)
 }
 
-export async function getLocationEntryData(): Promise<{ catalogs: LocationCatalogs; schedules: LocationSchedule[] }> {
-  const [catalogs, schedulesResponse] = await Promise.all([
-    getLocationCatalogs(),
+export async function getLocationEntryData(): Promise<{
+  requestType: LocationRequestType; texts: LocationText[]; schedules: LocationSchedule[]
+}> {
+  const [typesResponse, texts, schedulesResponse] = await Promise.all([
+    ciunacRequest<unknown>('tipossolicitud'),
+    getLocationTexts(),
     ciunacRequest<unknown>('cronogramaubicacion'),
   ])
+  const [type] = parseExternalResponse(locationTypeArraySchema, filterLocationTypeResponse(typesResponse),
+    'La API devolvio un tarifario de ubicacion vacio o invalido.')
+  assertOfficialPrice(type.precio)
   const schedules = parseExternalResponse(
     locationScheduleArraySchema,
     schedulesResponse,
     'La API devolvio cronogramas de ubicacion invalidos.',
   ).map(toLocationSchedule)
-  return { catalogs, schedules }
+  return { requestType: { id: type.id, name: type.solicitud, price: type.precio }, texts, schedules }
 }
 
 export async function getLocationTexts(): Promise<LocationText[]> {

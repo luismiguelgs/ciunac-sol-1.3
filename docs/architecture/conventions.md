@@ -1,72 +1,85 @@
 # Convenciones Arquitectonicas
 
-## Capas
-- `presentation`: UI, eventos, loading, errores visibles y navegacion.
-- `application`: casos de uso y puertos.
-- `domain`: reglas y tipos de negocio.
-- `infrastructure`: gateways, DTOs, mappers y acceso a API.
+Vigentes al 2026-09-28. Decision general: [ADR-031](adr/031-pragmatic-feature-architecture.md).
+Los pasos 1 a 8 estan completados; los informes anteriores conservan su contexto historico.
 
-## Reglas de dependencia
-- `presentation` depende de `application` y de componentes compartidos estables.
-- `application` puede depender de `domain` y de puertos.
-- `infrastructure` implementa puertos de `application`.
-- `domain` no depende de React, Next.js ni de servicios HTTP.
+## Organizacion por necesidad
 
-## API Publica de Features
-- Un feature estabilizado expone sus consumidores browser-safe desde `index.ts`.
-- La composicion exclusiva de servidor se expone desde `server.ts` con
-  `import 'server-only'`.
-- Rutas y otros features no deben importar carpetas internas de un feature que ya
-  tenga API publica.
-- `consulta-certificado` aplica estas reglas mediante ESLint; la adopcion en otros
-  features sera incremental.
-- `consulta-solicitud` expone presentacion desde `index.ts`, composicion de servidor
-  desde `server.ts` y aplica limites de capas mediante ESLint.
-- `consulta-ubicacion` expone su vista desde `index.ts`, el caso de uso compuesto
-  desde `server.ts` y solo consume el contexto comun mediante
-  `@/modules/consultas/server` dentro de infraestructura.
-- `solicitud-beca` expone el wizard desde `index.ts`, la composicion cliente desde
-  `client.ts` y catalogos/validacion de archivos desde `server.ts`.
-- `solicitud-certificado` expone proceso y finalizacion desde `index.ts`, casos de
-  uso compuestos del navegador desde `client.ts` y catalogos/validacion de precio
-  desde `server.ts`.
-- `solicitud-constancia` expone proceso y finalizacion desde `index.ts`, casos de
-  uso compuestos del navegador desde `client.ts` y catalogos/validacion de precio
-  desde `server.ts`.
-- `solicitud-ubicacion` expone cronograma, proceso y finalizacion desde `index.ts`,
-  casos de uso compuestos desde `client.ts` y catalogos, perfil y validaciones BFF
-  desde `server.ts`.
-- `solicitud-nuevo` expone el wizard desde `index.ts`, compone registro y reintento
-  de correo desde `client.ts` y publica catalogos/validacion Q10 server-side desde
-  `server.ts`.
-- Los archivos `client.ts`/`client.tsx` y `server.ts` pueden actuar como composition roots; no
-  contienen reglas de negocio y son los unicos puntos que conectan implementaciones
-  de infraestructura con casos de uso.
+```text
+modules/<feature>/
+  index.ts           UI publica
+  client.ts          composicion del navegador, si hace falta
+  server.ts          entrada exclusiva de servidor
+  model.ts           tipos y reglas puras
+  schemas.ts         validacion de la operacion
+  operations.ts      orquestacion real
+  store.ts           workflow entre pasos
+  components/        UI, hooks y schemas de formulario
+  infrastructure/   contratos, mappers e integracion externa
+```
 
-## Estado
-- Formularios: React Hook Form.
-- Flujo multi-step: Zustand solo cuando el estado debe sobrevivir entre pasos.
-- Catalogos: preferir server fetching; usar cache en cliente solo si hay una razon funcional clara.
-- Catalogos persistidos: usar stores de solo lectura con `hasHydrated`, `setData` y `clearData`.
-- Flujo multi-step: cada store debe exponer `reset` y reiniciarse al entrar al proceso.
+No crear todos estos archivos de antemano. Consulta de certificado conserva
+dominio, contrato externo, servidor y presentacion, sin una operacion delegadora.
+Mappers, PDF, politicas de archivo y validadores extensos permanecen separados
+cuando tienen una responsabilidad real. No aplanar por aplanar.
 
-## Mapa de estado
-- `stores/types.stores.ts`: cache de catalogos por sesion.
-- `modules/solicitud-certificado/presentation/solicitud-certificado.store.ts`: workflow tipado de certificados.
-- `modules/solicitud-constancia/presentation/solicitud-constancia.store.ts`: workflow tipado de constancias.
-- `modules/solicitud-beca/presentation/solicitud-beca.store.ts`: workflow tipado del flujo de beca.
-- `modules/solicitud-nuevo/presentation/new-student.store.ts`: workflow tipado del flujo de alumno nuevo.
-- `modules/solicitud-ubicacion/presentation/solicitud-ubicacion.store.ts`: workflow tipado del flujo de ubicacion.
-- Estados de submit, dialogos y loading: vivir en componentes o hooks de `presentation`.
+## Dependencias y APIs
 
-## Criterios de extraccion a shared
-- Debe existir en al menos dos features.
-- Debe tener comportamiento equivalente, no solo UI parecida.
-- Debe tener nombre y contrato estables.
-- Un renderer compartido recibe datos ya resueltos; no decide titulos, precios,
-  plazos ni reglas especificas de un feature.
+- Modelos y reglas puras no dependen de React, Next.js, stores ni HTTP.
+- Operaciones dependen de modelos y funciones tipadas inyectadas; no de UI o infraestructura.
+- Componentes usan operaciones compuestas desde client.ts, modelos y UI compartida.
+  No usan fetch, DTOs del proveedor ni credenciales.
+- Infraestructura valida unknown y traduce contratos externos a modelos internos.
+- index.ts expone UI browser-safe; server.ts lleva import de server-only.
+  App Router y BFF usan estas APIs publicas, nunca rutas internas.
+- client.ts y server.ts conectan implementaciones con operaciones. No crear
+  factories o ports adicionales que repitan el mismo contrato.
+- Los features no importan internals de otros. El contexto comun de consultas
+  se consume mediante consultas/index.ts o consultas/server.ts.
+- Shared y security no contienen reglas ni imports de features de negocio.
 
-## Verificacion obligatoria
-- Ejecutar `npm run lint`.
-- Ejecutar `npx tsc --noEmit`.
-- Ejecutar `npm run build`.
+[Reglas efectivas](architecture-rules.md) documenta los limites, 67 pruebas de
+ESLint y sus limitaciones. El analisis estatico no reemplaza controles runtime.
+
+## Datos, estado y errores
+
+- React Hook Form conserva la edicion local; Zustand conserva workflows entre pasos.
+  Los cinco stores estan junto a cada feature y exponen reset.
+- Los catalogos se cargan en servidor y se pasan por props. Los stores globales
+  de catalogos fueron retirados; no recrearlos sin necesidad demostrada.
+- Estado visual efimero vive en componentes/hooks. Estado de registro, referencia
+  guardada y fallo parcial viven en el workflow, no en flags contradictorios.
+- Validar formulario, operacion al enviar y BFF como frontera no confiable.
+  No ejecutar el parse completo de la solicitud en cada render.
+- Inferir DTOs de schemas cuando sean el mismo contrato. Mantener mappers donde
+  existan nombres, fechas, aliases o modelos diferentes; no crear un Command vacio.
+- Distinguir ausencia legitima, error tecnico y resultado de escritura indeterminado.
+  Conservar categoria, status, correlationId y retryable.
+- Despues del guardado parcial, reintentar solo correo. Un HTTP aceptado no
+  significa entrega SMTP. No reintentar escrituras automaticamente.
+
+## Compartir solo contratos estables
+
+Archivo: metadata/firma comunes; formato y limite decididos por cada politica.
+Pago: FinData, schema, modelo y conversiones comunes; tarifa y descuentos del feature.
+PDF: renderer A4 comun; textos, titulos y reglas del feature; carga bajo demanda.
+HTTP: transporte browser comun, prefijo CIUNAC en lib/api.service; cliente privado
+del servidor separado. OTP, CAPTCHA y comprobante de correo no son dominio academico.
+
+Compartir requiere consumidores reales y comportamiento equivalente, no parecido
+visual. No crear un workflow generico ni mover reglas de un solo feature a shared.
+Nunca guardar datos personales en cache global. La propuesta de cache de catalogos
+no esta implementada y no debe describirse como disponible.
+
+## Agregar o cambiar un feature
+
+1. Definir el flujo observable, contrato externo y casos negativos.
+2. Crear solo UI, reglas e integracion necesarias; agregar operaciones si coordinan pasos.
+3. Reutilizar capacidades existentes sin importar internals de otro feature.
+4. Probar contratos y escenarios, incluidos error, vacio, permisos y reintento.
+5. Actualizar trazabilidad y SDD si cambia el diseno; ADR solo si cambia una decision.
+
+Antes de cerrar: lint, type-check, unitarias, integracion, Knip, smoke, accesibilidad,
+regresion, build, bundle, entorno y diff-check. Auditoria y npm ls tambien se revisan.
+Un fallo de herramienta se informa como bloqueo; una excepcion vencida no aprueba el gate.
+Usar el [checklist](review-checklist.md), sin generar documentos por cada movimiento.

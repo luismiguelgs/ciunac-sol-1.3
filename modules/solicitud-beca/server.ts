@@ -1,4 +1,5 @@
 import 'server-only'
 
-export { getScholarshipCatalogs } from '@/modules/solicitud-beca/infrastructure/server/scholarship-catalog.repository'
-export { validateScholarshipDocumentUpload } from '@/modules/solicitud-beca/infrastructure/validation/scholarship-document-upload'
+export { getScholarshipCatalogs } from './infrastructure/server/scholarship-catalog.repository'
+export { validateScholarshipRequest } from './infrastructure/server/scholarship-request-validation'
+export { validateScholarshipDocumentUpload } from './infrastructure/server/scholarship-document-upload'

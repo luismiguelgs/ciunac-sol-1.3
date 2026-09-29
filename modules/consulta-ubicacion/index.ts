@@ -1,1 +1,1 @@
-export { default as LocationConsultationView } from '@/modules/consulta-ubicacion/presentation/components/location-consultation-view'
+export { default as LocationConsultationView } from './components/location-consultation-view'

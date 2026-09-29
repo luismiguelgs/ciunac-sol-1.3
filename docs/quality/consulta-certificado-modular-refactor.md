@@ -1,5 +1,10 @@
 # Refactor Modular de Consulta de Certificado
 
+> Este documento conserva la trazabilidad del refactor original. La estructura
+> vigente fue simplificada por ADR-027 el 2026-08-24: se mantienen dominio,
+> contrato runtime y presentacion, pero se retiraron application, puerto y
+> repository de clase por no existir variantes u orquestacion real.
+
 ## Alcance
 
 La intervencion estabiliza exclusivamente `consulta-certificado` como feature de

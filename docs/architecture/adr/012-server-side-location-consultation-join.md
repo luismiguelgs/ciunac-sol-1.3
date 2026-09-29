@@ -2,7 +2,8 @@
 
 ## Estado
 
-Aceptado e implementado en Fase 2D.
+Aceptado e implementado en Fase 2D. El paso 6 pragmatico (2026-09-24) conserva
+el join y sustituye la clase por una funcion con dependencias inyectables.
 
 ## Contexto
 
@@ -23,7 +24,7 @@ domain.
 
 ```mermaid
 flowchart LR
-    Page["Server Component"] --> UseCase["GetLocationConsultationUseCase"]
+    Page["Server Component"] --> UseCase["loadLocationConsultation"]
     UseCase --> Requests["Solicitudes por documento"]
     UseCase --> Placements["Resultados por documento"]
     UseCase --> Exams["Examenes"]

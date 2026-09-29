@@ -51,9 +51,9 @@ el usuario solicitara una descarga.
   necesario para la primera pintura ni para hidratar el formulario.
 - Se encontraron 79 archivos con frontera `use client`; no se detectaron
   suscripciones al store completo.
-- Los cinco stores persistidos de catalogos usan selectores. Cuatro parecen
-  asociados solo a componentes legacy; `textos` sigue activo y se revalida al
-  montar `FinData`.
+- Los stores legacy de catalogos fueron retirados. Desde el 2026-08-31 `FinData`
+  recibe el texto de pago ya obtenido por el Server Component, eliminando el GET
+  cliente duplicado de `textos`.
 - Las escrituras estudiante, solicitud y correo son secuenciales por dependencia
   y no deben paralelizarse.
 - La consulta de ubicacion ya paraleliza contexto, notas, examenes y ciclos. La

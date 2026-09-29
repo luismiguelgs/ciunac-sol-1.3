@@ -19,7 +19,6 @@ import InputField from '@/components/forms/input.field'
 import { DatePicker } from '@/components/forms/date-picker.new'
 import MyAlert from '@/components/forms/myAlert'
 import UploadImage from '@/components/upload-image'
-import useTexts from '@/hooks/useTexts'
 import {
   finInfoSchema,
   IFinInfoSchema,
@@ -39,6 +38,7 @@ type FinDataProps = {
   documentNumber: string
   defaultValues?: Partial<IFinInfoSchema>
   paymentOptions: PaymentOption[]
+  paymentAttentionText?: string
 }
 
 type VoucherExampleProps = {
@@ -135,12 +135,9 @@ export default function FinData({
   documentNumber,
   defaultValues,
   paymentOptions,
+  paymentAttentionText,
 }: FinDataProps) {
-  const textos = useTexts({ revalidateOnMount: true })
-  const paymentAttentionText = textos
-    ?.find((item) => item.codigo === 'TEXTO_1_PAGO')
-    ?.contenido
-    ?.trim() || PAYMENT_ATTENTION_FALLBACK
+  const attentionText = paymentAttentionText?.trim() || PAYMENT_ATTENTION_FALLBACK
   const form = useForm<IFinInfoSchema>({
     resolver: zodResolver(finInfoSchema),
     defaultValues: {
@@ -201,7 +198,7 @@ export default function FinData({
               />
               <MyAlert
                 title="Atencion"
-                description={paymentAttentionText}
+                description={attentionText}
               />
             </div>
             <div className="flex flex-col gap-4">

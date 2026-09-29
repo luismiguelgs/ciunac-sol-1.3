@@ -1,9 +1,8 @@
-import { randomUUID } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { getOtpSessionSecret } from '@/modules/security/server/environment';
 import { verifyOtpCode } from '@/modules/security/server/otp';
 import { assertTrustedOrigin, parseJsonBody } from '@/modules/security/server/request-security';
-import { securityErrorResponse } from '@/modules/security/server/responses';
+import { handleSecurityRoute, securityErrorResponse } from '@/modules/security/server/responses';
 import { otpVerifySchema } from '@/modules/security/server/schemas';
 import {
   clearOtpChallenge,
@@ -16,9 +15,7 @@ import { SecurityError } from '@/modules/security/server/security-error';
 export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
-  const correlationId = randomUUID();
-
-  try {
+  return handleSecurityRoute('security.otp.verify.failed', async (correlationId) => {
     assertTrustedOrigin(request);
     const input = await parseJsonBody(request, otpVerifySchema);
     const challenge = readOtpChallenge(request);
@@ -47,7 +44,5 @@ export async function POST(request: NextRequest) {
     clearOtpChallenge(response);
     writeVerifiedSession(response, challenge.email, challenge.purpose);
     return response;
-  } catch (error) {
-    return securityErrorResponse('security.otp.verify.failed', correlationId, error);
-  }
+  });
 }

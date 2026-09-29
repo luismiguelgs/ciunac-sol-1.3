@@ -1,10 +1,10 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AppError } from '@/modules/shared/application/errors/app-error'
-import { resourceApiRepository } from '@/modules/shared/infrastructure/api/resource-api.repository'
-import { FindLocationStudentUseCase } from '@/modules/solicitud-ubicacion/application/use-cases/find-location-student.use-case'
-import { GetLocationCargoUseCase } from '@/modules/solicitud-ubicacion/application/use-cases/get-location-cargo.use-case'
-import { RegisterSolicitudUbicacionUseCase } from '@/modules/solicitud-ubicacion/application/use-cases/register-solicitud-ubicacion.use-case'
-import { solicitudUbicacionDomainSchema } from '@/modules/solicitud-ubicacion/application/validation/solicitud-ubicacion.schema'
+import * as api from '@/lib/api.service'
+import { findLocationStudent, getLocationCargo, registerLocation, checkDuplicateLocation } from '@/modules/solicitud-ubicacion/operations'
+import { retrySolicitudUbicacionNotification } from '@/modules/solicitud-ubicacion/client'
+import { mailApiRepository } from '@/modules/shared/infrastructure/api/mail-api.repository'
+import { solicitudUbicacionDomainSchema } from '@/modules/solicitud-ubicacion/schemas'
 import {
   getIdentityDocumentViolation,
   getStudyCertificateViolation,
@@ -13,38 +13,41 @@ import {
   LocationCatalogs,
   SolicitudUbicacion,
   isOfficialLocationPrice,
-} from '@/modules/solicitud-ubicacion/domain/solicitud-ubicacion'
-import { LocationCargoApiGateway } from '@/modules/solicitud-ubicacion/infrastructure/api/location-cargo-api.gateway'
-import { LocationStudentApiGateway } from '@/modules/solicitud-ubicacion/infrastructure/api/location-student-api.gateway'
-import { SolicitudUbicacionApiGateway } from '@/modules/solicitud-ubicacion/infrastructure/api/solicitud-ubicacion-api.gateway'
+} from '@/modules/solicitud-ubicacion/model'
+import { findCargoById, saveLocationStudent, createLocationRequest, saveLocationProfile, sendLocationNotification } from '@/modules/solicitud-ubicacion/infrastructure/location-client'
+import { locationBasicDataFormSchema } from '@/modules/solicitud-ubicacion/components/location-basic-data.schema'
 import {
   toLocationCargo,
   toLocationRequestDto,
   toLocationStudentRequestDto,
-} from '@/modules/solicitud-ubicacion/infrastructure/mappers/location-api.mapper'
+} from '@/modules/solicitud-ubicacion/infrastructure/location-api.mapper'
 import {
   locationCargoResponseSchema,
   locationCreateResponseSchema,
   locationDuplicateResponseArraySchema,
   locationRequestDtoSchema,
   locationStudentResponseSchema,
+  locationStudentRequestDtoSchema,
   locationTypeArraySchema,
-} from '@/modules/solicitud-ubicacion/infrastructure/validation/location-api.schemas'
+} from '@/modules/solicitud-ubicacion/infrastructure/location-api.schemas'
 import {
   validateIdentityDocumentUpload,
   validateLocationStudyCertificateUpload,
-} from '@/modules/solicitud-ubicacion/infrastructure/validation/location-document-upload'
+} from '@/modules/solicitud-ubicacion/infrastructure/server/location-document-upload'
 import {
   toLocationBasicData,
   toLocationPayment,
-} from '@/modules/solicitud-ubicacion/presentation/location-form.mapper'
-import useSolicitudUbicacionStore from '@/modules/solicitud-ubicacion/presentation/solicitud-ubicacion.store'
+  toCompleteLocationRequest,
+} from '@/modules/solicitud-ubicacion/components/location-form.mapper'
+import useSolicitudUbicacionStore from '@/modules/solicitud-ubicacion/store'
 
 const catalogs: LocationCatalogs = {
   requestType: { id: 7, name: 'Examen de ubicacion', price: 30 },
   languages: [{ id: 2, name: 'Ingles' }],
   texts: [{ code: 'TEXTO_NOMBREAN', content: 'Ano academico 2026' }],
 }
+
+afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals() })
 
 describe('location domain, forms and price', () => {
   it('accepts complete CIUNAC and non-CIUNAC requests', () => {
@@ -142,51 +145,60 @@ describe('location DTOs, external responses and gateways', () => {
   })
 
   it('uses PATCH for an existing student and rejects malformed confirmation', async () => {
-    const update = vi.spyOn(resourceApiRepository, 'update').mockResolvedValueOnce({ id: 'student-1' })
+    const update = vi.spyOn(api, 'apiFetch').mockResolvedValueOnce({ id: 'student-1' })
     const request = locationRequest()
     request.basicData.existingStudentId = 'student-1'
-    await expect(new LocationStudentApiGateway().save(request)).resolves.toBe('student-1')
-    expect(update).toHaveBeenCalledWith('estudiantes/student-1', expect.objectContaining({ imgDoc: '/identity.pdf' }))
+    await expect(saveLocationStudent(request)).resolves.toBe('student-1')
+    expect(update).toHaveBeenCalledWith('estudiantes/student-1', 'PATCH', expect.objectContaining({ imgDoc: '/identity.pdf' }))
     update.mockResolvedValueOnce({})
-    await expect(new LocationStudentApiGateway().save(request)).rejects.toMatchObject({ code: 'EXTERNAL_SERVICE' })
+    await expect(saveLocationStudent(request)).rejects.toMatchObject({ code: 'EXTERNAL_SERVICE' })
   })
 
   it('posts the location envelope and preserves a 409 validation error', async () => {
-    const create = vi.spyOn(resourceApiRepository, 'create').mockResolvedValueOnce({ id: 1002 })
-    await expect(new SolicitudUbicacionApiGateway().create(locationRequest(), 'student-1')).resolves.toBe('1002')
-    expect(create).toHaveBeenCalledWith('solicitudes', expect.objectContaining({
+    const create = vi.spyOn(api, 'apiFetch').mockResolvedValueOnce({ id: 1002 })
+    await expect(createLocationRequest(locationRequest(), 'student-1')).resolves.toBe('1002')
+    expect(create).toHaveBeenCalledWith('solicitudes', 'POST', expect.objectContaining({
       documentNumber: '12345678',
       request: expect.objectContaining({ pago: 30, tipoSolicitudId: 7 }),
     }))
     const conflict = new AppError({ code: 'VALIDATION', status: 409, message: 'Precio invalido' })
     create.mockRejectedValueOnce(conflict)
-    await expect(new SolicitudUbicacionApiGateway().create(locationRequest(), 'student-1')).rejects.toBe(conflict)
+    await expect(createLocationRequest(locationRequest(), 'student-1')).rejects.toBe(conflict)
   })
 
   it('maps cargo data and distinguishes empty from malformed responses', async () => {
     const dto = locationCargoResponseSchema.parse(cargoResponse())
     expect(toLocationCargo(dto)).toMatchObject({ id: 1002, amount: 30, languageName: 'Ingles' })
-    const getOptional = vi.spyOn(resourceApiRepository, 'getOptional').mockResolvedValueOnce(null)
-    await expect(new LocationCargoApiGateway().findById(1002)).resolves.toBeNull()
+    const getOptional = vi.spyOn(api, 'apiFetchOptional').mockResolvedValueOnce(null)
+    await expect(findCargoById(1002)).resolves.toBeNull()
     getOptional.mockResolvedValueOnce({ id: 1002 })
-    await expect(new LocationCargoApiGateway().findById(1002)).rejects.toMatchObject({ code: 'EXTERNAL_SERVICE' })
+    await expect(findCargoById(1002)).rejects.toMatchObject({ code: 'EXTERNAL_SERVICE' })
   })
 
   it('validates student and cargo reads before invoking their ports', async () => {
     const findByDocument = vi.fn().mockResolvedValue(null)
-    const findStudent = new FindLocationStudentUseCase({ findByDocument })
-    await expect(findStudent.execute(' 12345678 ')).resolves.toBeNull()
+    await expect(findLocationStudent(' 12345678 ', findByDocument)).resolves.toBeNull()
     expect(findByDocument).toHaveBeenCalledWith('12345678')
-    await expect(findStudent.execute('bad')).rejects.toMatchObject({ code: 'VALIDATION' })
+    await expect(findLocationStudent('bad', findByDocument)).rejects.toMatchObject({ code: 'VALIDATION' })
+    expect(findByDocument).toHaveBeenCalledTimes(1)
 
     const findById = vi.fn().mockResolvedValue(null)
-    const getCargo = new GetLocationCargoUseCase({ findById })
-    await expect(getCargo.execute(1002)).resolves.toBeNull()
-    await expect(getCargo.execute(0)).rejects.toMatchObject({ code: 'VALIDATION' })
+    await expect(getLocationCargo(1002, findById)).resolves.toBeNull()
+    await expect(getLocationCargo(0, findById)).rejects.toMatchObject({ code: 'VALIDATION' })
+    expect(findById).toHaveBeenCalledTimes(1)
   })
 })
 
 describe('location file policies', () => {
+  it.each([
+    ['identity.PDF', 'application/pdf', null],
+    ['identity.JPEG', 'image/jpeg', null],
+    ['identity', 'application/pdf', 'INVALID_EXTENSION'],
+    ['identity.pdf.exe', 'application/pdf', 'INVALID_EXTENSION'],
+  ] as const)('reads the final extension of %s without interpreting it as an import', (name, mimeType, violation) => {
+    expect(getIdentityDocumentViolation({ name, mimeType, size: 1024 })).toBe(violation)
+  })
+
   it.each([
     ['identity.pdf', 'application/pdf', [0x25, 0x50, 0x44, 0x46, 0x2d]],
     ['identity.png', 'image/png', [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]],
@@ -259,18 +271,97 @@ describe('location workflow and registration', () => {
     const sendSolicitudCreada = vi.fn()
       .mockRejectedValueOnce(new AppError({ code: 'EXTERNAL_SERVICE', message: 'Correo no disponible' }))
       .mockResolvedValueOnce('receipt-1')
-    const useCase = new RegisterSolicitudUbicacionUseCase({
-      studentGateway: { save },
-      solicitudGateway: { create, searchByDocument: vi.fn() },
-      notificationGateway: { sendSolicitudCreada },
-    })
-    await expect(useCase.execute({ solicitud: locationRequest() })).resolves.toMatchObject({
+    vi.spyOn(mailApiRepository, 'send').mockImplementation(({ reference }) => sendSolicitudCreada(reference))
+    await expect(registerLocation(locationRequest(), {
+      saveStudent: save, createRequest: create, sendNotification: sendLocationNotification,
+    })).resolves.toMatchObject({
       status: 'saved_notification_failed', requestId: 'request-1',
     })
-    await expect(useCase.retryNotification('request-1')).resolves.toBe('receipt-1')
+    await expect(retrySolicitudUbicacionNotification('request-1')).resolves.toBe('receipt-1')
     expect(save).toHaveBeenCalledTimes(1)
     expect(create).toHaveBeenCalledTimes(1)
     expect(sendSolicitudCreada).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe('location simplification regressions', () => {
+  it.each([
+    ['DNI', 'A2345678', false], ['DNI', '12345678', true],
+    ['DNI', '123456789', false], ['CE', 'AB1234567', true], ['PASAPORTE', 'P12345678', true],
+  ] as const)('validates %s %s at all input boundaries', (documentType, documentNumber, valid) => {
+    const request = locationRequest()
+    request.basicData = { ...request.basicData, documentType, documentNumber }
+    expect(solicitudUbicacionDomainSchema.safeParse(request).success).toBe(valid)
+    expect(locationStudentRequestDtoSchema.safeParse(toLocationStudentRequestDto(request)).success).toBe(valid)
+    expect(locationBasicDataFormSchema.safeParse({ ...basicForm(), tipo_documento: documentType, dni: documentNumber }).success).toBe(valid)
+  })
+
+  it('rejects a manipulated non-CIUNAC level in the request DTO', () => {
+    const dto = toLocationRequestDto(locationRequest(), 'student-1')
+    expect(locationRequestDtoSchema.safeParse({ ...dto, nivelId: 2 }).success).toBe(false)
+  })
+
+  it('uses the pending/type/language rule when checking duplicates', async () => {
+    const find = vi.fn().mockResolvedValue([
+      { statusId: 2, requestTypeId: 7, languageId: 2 },
+      { statusId: 1, requestTypeId: 1, languageId: 2 },
+      { statusId: 1, requestTypeId: 7, languageId: 3 },
+    ])
+    const input = { documentNumber: '12345678', languageId: 2 }
+    await expect(checkDuplicateLocation(input, find)).resolves.toBe(false)
+    find.mockResolvedValueOnce([{ statusId: 1, requestTypeId: 7, languageId: 2 }])
+    await expect(checkDuplicateLocation(input, find)).resolves.toBe(true)
+  })
+
+  it('builds a complete draft without revalidation and preserves document ownership on edits', () => {
+    const store = useSolicitudUbicacionStore.getState()
+    const request = locationRequest({ ciunac: true })
+    store.initialize(request.email, true)
+    expect(toCompleteLocationRequest(useSolicitudUbicacionStore.getState().workflow.draft)).toBeNull()
+    store.completeBasicData(request.basicData)
+    store.completePayment(request.payment)
+    expect(toCompleteLocationRequest(useSolicitudUbicacionStore.getState().workflow.draft)).toBeNull()
+    store.completeStudyCertificate(request.studyCertificateUrl!)
+    expect(toCompleteLocationRequest(useSolicitudUbicacionStore.getState().workflow.draft)).toEqual(request)
+    store.completeBasicData({ ...request.basicData, documentType: 'CE' })
+    expect(useSolicitudUbicacionStore.getState().workflow.draft).toMatchObject({ payment: null, studyCertificateUrl: null })
+  })
+
+  it('validates before persistence and completes student, request and mail in order', async () => {
+    const calls: string[] = []
+    const dependencies = {
+      saveStudent: vi.fn(async () => { calls.push('student'); return 'student-1' }),
+      createRequest: vi.fn(async () => { calls.push('request'); return '1002' }),
+      sendNotification: vi.fn(async () => { calls.push('mail'); return 'receipt-1' }),
+    }
+    await expect(registerLocation({ ...locationRequest(), email: '' }, dependencies)).rejects.toMatchObject({ code: 'VALIDATION' })
+    expect(calls).toEqual([])
+    await expect(registerLocation(locationRequest(), dependencies)).resolves.toEqual({
+      status: 'completed', requestId: '1002', notificationReceiptId: 'receipt-1',
+    })
+    expect(calls).toEqual(['student', 'request', 'mail'])
+  })
+
+  it('preserves mail errors and never recreates a request to retry notification', async () => {
+    const error = new AppError({ code: 'NETWORK', status: 503, message: 'Sin conexion', correlationId: 'test-correlation', retryable: true })
+    vi.spyOn(mailApiRepository, 'send').mockRejectedValueOnce(error)
+    await expect(sendLocationNotification('1002')).rejects.toBe(error)
+  })
+
+  it.each([[401, 'AUTHENTICATION'], [403, 'AUTHORIZATION'], [400, 'VALIDATION'], [503, 'EXTERNAL_SERVICE']] as const)(
+    'preserves the category of profile HTTP %s errors', async (status, code) => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
+        error: { code: 'SERVICE_UNAVAILABLE', message: 'Mensaje seguro' }, correlationId: 'profile-test',
+      }), { status })))
+      await expect(saveLocationProfile(false)).rejects.toMatchObject({ code, status, correlationId: 'profile-test', retryable: status >= 500 })
+    },
+  )
+
+  it('distinguishes a network failure and a successful profile command', async () => {
+    const fetcher = vi.fn().mockRejectedValueOnce(new TypeError('network')).mockResolvedValueOnce(new Response(null, { status: 204 }))
+    vi.stubGlobal('fetch', fetcher)
+    await expect(saveLocationProfile(false)).rejects.toMatchObject({ code: 'NETWORK', retryable: true })
+    await expect(saveLocationProfile(true)).resolves.toBeUndefined()
   })
 })
 

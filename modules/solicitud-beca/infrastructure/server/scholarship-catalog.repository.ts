@@ -3,15 +3,15 @@ import 'server-only'
 import {
   hasConsistentScholarshipCatalogs,
   ScholarshipCatalogs,
-} from '@/modules/solicitud-beca/domain/solicitud-beca'
+} from '../../model'
 import {
   toScholarshipFaculty,
   toScholarshipSchool,
-} from '@/modules/solicitud-beca/infrastructure/mappers/scholarship-api.mapper'
+} from '../scholarship-api.mapper'
 import {
   scholarshipFacultyArraySchema,
   scholarshipSchoolArraySchema,
-} from '@/modules/solicitud-beca/infrastructure/validation/scholarship-api.schemas'
+} from '../scholarship-api.schemas'
 import { ciunacRequest } from '@/modules/security/server/ciunac-client'
 import { AppError } from '@/modules/shared/application/errors/app-error'
 import { parseExternalResponse } from '@/modules/shared/infrastructure/validation/external-response'

@@ -12,7 +12,7 @@ export function assertTrustedOrigin(request: NextRequest): void {
   }
 }
 
-export async function parseJsonBody<T>(request: NextRequest, schema: z.ZodType<T>): Promise<T> {
+export async function readJsonBody(request: NextRequest): Promise<unknown> {
   const contentType = request.headers.get('content-type') ?? '';
   const contentLength = Number(request.headers.get('content-length') ?? '0');
 
@@ -24,12 +24,15 @@ export async function parseJsonBody<T>(request: NextRequest, schema: z.ZodType<T
     throw new SecurityError('INVALID_REQUEST', 413, 'Request payload is too large');
   }
 
-  let payload: unknown;
   try {
-    payload = await request.json();
+    return await request.json();
   } catch {
     throw new SecurityError('INVALID_REQUEST', 400, 'Request body is not valid JSON');
   }
+}
+
+export async function parseJsonBody<T>(request: NextRequest, schema: z.ZodType<T>): Promise<T> {
+  const payload = await readJsonBody(request);
 
   const parsed = schema.safeParse(payload);
   if (!parsed.success) {

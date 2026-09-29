@@ -1,4 +1,4 @@
-export { default as LocationCargoDownload } from '@/modules/solicitud-ubicacion/presentation/components/descarga-cargo'
-export { default as LocationFinalNotices } from '@/modules/solicitud-ubicacion/presentation/components/final-notices'
-export { default as LocationScheduleVerification } from '@/modules/solicitud-ubicacion/presentation/components/verify-schedules'
-export { default as SolicitudUbicacionProcess } from '@/modules/solicitud-ubicacion/presentation/components/solicitud-ubicacion-process'
+export { default as LocationCargoDownload } from './components/descarga-cargo'
+export { default as LocationFinalNotices } from './components/final-notices'
+export { default as LocationScheduleVerification } from './components/verify-schedules'
+export { default as SolicitudUbicacionProcess } from './components/solicitud-ubicacion-process'

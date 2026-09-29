@@ -1,24 +1,24 @@
 import { describe, expect, it, vi } from 'vitest'
-import { GetLocationConsultationUseCase } from '@/modules/consulta-ubicacion/application/get-location-consultation.use-case'
-import type { LocationContextPort } from '@/modules/consulta-ubicacion/application/ports/location-consultation.port'
+import { loadLocationConsultation } from '@/modules/consulta-ubicacion/operations'
 import {
   canGenerateLocationCertificate,
+  type LocationContext,
   joinLocationExamResults,
   type LocationPlacementRecord,
   type LocationRequest,
   selectLatestLocationRequest,
-} from '@/modules/consulta-ubicacion/domain/location-consultation'
+} from '@/modules/consulta-ubicacion/model'
 import {
   toLocationCycle,
   toLocationExam,
   toLocationPlacementRecord,
-} from '@/modules/consulta-ubicacion/infrastructure/mappers/location-consultation.mapper'
+} from '@/modules/consulta-ubicacion/infrastructure/location-consultation.mapper'
 import {
   locationCycleArrayResponseSchema,
   locationExamArrayResponseSchema,
   locationPlacementArrayResponseSchema,
-} from '@/modules/consulta-ubicacion/infrastructure/validation/location-consultation.schemas'
-import { presentLocationConsultation } from '@/modules/consulta-ubicacion/presentation/location-consultation.presenter'
+} from '@/modules/consulta-ubicacion/infrastructure/location-consultation.schemas'
+import { presentLocationConsultation } from '@/modules/consulta-ubicacion/components/location-consultation.presenter'
 
 describe('location consultation runtime contracts', () => {
   it('validates and maps exams, cycles and placement records', () => {
@@ -101,7 +101,7 @@ describe('location consultation join', () => {
 
 describe('get location consultation use case', () => {
   it('returns joined results, cargo and the institutional year', async () => {
-    const result = await createUseCase().execute('12345678')
+    const result = await createQuery()('12345678')
 
     expect(result).toMatchObject({
       documentNumber: '12345678',
@@ -118,7 +118,7 @@ describe('get location consultation use case', () => {
   })
 
   it('keeps results when auxiliary texts are unavailable and disables the PDF', async () => {
-    const result = await createUseCase({ textFailure: true }).execute('12345678')
+    const result = await createQuery({ textFailure: true })('12345678')
 
     expect(result).toMatchObject({ yearName: null, textStatus: 'unavailable' })
     expect(result?.results).toHaveLength(1)
@@ -126,27 +126,27 @@ describe('get location consultation use case', () => {
   })
 
   it('returns not found when no owned location request exists', async () => {
-    const result = createUseCase({
+    const result = createQuery({
       requests: [request({
         student: { ...request().student, documentNumber: '87654321' },
       })],
-    }).execute('12345678')
+    })('12345678')
 
     await expect(result).resolves.toBeNull()
   })
 
   it('rejects an invalid document before calling dependencies', async () => {
-    const load = vi.fn<LocationContextPort['load']>()
-    const useCase = createUseCase({ context: { load } })
+    const load = vi.fn<(documentNumber: string) => Promise<LocationContext>>()
+    const query = createQuery({ loadContext: load })
 
-    await expect(useCase.execute('invalid')).rejects.toMatchObject({ code: 'VALIDATION' })
+    await expect(query('invalid')).rejects.toMatchObject({ code: 'VALIDATION' })
     expect(load).not.toHaveBeenCalled()
   })
 })
 
 describe('location consultation presenter', () => {
   it('builds a certificate and an A4 cargo model from the active request', async () => {
-    const consultation = await createUseCase().execute('12345678')
+    const consultation = await createQuery()('12345678')
     if (!consultation) throw new Error('The test fixture requires a consultation')
 
     const viewModel = presentLocationConsultation(consultation)
@@ -170,7 +170,7 @@ describe('location consultation presenter', () => {
   })
 
   it('reports an unavailable cargo when institutional texts are incomplete', async () => {
-    const consultation = await createUseCase({ textFailure: true }).execute('12345678')
+    const consultation = await createQuery({ textFailure: true })('12345678')
     if (!consultation) throw new Error('The test fixture requires a consultation')
 
     expect(presentLocationConsultation(consultation).cargo.status).toBe('unavailable')
@@ -180,23 +180,21 @@ describe('location consultation presenter', () => {
 type CreateUseCaseOptions = {
   requests?: LocationRequest[]
   textFailure?: boolean
-  context?: LocationContextPort
+  loadContext?: (documentNumber: string) => Promise<LocationContext>
 }
 
-function createUseCase(options: CreateUseCaseOptions = {}) {
-  const context: LocationContextPort = options.context ?? {
-    load: vi.fn().mockResolvedValue({
+function createQuery(options: CreateUseCaseOptions = {}) {
+  const loadContext = options.loadContext ?? vi.fn().mockResolvedValue({
       requests: options.requests ?? [request()],
       texts: options.textFailure ? [] : cargoTexts(),
       textStatus: options.textFailure ? 'unavailable' : 'available',
-    }),
-  }
+  })
 
-  return new GetLocationConsultationUseCase({
-    context,
-    placements: { findByDocument: vi.fn().mockResolvedValue([placementRecord()]) },
-    exams: { list: vi.fn().mockResolvedValue([{ id: 501, occurredAt: '2026-07-20T15:00:00.000Z' }]) },
-    cycles: { list: vi.fn().mockResolvedValue([{ id: 2, name: 'BÁSICO 2' }]) },
+  return (documentNumber: string) => loadLocationConsultation(documentNumber, {
+    loadContext,
+    findPlacements: vi.fn().mockResolvedValue([placementRecord()]),
+    listExams: vi.fn().mockResolvedValue([{ id: 501, occurredAt: '2026-07-20T15:00:00.000Z' }]),
+    listCycles: vi.fn().mockResolvedValue([{ id: 2, name: 'BÁSICO 2' }]),
   })
 }
 

@@ -2,11 +2,11 @@
 
 ## Estado
 
-Aceptado e implementado en Fase 2C.
+Reemplazado parcialmente por ADR-027.
 
-La autorizacion por sesion y documento fue reemplazada posteriormente por
-ADR-017. El modelo tipado, la validacion runtime y las capas definidas aqui se
-mantienen vigentes.
+La autorizacion por sesion y documento fue reemplazada por ADR-017. El modelo
+tipado y la validacion runtime se mantienen, pero la estructura obligatoria de
+cuatro capas fue simplificada posteriormente por ADR-027.
 
 ## Contexto
 

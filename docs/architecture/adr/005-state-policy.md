@@ -1,7 +1,7 @@
 # ADR-005 Politica de estado frontend
 
 ## Estado
-Aceptado. Actualizado el 2026-08-17.
+Aceptado. Actualizado el 2026-08-31.
 
 ## Contexto
 El estado se mezclaba entre formularios, Zustand, cache de catalogos y estado visual.
@@ -17,5 +17,6 @@ Clasificar estado en:
 ## Consecuencias
 - Los stores de flujo exponen `reset`.
 - Los stores legacy de catalogos y `useCatalogStore` fueron retirados al quedar sin consumidores.
-- `useTextsStore` permanece como cache compartido con consumidores activos.
+- El cache cliente de textos fue retirado: los catalogos cargados por Server
+  Components se inyectan a los pasos que los necesitan.
 - Un arreglo vacio debe distinguirse de un recurso aun no cargado cuando se agregue un cache nuevo.

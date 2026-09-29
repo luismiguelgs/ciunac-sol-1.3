@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { logServerError } from '@/modules/security/server/logger';
 import { SecurityError, SecurityErrorCode } from '@/modules/security/server/security-error';
@@ -41,4 +42,16 @@ export function securityErrorResponse(event: string, correlationId: string, erro
     },
     { status: securityError.status },
   );
+}
+
+export async function handleSecurityRoute(
+  event: string,
+  action: (correlationId: string) => Promise<NextResponse> | NextResponse,
+): Promise<NextResponse> {
+  const correlationId = randomUUID();
+  try {
+    return await action(correlationId);
+  } catch (error) {
+    return securityErrorResponse(event, correlationId, error);
+  }
 }

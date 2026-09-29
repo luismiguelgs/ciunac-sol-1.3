@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyCaptchaToken } from '@/modules/security/server/captcha';
 import { ciunacRequest } from '@/modules/security/server/ciunac-client';
@@ -9,16 +8,14 @@ import {
   OTP_RESEND_DELAY_SECONDS,
 } from '@/modules/security/server/otp';
 import { assertTrustedOrigin, parseJsonBody } from '@/modules/security/server/request-security';
-import { securityErrorResponse } from '@/modules/security/server/responses';
+import { handleSecurityRoute } from '@/modules/security/server/responses';
 import { otpRequestSchema } from '@/modules/security/server/schemas';
 import { readOtpChallenge, writeOtpChallenge } from '@/modules/security/server/session';
 
 export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
-  const correlationId = randomUUID();
-
-  try {
+  return handleSecurityRoute('security.otp.request.failed', async () => {
     assertTrustedOrigin(request);
     const input = await parseJsonBody(request, otpRequestSchema);
     const remoteIp = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim();
@@ -47,7 +44,5 @@ export async function POST(request: NextRequest) {
     }, { status: 202 });
     writeOtpChallenge(response, challenge);
     return response;
-  } catch (error) {
-    return securityErrorResponse('security.otp.request.failed', correlationId, error);
-  }
+  });
 }

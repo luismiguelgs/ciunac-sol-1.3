@@ -1,5 +1,22 @@
 # Auditoria de Dependencias
 
+## Estado vigente al 2026-09-28
+
+La auditoria ejecutada durante el paso 8 termina con exit 1: cuatro paquetes
+afectados en produccion, tres high y uno critical. El gate identifica:
+
+- Nuevos: next:1193676:critical, next:1193732:critical y sharp:1193725:high.
+- Excepciones vencidas el 2026-09-17: nanoid:1139427:high,
+  postcss:1124252:high, postcss:1139510:high y sharp:1124066:high.
+
+El conteo de paquetes no equivale al de advisories: un paquete puede contener
+varios avisos. El resultado completo se genera en test-results/dependency-audit.json.
+No se actualizaron dependencias ni se renovaron baselines para aprobar el cierre.
+Esta auditoria bloquea el gate de calidad y requiere una correccion de seguridad
+aislada. Pruebas y build correctos no autorizan desplegar con estos hallazgos.
+
+La evidencia de agosto que sigue es historica, no el estado actual.
+
 ## Estado al 2026-08-17
 
 - `npm ls --depth=0`: sin dependencias extraneous o faltantes.

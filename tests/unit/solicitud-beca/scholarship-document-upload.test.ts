@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { MAX_SCHOLARSHIP_DOCUMENT_BYTES } from '@/modules/solicitud-beca/domain/scholarship-document-policy'
-import { validateScholarshipDocumentUpload } from '@/modules/solicitud-beca/infrastructure/validation/scholarship-document-upload'
+import { validateScholarshipDocumentUpload } from '@/modules/solicitud-beca/infrastructure/server/scholarship-document-upload'
 
 describe('scholarship document upload validation', () => {
   it('accepts a PDF with matching extension, MIME and signature', async () => {

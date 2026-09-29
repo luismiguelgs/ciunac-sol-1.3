@@ -1,5 +1,8 @@
 # Fase 2F: Tipado y Confiabilidad de Solicitud de Certificados
 
+Las primeras secciones conservan el historial de la fase tipada y modular.
+La estructura vigente se describe en [Piloto pragmatico](#piloto-pragmatico-paso-3).
+
 ## Alcance
 
 La fase se limita al registro de certificados, catalogos, estudiante, precio,
@@ -106,3 +109,85 @@ persiste y queda como deuda transversal del runner.
 El primer build modular no pudo descargar Geist por la restriccion de red del
 sandbox. La repeticion autorizada del mismo comando finalizo correctamente sin
 alterar fuentes, configuracion o dependencias.
+
+## Piloto Pragmatico: Paso 3
+
+Fecha: 2026-09-22. Aplicacion 1.6.5 y Next.js 16.2.12, sin actualizaciones.
+Se preservo el worktree anterior. No se migraron constancias, alumno nuevo,
+ubicacion, becas, consultas ni capacidades shared.
+
+| Aspecto | Antes del piloto | Despues |
+| --- | --- | --- |
+| Archivos del feature | 31 | 22 |
+| Clases delegadoras | 3 casos de uso y 4 gateways | 0; funciones con dependencias inyectables |
+| Contratos triviales | Command y dos archivos de ports | Entrada publica conservada, dependencias junto a la operacion |
+| Integracion navegador | 4 gateways | `infrastructure/certificate-client.ts` |
+| DTO de solicitud | Tipo manual y schema duplicados | Inferido desde Zod; mismo payload |
+| Confirmacion | Parse completo en cada render | Guardas tipadas; validacion completa al registrar |
+| Correo fallido | Reclasificacion a EXTERNAL_SERVICE | Conserva codigo, status, correlationId y retryable |
+| Escrituras en flujo exitoso | Un upload, un estudiante, una solicitud | Mismos endpoints, cantidades y orden |
+| Reintento de correo | No repite persistencia | Conservado y reforzado con pruebas |
+
+```text
+modules/solicitud-certificado/
+  index.ts / client.ts / server.ts
+  model.ts / schemas.ts / operations.ts / store.ts
+  components/                    # UI, hook, schema de formulario y mapper
+  infrastructure/
+    certificate-client.ts
+    certificate-api.mapper.ts
+    certificate-api.schemas.ts
+    server/
+      certificate-catalog.repository.ts
+      certificate-price-validation.ts
+```
+
+La orquestacion sigue siendo validar -> guardar estudiante -> crear solicitud ->
+notificar. Un correo fallido devuelve `saved_notification_failed` con el ID
+persistido. Lecturas mantienen ausencia diferenciada de error; escrituras sin ID
+detienen correo. Precio, OTP/CAPTCHA, sesion, voucher y PDF A4 diferido no cambian.
+
+Se simplifico primero el comportamiento interno y se ejecuto lint, type-check,
+373 unitarias, 38 integraciones, Knip y los 15 E2E de certificados (58.1 s, exit 0).
+Solo despues se movieron los archivos y ajustaron sus imports relativos.
+
+Cambios fuera del feature: pruebas, documentacion y reconocimiento del archivo
+raiz `schemas.ts` por ESLint como validacion de aplicacion, con cuatro pruebas
+adicionales. No se cambia App Router, BFF, shared, dependencias, diseno ni contratos.
+
+| Verificacion final | Resultado |
+| --- | --- |
+| Lint y type-check | Correctos, tambien despues del build |
+| Unitarias | 377/377 despues de mover archivos; 52 del feature y 67 de arquitectura |
+| Integracion | 48/48, con 10 casos nuevos de limites y errores de certificados |
+| Regresion E2E, smoke y accesibilidad | 110/110, incluidos 15 de certificados, 34 smoke y 9 axe; exit 0 |
+| Build | Correcto con red para Google Fonts, 22 paginas generadas |
+| Knip | Correcto |
+| Bundle-check y env-check | Correctos; sin secretos configurados en `.next/static`, entorno real sin editar |
+| Diff check | Correcto |
+
+El primer lote completo agoto la espera de navegacion tras OTP en el smoke de
+becas; no fallo ningun escenario de certificados. El escenario de beca paso
+aislado (exit 0) sin cambios en codigo ni tests. Se conserva este antecedente
+como intermitencia observada, sin atribuirle una causa no demostrada. Las
+repeticiones usan servidores de prueba independientes para evitar el teardown
+conocido de Playwright en Windows y no acceden al backend productivo.
+
+La repeticion completa final termino en 292.7 segundos con 110 correctos, cero
+fallos, omisiones o flaky y sin errores globales. Se ejecuto la suite completa
+mediante `node node_modules/@playwright/test/cli.js test --reporter=json`, sin
+filtros ni cambios en beca. Reporte local:
+`%TEMP%/ciunac-step3-e2e-final.json`. El primer reporte se conserva separado en
+`%TEMP%/ciunac-step3-e2e.json`; no se presenta el intento fallido como aprobado.
+
+El primer build fallo al descargar Geist/Geist Mono con red restringida. El mismo
+comando con red paso; no se cambio la configuracion de fuentes para ocultarlo.
+
+Riesgos no resueltos por este refactor: propiedad backend de URLs/voucher,
+idempotencia del correo, replay OTP sin persistencia, dependencias con baseline de
+auditoria vencida y fuentes remotas durante build. La busqueda de estudiante en
+certificados aun puede recibir una respuesta tardia al editar el documento; esa
+correccion funcional debe aislarse y no se atribuye a esta simplificacion.
+
+El paso 4 queda pendiente. No se aplica este patron automaticamente al resto del
+repositorio ni se convierte la estructura del piloto en plantilla obligatoria.

@@ -1,3 +1,3 @@
-export { default as ConstanciaCargoDownload } from '@/modules/solicitud-constancia/presentation/components/descarga-cargo'
-export { default as ConstanciaFinalNotices } from '@/modules/solicitud-constancia/presentation/components/final-notices'
-export { default as SolicitudConstanciaProcess } from '@/modules/solicitud-constancia/presentation/components/solicitud-constancia-process'
+export { default as ConstanciaCargoDownload } from './components/descarga-cargo'
+export { default as ConstanciaFinalNotices } from './components/final-notices'
+export { default as SolicitudConstanciaProcess } from './components/solicitud-constancia-process'

@@ -1,14 +1,13 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import {
-  GetCertificateDetailUseCase,
   normalizeCertificateLookupId,
-} from '@/modules/consulta-certificado/application/get-certificate-detail.use-case'
+  parseCertificateDetailResponse,
+  certificateDetailResponseSchema,
+} from '@/modules/consulta-certificado/infrastructure/certificate-detail.contract'
 import {
   CertificateDetail,
   sortCertificateNotes,
 } from '@/modules/consulta-certificado/domain/certificate-detail'
-import { toCertificateDetail } from '@/modules/consulta-certificado/infrastructure/mappers/certificate-detail.mapper'
-import { certificateDetailResponseSchema } from '@/modules/consulta-certificado/infrastructure/validation/certificate-detail.schemas'
 import {
   formatCertificateDate,
   formatCertificateLevel,
@@ -17,25 +16,19 @@ import {
 
 describe('certificate detail runtime contract', () => {
   it('validates and maps a complete certificate', () => {
-    const dto = certificateDetailResponseSchema.parse(certificateResponse())
-    expect(toCertificateDetail(dto)).toMatchObject({
-      id: 'CERT-1',
-      type: 'VIRTUAL',
+    expect(parseCertificateDetailResponse(certificateResponse(), 'CERT-1')).toMatchObject({
       studentName: 'MARIA PEREZ',
       language: 'INGLES',
       level: 'BASICO',
       hours: 180,
-      requestId: 1001,
       registrationNumber: 'REG-001',
       delivery: { status: 'pending', acceptedAt: null },
     })
-    expect(toCertificateDetail(dto)).not.toHaveProperty('documentNumber')
   })
 
   it.each([
     ['missing student', { estudiante: '' }],
     ['invalid issue date', { fechaEmision: 'not-a-date' }],
-    ['invalid request id', { solicitudId: 0 }],
     ['invalid notes', { notas: [{ ciclo: '', nota: 90 }] }],
     ['accepted without date', { aceptado: true, fechaAceptacion: '' }],
   ])('rejects %s', (_label, override) => {
@@ -48,15 +41,31 @@ describe('certificate detail runtime contract', () => {
   })
 
   it('normalizes nullable legacy delivery data without exposing the document number', () => {
-    const dto = certificateDetailResponseSchema.parse({
+    const detail = parseCertificateDetailResponse({
       ...certificateResponse(),
       numeroDocumento: null,
       aceptado: null,
-    })
-    const detail = toCertificateDetail(dto)
+    }, 'CERT-1')
 
     expect(detail.delivery).toEqual({ status: 'pending', acceptedAt: null })
     expect(detail).not.toHaveProperty('documentNumber')
+  })
+
+  it('strips unknown external fields before they reach the public model', () => {
+    const dto = certificateDetailResponseSchema.parse({
+      ...certificateResponse(),
+      numeroDocumento: '12345678',
+      internalSecret: 'not-public',
+    })
+
+    expect(dto).not.toHaveProperty('numeroDocumento')
+    expect(dto).not.toHaveProperty('internalSecret')
+  })
+
+  it('rejects a response that belongs to another certificate id', () => {
+    expect(() => parseCertificateDetailResponse(certificateResponse(), 'CERT-OTHER')).toThrow(
+      /no corresponde a la consulta/i,
+    )
   })
 })
 
@@ -103,6 +112,14 @@ describe('certificate detail presenter', () => {
     })
   })
 
+  it('uses the explicit language instead of deriving it from a cycle label', () => {
+    expect(presentCertificateDetail({
+      ...certificate(),
+      language: 'FRANCES',
+      notes: [{ cycle: 'INGLES 1', modality: 'REGULAR', grade: 90 }],
+    }).courseLanguage).toBe('FRANCES')
+  })
+
   it('returns a safe label for an invalid date', () => {
     expect(formatCertificateDate('not-a-date')).toBe('No disponible')
   })
@@ -114,30 +131,6 @@ describe('certificate detail presenter', () => {
     ['AVANZADO 1', 'AVANZADO'],
   ])('shows %s as the level category %s', (level, expected) => {
     expect(formatCertificateLevel(level)).toBe(expected)
-  })
-})
-
-describe('get certificate detail use case', () => {
-  it('returns a sorted certificate for a public QR lookup', async () => {
-    const findById = vi.fn().mockResolvedValue(certificate())
-    const useCase = new GetCertificateDetailUseCase({ findById })
-
-    const result = await useCase.execute({
-      certificateId: 'CERT-1',
-    })
-
-    expect(findById).toHaveBeenCalledWith('CERT-1')
-    expect(result?.notes.map((note) => note.cycle)).toEqual(['INGLES 1', 'INGLES 2', 'CURSO ESPECIAL'])
-  })
-
-  it('keeps an absent certificate as an explicit empty result', async () => {
-    const useCase = new GetCertificateDetailUseCase({
-      findById: vi.fn().mockResolvedValue(null),
-    })
-
-    await expect(useCase.execute({
-      certificateId: 'CERT-404',
-    })).resolves.toBeNull()
   })
 })
 
@@ -163,21 +156,18 @@ function certificateResponse(override: Record<string, unknown> = {}) {
 
 function certificate(): CertificateDetail {
   return {
-    id: 'CERT-1',
-    type: 'VIRTUAL',
     studentName: 'MARIA PEREZ',
     language: 'INGLES',
     level: 'BASICO',
     hours: 180,
-    requestId: 1001,
     issuedAt: '2026-07-15T00:00:00.000Z',
     registrationNumber: 'REG-001',
     completedAt: '2026-06-30T00:00:00.000Z',
     delivery: { status: 'pending', acceptedAt: null },
     notes: [
-      { cycle: 'INGLES 2', period: '2025-2', modality: 'REGULAR', grade: 95 },
-      { cycle: 'CURSO ESPECIAL', period: '2025-3', modality: 'REGULAR', grade: 94 },
-      { cycle: 'INGLES 1', period: '2025-1', modality: 'REGULAR', grade: 90 },
+      { cycle: 'INGLES 2', modality: 'REGULAR', grade: 95 },
+      { cycle: 'CURSO ESPECIAL', modality: 'REGULAR', grade: 94 },
+      { cycle: 'INGLES 1', modality: 'REGULAR', grade: 90 },
     ],
   }
 }

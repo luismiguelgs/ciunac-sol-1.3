@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { getSolicitudConsultation } from '@/modules/consulta-solicitud/server'
-import type { SolicitudCertificado } from '@/modules/solicitud-certificado/domain/solicitud-certificado'
+import type { SolicitudCertificado } from '@/modules/solicitud-certificado/model'
 import {
   registerSolicitudCertificado,
   retrySolicitudCertificadoNotification,
@@ -19,6 +19,8 @@ describe('certificate registration pipeline', () => {
     const requests: Array<{ url: string; body: unknown }> = []
     vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockImplementation(async (input, init) => {
       const url = String(input)
+      expect(init?.method).toBe('POST')
+      expect(new Headers(init?.headers).has('x-api-key')).toBe(false)
       requests.push({
         url,
         body: typeof init?.body === 'string' ? JSON.parse(init.body) : null,
@@ -88,6 +90,54 @@ describe('certificate registration pipeline', () => {
       studentWrites: 1,
       requestWrites: 1,
       notifications: 2,
+    })
+  })
+})
+
+describe('certificate pipeline failure boundaries', () => {
+  it.each(['estudiantes', 'solicitudes'].flatMap((resource) =>
+    ['empty', 'null', 'incomplete', 'invalid-json'].map((response) => ({ resource, response })),
+  ))('stops at $resource on a $response response without sending mail', async ({ resource, response }) => {
+    const calls: string[] = []
+    vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockImplementation(async (input) => {
+      const url = String(input)
+      calls.push(url)
+      if (!url.endsWith(`/${resource}`)) return jsonResponse({ id: 'student-1' })
+      if (response === 'empty') return new Response(null, { status: 204 })
+      if (response === 'invalid-json') return new Response('{invalid-json', { status: 200 })
+      return jsonResponse(response === 'null' ? null : {})
+    }))
+
+    await expect(registerSolicitudCertificado({ solicitud: certificateRequest() }))
+      .rejects.toMatchObject({ code: 'EXTERNAL_SERVICE' })
+    expect(calls).toEqual(resource === 'estudiantes'
+      ? ['/api/ciunac/estudiantes']
+      : ['/api/ciunac/estudiantes', '/api/ciunac/solicitudes'])
+  })
+
+  it('preserves an indeterminate network failure and never retries the write automatically', async () => {
+    const calls: string[] = []
+    vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockImplementation(async (input) => {
+      const url = String(input)
+      calls.push(url)
+      if (url.endsWith('/estudiantes')) return jsonResponse({ id: 'student-1' })
+      throw new TypeError('Failed to fetch')
+    }))
+    await expect(registerSolicitudCertificado({ solicitud: certificateRequest() }))
+      .rejects.toMatchObject({ code: 'NETWORK', retryable: true })
+    expect(calls).toEqual(['/api/ciunac/estudiantes', '/api/ciunac/solicitudes'])
+  })
+
+  it('preserves authorization and correlation on partial notification failure', async () => {
+    vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockImplementation(async (input) => {
+      const url = String(input)
+      if (url.endsWith('/estudiantes')) return jsonResponse({ id: 'student-1' })
+      if (url.endsWith('/solicitudes')) return jsonResponse({ id: 'request-1' })
+      return jsonResponse({ error: { message: 'La operacion no esta permitida.' }, correlationId: 'notification-denied' }, 403)
+    }))
+    await expect(registerSolicitudCertificado({ solicitud: certificateRequest() })).resolves.toMatchObject({
+      status: 'saved_notification_failed', requestId: 'request-1',
+      error: { code: 'AUTHORIZATION', status: 403, retryable: false, correlationId: 'notification-denied' },
     })
   })
 })

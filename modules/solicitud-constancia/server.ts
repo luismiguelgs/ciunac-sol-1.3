@@ -4,5 +4,5 @@ export {
   getConstanciaCatalogs,
   getConstanciaTexts,
   getConstanciaTypes,
-} from '@/modules/solicitud-constancia/infrastructure/server/constancia-catalog.repository'
-export { validateConstanciaRequestPrice } from '@/modules/solicitud-constancia/infrastructure/server/constancia-price-validation'
+} from './infrastructure/server/constancia-catalog.repository'
+export { validateConstanciaRequest } from './infrastructure/server/constancia-price-validation'

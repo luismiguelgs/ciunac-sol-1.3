@@ -1,5 +1,8 @@
 # Refactor Modular de Solicitud de Alumno Nuevo
 
+Registro historico del refactor modular. La simplificacion posterior, estructura
+y verificaciones actuales se documentan en [Paso 4 pragmatico](phase-2g-solicitud-nuevo.md#simplificacion-pragmatica-paso-4-alumno-nuevo).
+
 ## Alcance
 
 La intervencion se limita a fronteras modulares de `solicitud-nuevo`. No modifica

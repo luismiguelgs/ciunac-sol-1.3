@@ -65,6 +65,7 @@ async function completePayment(page: Page) {
 }
 
 async function completeStudyCertificate(page: Page) {
+  await expect(page.locator('input[type="file"]')).toHaveAttribute('accept', '.pdf')
   await page.locator('input[type="file"]').setInputFiles({
     name: 'certificado.pdf',
     mimeType: 'application/pdf',
@@ -138,7 +139,7 @@ test('registra un alumno CIUNAC con certificado PDF y nivel seleccionado', async
 test('@smoke rechaza acceso directo al proceso sin sesion y perfil verificados', async ({ page }) => {
   await page.goto('/solicitud-ubicacion/proceso')
   await expect(page).toHaveURL(/\/solicitud-ubicacion$/)
-  await expect(page.getByRole('heading', { name: /correo electronico/i })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /correo electr[oó]nico/i })).toBeVisible()
 })
 
 test('bloquea un tarifario distinto de S/ 30', async ({ page, request }) => {
@@ -275,3 +276,80 @@ test('diferencia cargo inexistente, error tecnico e identificador invalido', asy
   await page.goto('/solicitud-ubicacion/finalizar?id=abc')
   await expect(page.getByRole('heading', { name: /Solicitud de ubicacion no identificada/i })).toBeVisible()
 })
+
+test('la entrada no consulta idiomas ni datos de estudiantes', async ({ page, request }) => {
+  await page.goto('/solicitud-ubicacion')
+  await expect(page.getByRole('cell', { name: /S\/\s*30\.00/i })).toBeVisible()
+  const paths = (await getMockRequests(request)).map((item) => item.path)
+  expect(paths.sort()).toEqual(['/cronogramaubicacion', '/textos', '/tipossolicitud'])
+})
+
+test('descarta una busqueda tardia si cambia el documento y bloquea el avance mientras busca', async ({ page }) => {
+  await verifyLocationEmail(page)
+  let release!: () => void
+  const gate = new Promise<void>((resolve) => { release = resolve })
+  await page.route('**/api/ciunac/estudiantes/buscar/*', async (route) => {
+    await gate
+    await route.fulfill({ json: { id: 'old-student', nombres: 'ANTERIOR', apellidos: 'ANTERIOR', celular: '999888777' } })
+  })
+  try {
+    await page.locator('input[name="dni"]').fill('12345678')
+    await page.locator('input[name="nombres"]').fill('MANUAL')
+    const lookup = page.waitForRequest('**/api/ciunac/estudiantes/buscar/12345678')
+    await page.getByRole('button', { name: 'Buscar documento' }).click()
+    await lookup
+    await expect(page.getByRole('button', { name: 'Siguiente' })).toBeDisabled()
+    await page.locator('input[name="dni"]').fill('87654321')
+    release()
+    await expect(page.getByRole('button', { name: 'Buscar documento' })).toBeEnabled()
+    await expect(page.locator('input[name="nombres"]')).toHaveValue('MANUAL')
+    await expect(page.locator('input[name="estudianteId"]')).toHaveValue('')
+  } finally { release() }
+})
+
+test('impide multiples comprobaciones de duplicidad durante el avance', async ({ page }) => {
+  await verifyLocationEmail(page)
+  let calls = 0
+  let release!: () => void
+  const gate = new Promise<void>((resolve) => { release = resolve })
+  await page.route('**/api/ciunac/solicitudes/documento/*', async (route) => {
+    calls += 1
+    await gate
+    await route.fulfill({ json: [] })
+  })
+  try {
+    await completeBasicData(page)
+    await expect(page.getByRole('button', { name: 'Siguiente' })).toBeDisabled()
+    await expect(page.getByRole('button', { name: 'Buscar documento' })).toBeDisabled()
+    await page.locator('form').evaluate((form: HTMLFormElement) => {
+      form.requestSubmit()
+      form.requestSubmit()
+    })
+    release()
+    await expect(page.getByLabel('Monto pagado', { exact: true })).toBeVisible()
+    expect(calls).toBe(1)
+  } finally { release() }
+})
+
+for (const [type, document] of [['Carnet de Extranjeria', 'AB1234567'], ['Pasaporte', 'P12345678']]) {
+  test(`permite documento alfanumerico ${type} y limpia los datos al cambiar de tipo`, async ({ page }) => {
+    await verifyLocationEmail(page)
+    await page.getByRole('radio', { name: type, exact: true }).click()
+    await page.locator('input[name="dni"]').fill(document)
+    await expect(page.locator('input[name="dni"]')).toHaveValue(document)
+    await page.route('**/api/ciunac/estudiantes/buscar/*', (route) => route.fulfill({
+      json: { id: 'found-student', nombres: 'MARIA', apellidos: 'PEREZ', celular: '999888777' },
+    }))
+    await page.getByRole('button', { name: 'Buscar documento' }).click()
+    await expect(page.locator('input[name="estudianteId"]')).toHaveValue('found-student')
+    await page.locator('input[type="file"]').setInputFiles({ name: 'identity.png', mimeType: 'image/png', buffer: png })
+    await expect(page.getByText(/Archivo cargado/i)).toBeVisible()
+    await page.getByRole('radio', { name: 'Documento de Identidad', exact: true }).click()
+    await expect(page.locator('input[name="estudianteId"]')).toHaveValue('')
+    await expect(page.getByText(/Archivo cargado/i)).toHaveCount(0)
+    await page.locator('input[name="dni"]').fill('12345678')
+    await page.locator('input[name="dni"]').press('End')
+    await page.locator('input[name="dni"]').pressSequentially('A9')
+    await expect(page.locator('input[name="dni"]')).toHaveValue('12345678')
+  })
+}

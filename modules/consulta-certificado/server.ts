@@ -1,25 +1,39 @@
 import 'server-only'
 
 import {
-  GetCertificateDetailUseCase,
+  type CertificateDetail,
+  sortCertificateNotes,
+} from '@/modules/consulta-certificado/domain/certificate-detail'
+import {
   normalizeCertificateLookupId,
-} from '@/modules/consulta-certificado/application/get-certificate-detail.use-case'
-import type { CertificateDetailResult } from '@/modules/consulta-certificado/application/get-certificate-detail.use-case'
-import { serverCertificateDetailRepository } from '@/modules/consulta-certificado/infrastructure/server/certificate-detail.repository'
+  parseCertificateDetailResponse,
+} from '@/modules/consulta-certificado/infrastructure/certificate-detail.contract'
+import { ciunacRequest } from '@/modules/security/server/ciunac-client'
+import { SecurityError } from '@/modules/security/server/security-error'
 
 export type GetCertificateDetailInput = {
   certificateId: string
 }
 
-const getCertificateDetailUseCase = new GetCertificateDetailUseCase(serverCertificateDetailRepository)
-
 export async function getCertificateDetail(
   input: GetCertificateDetailInput,
-): Promise<CertificateDetailResult | null> {
+): Promise<CertificateDetail | null> {
   const certificateId = normalizeCertificateLookupId(input.certificateId)
   if (!certificateId) return null
 
-  return getCertificateDetailUseCase.execute({
-    certificateId,
-  })
+  let response: unknown
+  try {
+    response = await ciunacRequest<unknown>(`certificados/${certificateId}`)
+  } catch (error) {
+    if (error instanceof SecurityError && error.status === 404) return null
+    throw error
+  }
+
+  if (response === null) return null
+
+  const certificate = parseCertificateDetailResponse(response, certificateId)
+  return {
+    ...certificate,
+    notes: sortCertificateNotes(certificate.notes),
+  }
 }

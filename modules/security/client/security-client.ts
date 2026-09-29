@@ -1,56 +1,13 @@
+import { requestJson } from '@/modules/shared/infrastructure/http/browser-http';
 import { AppError } from '@/modules/shared/application/errors/app-error';
 import { ConsultationType, NotificationType, OtpPurpose } from '@/modules/security/domain/security.types';
-import { consultationCheckResponseSchema } from '@/modules/consultas/infrastructure/validation/consultation.schemas';
-
-type ErrorPayload = {
-  error?: {
-    code?: string;
-    message?: string;
-  };
-  correlationId?: string;
-};
 
 async function postSecurity<TResponse, TBody>(path: string, body: TBody): Promise<TResponse> {
-  let response: Response;
-  try {
-    response = await fetch(path, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'same-origin',
-      body: JSON.stringify(body),
-    });
-  } catch (error) {
-    throw new AppError({ code: 'NETWORK', message: 'No se pudo conectar con el servicio', cause: error });
-  }
-
-  const payload = await response.json().catch(() => null) as (TResponse & ErrorPayload) | null;
-  if (!response.ok) {
-    const code = response.status === 400 || response.status === 409 || response.status === 422
-      ? 'VALIDATION'
-      : response.status === 401
-        ? 'AUTHENTICATION'
-        : response.status === 403
-          ? 'AUTHORIZATION'
-          : response.status >= 500
-            ? 'EXTERNAL_SERVICE'
-            : 'UNEXPECTED';
-    throw new AppError({
-      code,
-      message: payload?.error?.message ?? 'No se pudo completar la operacion',
-      status: response.status,
-      correlationId: payload?.correlationId,
-      retryable: response.status >= 500,
-    });
-  }
-
+  const payload = await requestJson<TResponse>(path, 'POST', body);
   if (!payload) {
-    throw new AppError({
-      code: 'EXTERNAL_SERVICE',
-      message: 'El servicio devolvio una respuesta no valida.',
-    });
+    throw new AppError({ code: 'EXTERNAL_SERVICE', message: 'El servicio devolvio una respuesta no valida.' });
   }
-
-  return payload as TResponse;
+  return payload;
 }
 
 export function requestOtp(email: string, purpose: OtpPurpose, captchaToken: string) {
@@ -76,14 +33,13 @@ export async function consultByDocument(documento: string, type: ConsultationTyp
     '/api/security/consulta',
     { documento, type, captchaToken },
   );
-  const result = consultationCheckResponseSchema.safeParse(response);
-  if (!result.success) {
+  if (!isConsultationCheckResponse(response)) {
     throw new AppError({
       code: 'EXTERNAL_SERVICE',
       message: 'El servicio de consulta devolvio una respuesta no valida.',
     });
   }
-  return result.data;
+  return response;
 }
 
 export function sendSecureNotification(type: NotificationType, reference: string) {
@@ -91,4 +47,13 @@ export function sendSecureNotification(type: NotificationType, reference: string
     '/api/security/notifications',
     { type, reference },
   );
+}
+
+function isConsultationCheckResponse(value: unknown): value is { ok: true; found: boolean } {
+  return typeof value === 'object'
+    && value !== null
+    && 'ok' in value
+    && value.ok === true
+    && 'found' in value
+    && typeof value.found === 'boolean';
 }

@@ -5,11 +5,11 @@ import { Separator } from '@/components/ui/separator'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { AlertTriangle, Mail, Phone } from 'lucide-react'
 import waterMark from '@/assets/logo-ciunac-trans.png'
-import type { CertificateDetailResult } from '@/modules/consulta-certificado/application/get-certificate-detail.use-case'
+import type { CertificateDetail } from '@/modules/consulta-certificado/domain/certificate-detail'
 import { presentCertificateDetail } from '@/modules/consulta-certificado/presentation/certificate-detail.presenter'
 import Copyright from '@/modules/shared/components/copyright'
 
-export default function CertificateDetailView({ certificate }: { certificate: CertificateDetailResult }) {
+export default function CertificateDetailView({ certificate }: { certificate: CertificateDetail }) {
   const presentation = presentCertificateDetail(certificate)
 
   return (
@@ -74,7 +74,7 @@ export default function CertificateDetailView({ certificate }: { certificate: Ce
                   <TableBody>
                     {certificate.notes.map((note, index) => (
                       <TableRow
-                        key={`${note.cycle}-${note.period}-${index}`}
+                        key={`${note.cycle}-${note.modality}-${index}`}
                         className={index % 2 === 0 ? 'bg-muted/50' : ''}
                       >
                         <TableCell className="font-medium">{note.cycle}</TableCell>

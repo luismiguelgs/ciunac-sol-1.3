@@ -1,27 +1,34 @@
 import 'server-only'
 
+import { loadConsultationRequests } from './operations'
 import {
-  GetConsultationRequestsUseCase,
-  type ConsultationRequestsResult,
-} from '@/modules/consultas/application/get-consultation-requests.use-case'
-import type { ConsultationType } from '@/modules/consultas/domain/consulted-request'
+  matchesConsultationType,
+  normalizeConsultationDocument,
+  type ConsultationType,
+} from './model'
 import {
-  serverConsultationRequestRepository,
-  serverConsultationTextRepository,
-} from '@/modules/consultas/infrastructure/server/consultation.repository'
-
-const getConsultationRequestsUseCase = new GetConsultationRequestsUseCase({
-  requests: serverConsultationRequestRepository,
-  texts: serverConsultationTextRepository,
-})
+  findRequestsByDocument,
+  listConsultationTexts,
+} from './infrastructure/server/consultation.repository'
 
 type ConsultationQuery = {
   documentNumber: string
   type: ConsultationType
 }
 
-export function getConsultationRequests(
-  query: ConsultationQuery,
-): Promise<ConsultationRequestsResult> {
-  return getConsultationRequestsUseCase.execute(query.documentNumber, query.type)
+// The CAPTCHA gate needs requests only, not the auxiliary texts used by results.
+export async function findConsultationRequests(query: ConsultationQuery) {
+  const documentNumber = normalizeConsultationDocument(query.documentNumber)
+  const requests = await findRequestsByDocument(documentNumber)
+  return {
+    documentNumber,
+    requests: requests.filter((request) => matchesConsultationType(request, query.type)),
+  }
+}
+
+export function getConsultationRequests(query: ConsultationQuery) {
+  return loadConsultationRequests(query.documentNumber, query.type, {
+    findRequests: findRequestsByDocument,
+    listTexts: listConsultationTexts,
+  })
 }

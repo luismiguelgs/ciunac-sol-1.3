@@ -1,0 +1,204 @@
+'use client'
+
+import React from 'react'
+import { useForm, useWatch } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useMask } from '@react-input/mask'
+import { Loader2, Search } from 'lucide-react'
+import { toast } from 'sonner'
+import { Form } from '@/components/ui/form'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { StepperControl } from '@/components/stepper'
+import InputField from '@/components/forms/input.field'
+import { RadioGroupField } from '@/components/forms/radio-group.field'
+import { MySelect } from '@/components/forms/myselect.field'
+import MyAlert from '@/components/forms/myAlert'
+import UploadImage from '@/components/upload-image'
+import { isLocationDocument, LocationBasicData, LocationCatalogs } from '../model'
+import { findLocationStudent } from '../client'
+import {
+  LocationBasicDataFormValues,
+  locationBasicDataFormSchema,
+} from './location-basic-data.schema'
+import { toLocationBasicFormValues } from './location-form.mapper'
+import { validateIdentityDocumentFile } from './location-file.presenter'
+
+const LEVELS = [
+  { value: '1', label: 'BASICO' },
+  { value: '2', label: 'INTERMEDIO' },
+  { value: '3', label: 'AVANZADO' },
+]
+
+type Props = {
+  activeStep: number
+  steps: string[]
+  catalogs: LocationCatalogs
+  defaultData: LocationBasicData | null
+  isCiunacStudent: boolean
+  setActiveStep: React.Dispatch<React.SetStateAction<number>>
+  handleNext: (values: LocationBasicDataFormValues) => Promise<void>
+}
+
+export default function BasicData({
+  activeStep,
+  steps,
+  catalogs,
+  defaultData,
+  isCiunacStudent,
+  setActiveStep,
+  handleNext,
+}: Props) {
+  const defaults = toLocationBasicFormValues(defaultData)
+  const form = useForm<LocationBasicDataFormValues>({
+    resolver: zodResolver(locationBasicDataFormSchema),
+    defaultValues: defaults,
+  })
+  const [searching, setSearching] = React.useState(false)
+  const documentNumber = useWatch({ control: form.control, name: 'dni' })
+  const documentType = useWatch({ control: form.control, name: 'tipo_documento' })
+  const documentKey = `${documentType}:${documentNumber.trim().toUpperCase()}`
+  const previousDocument = React.useRef(`${defaults.tipo_documento}:${defaults.dni.trim().toUpperCase()}`)
+  const documentRevision = React.useRef(0)
+  const pending = React.useRef(false)
+  const busy = searching || form.formState.isSubmitting
+
+  React.useEffect(() => {
+    if (previousDocument.current !== documentKey) {
+      documentRevision.current += 1
+      if (!previousDocument.current.startsWith(`${documentType}:`)) form.setValue('dni', '')
+      form.setValue('estudianteId', '')
+      form.setValue('img_dni', '')
+    }
+    previousDocument.current = documentKey
+  }, [documentKey, documentType, form])
+
+  const searchStudent = async () => {
+    if (pending.current) return
+    pending.current = true
+    const document = form.getValues('dni').trim().toLocaleUpperCase()
+    const type = form.getValues('tipo_documento')
+    const revision = documentRevision.current
+    const isCurrent = () => revision === documentRevision.current
+      && form.getValues('tipo_documento') === type
+      && form.getValues('dni').trim().toUpperCase() === document
+    setSearching(true)
+    try {
+      if (!await form.trigger(['tipo_documento', 'dni'])) {
+        toast.warning('Ingrese un documento valido antes de buscar.')
+        return
+      }
+      if (!isCurrent()) return
+      const student = await findLocationStudent(document)
+      if (!isCurrent()) return
+      if (!student) {
+        form.setValue('estudianteId', '')
+        toast.warning('No se encontraron datos para el documento ingresado.')
+        return
+      }
+      form.setValue('apellidos', student.lastNames)
+      form.setValue('nombres', student.names)
+      form.setValue('celular', student.phone)
+      form.setValue('estudianteId', student.id)
+    } catch {
+      if (isCurrent()) toast.error('No se pudieron consultar los datos del estudiante.')
+    } finally {
+      pending.current = false
+      setSearching(false)
+    }
+  }
+
+  const submitBasicData = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (pending.current) return
+    pending.current = true
+    try {
+      await form.handleSubmit(handleNext)(event)
+    } finally {
+      pending.current = false
+    }
+  }
+
+  const phoneRef = useMask({ mask: '_________', replacement: { _: /\d/ } })
+  const documentRef = useMask({
+    mask: documentType === 'DNI' ? '________' : '_________',
+    replacement: { _: documentType === 'DNI' ? /\d/ : /[\da-zA-Z]/ },
+  })
+  const lastNamesRef = useMask({ mask: '______________________________', replacement: { _: /[a-zA-Z\u0027 \u00C0-\u00FF]/ } })
+  const namesRef = useMask({ mask: '_______________________________', replacement: { _: /[a-zA-Z\u0027 \u00C0-\u00FF]/ } })
+  const alertText = catalogs.texts.find((item) => item.code === 'TEXTO_UBICACION_1')?.content
+    ?? 'Complete cuidadosamente los datos solicitados.'
+
+  return (
+    <Form {...form}>
+      <form onSubmit={submitBasicData} className="w-full space-y-6" autoComplete="off">
+        <MyAlert title="Atencion" description={alertText} type="warning" />
+        <fieldset disabled={form.formState.isSubmitting} className="contents">
+        <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-5">
+          <Card className="shadow-md md:col-span-3">
+            <CardHeader><CardTitle className="text-lg font-bold text-primary">Informacion personal</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <RadioGroupField
+                  label="Tipo de documento"
+                  name="tipo_documento"
+                  options={[
+                    { value: 'DNI', label: 'Documento de Identidad' },
+                    { value: 'CE', label: 'Carnet de Extranjeria' },
+                    { value: 'PASAPORTE', label: 'Pasaporte' },
+                  ]}
+                  control={form.control}
+                />
+                <div>
+                  <InputField key={documentType} label="Numero de documento" name="dni" inputRef={documentRef} control={form.control} />
+                  <Button type="button" onClick={searchStudent} disabled={busy} className="mt-2 w-full">
+                    {searching ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
+                    {searching ? 'Buscando...' : 'Buscar documento'}
+                  </Button>
+                </div>
+              </div>
+              <input type="hidden" {...form.register('estudianteId')} />
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <InputField label="Apellidos" name="apellidos" inputRef={lastNamesRef} control={form.control} />
+                <InputField label="Nombres" name="nombres" inputRef={namesRef} control={form.control} />
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <MySelect
+                  name="idioma"
+                  control={form.control}
+                  label="Programa"
+                  placeholder="Seleccione un programa"
+                  options={catalogs.languages}
+                  getOptionValue={(item) => String(item.id)}
+                  getOptionLabel={(item) => item.name}
+                />
+                <MySelect
+                  name="nivel"
+                  control={form.control}
+                  label="Nivel"
+                  placeholder="Seleccione un nivel"
+                  options={LEVELS}
+                  disabled={!isCiunacStudent}
+                />
+              </div>
+              <InputField label="Celular" name="celular" type="tel" inputRef={phoneRef} control={form.control} />
+            </CardContent>
+          </Card>
+          <div className="md:col-span-2">
+            <UploadImage
+              form={form}
+              field="img_dni"
+              label="Documento de identidad"
+              dni={documentNumber}
+              folder="dnis"
+              disabled={busy || !isLocationDocument(documentType, documentNumber.trim())}
+              validateFile={validateIdentityDocumentFile}
+            />
+          </div>
+        </div>
+        </fieldset>
+        <StepperControl activeStep={activeStep} steps={steps} setActiveStep={setActiveStep} type="submit" disabled={busy} />
+      </form>
+    </Form>
+  )
+}

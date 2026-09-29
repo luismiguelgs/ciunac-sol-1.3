@@ -2,7 +2,8 @@
 
 ## Estado
 
-Aceptado e implementado en Fase 2B. Ampliado por ADR-018.
+Aceptado e implementado en Fase 2B. Ampliado por ADR-018 y simplificado en el
+paso 6 pragmatico (2026-09-24), sin cambiar contratos externos.
 
 ## Contexto
 
@@ -24,8 +25,8 @@ consulta por documento:
 - modelo `ConsultedRequest` completo;
 - DTOs y schemas Zod en el limite externo;
 - mappers DTO a dominio;
-- caso de uso para consultar, filtrar y cargar textos auxiliares;
-- repository server-only para comunicarse con CIUNAC.
+- funcion `loadConsultationRequests` para consultar, filtrar y cargar textos auxiliares;
+- funciones server-only para comunicarse con CIUNAC;
 - API publica browser-safe y entrada `server-only` para evitar imports profundos.
 
 `consulta-solicitud` conserva exclusivamente su presentacion de resultados,
@@ -36,10 +37,10 @@ flowchart LR
     Form["Formulario de consulta"] --> Security["POST /api/security/consulta"]
     Security --> Session["Sesion de consulta"]
     Session --> Page["Server Component"]
-    Page --> UseCase["GetConsultationRequestsUseCase"]
-    UseCase --> Repository["Repository server-only"]
-    Repository --> BFF["Next.js BFF"]
-    BFF --> API["API CIUNAC"]
+    Page --> Public["consultas/server"]
+    Public --> UseCase["loadConsultationRequests"]
+    UseCase --> Repository["Funciones server-only"]
+    Repository --> API["API CIUNAC"]
     API --> Schema["Validacion Zod"]
     Schema --> Mapper["Mapper DTO a dominio"]
     Mapper --> View["Resultados tipados"]
@@ -54,6 +55,13 @@ Se distingue `loading`, `empty`, `data` y `error`; una respuesta mal formada no 
 interpreta como ausencia.
 
 ## Consecuencias
+
+El paso 6 conserva ocho archivos en lugar de nueve y elimina las tres clases sin
+estado. Modelo y texto se agrupan en `model.ts`; operaciones, UI, contratos Zod y
+mappers mantienen responsabilidades separadas. `findConsultationRequests` es la
+entrada publica del lookup de CAPTCHA: hace una lectura de solicitudes, no carga
+textos y devuelve documento normalizado y solicitudes filtradas. Se retira la
+excepcion ESLint que permitia acceder desde el handler a los internals.
 
 - La consulta general deja de depender de `ISolicitudRes`.
 - Las respuestas externas se validan antes de llegar a presentacion.

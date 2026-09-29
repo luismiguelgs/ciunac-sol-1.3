@@ -1,16 +1,20 @@
+import { sameMoney } from '@/modules/shared/domain/payment'
 import 'server-only'
 
 import { ciunacRequest } from '@/modules/security/server/ciunac-client'
 import { SecurityError } from '@/modules/security/server/security-error'
-import { isCertificateType } from '@/modules/solicitud-certificado/domain/solicitud-certificado'
+import { isCertificateType } from '../../model'
 import {
   certificateRequestDtoSchema,
   certificateTypeArraySchema,
-} from '@/modules/solicitud-certificado/infrastructure/validation/certificate-api.schemas'
+  type CertificateRequestDto,
+} from '../certificate-api.schemas'
 
-export async function validateCertificateRequestPrice(value: unknown): Promise<void> {
+export async function validateCertificateRequest(value: unknown): Promise<CertificateRequestDto> {
   const typeId = readTypeId(value)
-  if (!isCertificateType(typeId)) return
+  if (!isCertificateType(typeId)) {
+    throw new SecurityError('FORBIDDEN', 403, 'Certificate session cannot create this request type')
+  }
 
   const requestResult = certificateRequestDtoSchema.safeParse(value)
   if (!requestResult.success) {
@@ -30,13 +34,11 @@ export async function validateCertificateRequestPrice(value: unknown): Promise<v
   if (!sameMoney(requestResult.data.pago, selectedType.precio)) {
     throw new SecurityError('PRICE_CHANGED', 409, 'Certificate price does not match current catalog')
   }
+
+  return requestResult.data
 }
 
 function readTypeId(value: unknown): number {
   if (!value || typeof value !== 'object') return Number.NaN
   return Number((value as { tipoSolicitudId?: unknown }).tipoSolicitudId)
-}
-
-function sameMoney(left: number, right: number): boolean {
-  return Math.round(left * 100) === Math.round(right * 100)
 }

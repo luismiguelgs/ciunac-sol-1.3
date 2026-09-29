@@ -1,10 +1,13 @@
-'use client'
-
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { ITipoSolicitud } from '@/modules/shared/interfaces/types.interface'
+
+type RequestPriceRow = {
+  id?: number
+  solicitud: string
+  precio: number
+}
 
 type Props = {
-  data: ITipoSolicitud[]
+  data: RequestPriceRow[]
   emptyLabel: string
 }
 

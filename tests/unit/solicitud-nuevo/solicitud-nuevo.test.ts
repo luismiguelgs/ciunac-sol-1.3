@@ -1,21 +1,24 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AppError } from '@/modules/shared/application/errors/app-error'
 import { dataResult, emptyResult, errorResult } from '@/modules/shared/application/results/app-result'
-import { resourceApiRepository } from '@/modules/shared/infrastructure/api/resource-api.repository'
-import { RegisterNewStudentUseCase } from '@/modules/solicitud-nuevo/application/use-cases/register-new-student.use-case'
-import { newStudentSchema } from '@/modules/solicitud-nuevo/application/validation/new-student.schema'
-import { NewStudent } from '@/modules/solicitud-nuevo/domain/new-student'
-import { Q10StudentGateway } from '@/modules/solicitud-nuevo/infrastructure/api/q10-student.gateway'
-import { toQ10StudentRequestDto, isVisibleNewStudentProgram } from '@/modules/solicitud-nuevo/infrastructure/mappers/q10-api.mapper'
+import * as api from '@/lib/api.service'
+import { registerStudent, retryStudentNotification } from '@/modules/solicitud-nuevo/operations'
+import { newStudentSchema } from '@/modules/solicitud-nuevo/schemas'
+import { NewStudent } from '@/modules/solicitud-nuevo/model'
+import { registerQ10Student, sendNewStudentNotification } from '@/modules/solicitud-nuevo/infrastructure/new-student-client'
+import { mailApiRepository } from '@/modules/shared/infrastructure/api/mail-api.repository'
+import { toQ10StudentRequestDto, isVisibleNewStudentProgram } from '@/modules/solicitud-nuevo/infrastructure/q10-api.mapper'
 import {
   q10ProgramArraySchema,
   q10RegistrationResponseSchema,
   q10StudentRequestSchema,
-} from '@/modules/solicitud-nuevo/infrastructure/validation/q10-api.schemas'
-import { toNewStudentBasicData } from '@/modules/solicitud-nuevo/presentation/new-student-form.mapper'
-import useNewStudentStore from '@/modules/solicitud-nuevo/presentation/new-student.store'
+} from '@/modules/solicitud-nuevo/infrastructure/q10-api.schemas'
+import { toCompleteNewStudent, toNewStudentBasicData } from '@/modules/solicitud-nuevo/components/new-student-form.mapper'
+import useNewStudentStore from '@/modules/solicitud-nuevo/store'
 
 const programs = [{ code: 'ING', name: 'INGLES' }]
+
+afterEach(() => vi.restoreAllMocks())
 
 describe('new student domain and DTO contracts', () => {
   it('accepts a complete new student', () => {
@@ -89,22 +92,20 @@ describe('new student gateway', () => {
   beforeEach(() => vi.restoreAllMocks())
 
   it('accepts a successful Q10 response with or without data', async () => {
-    const postSafe = vi.spyOn(resourceApiRepository, 'postSafe')
+    const postSafe = vi.spyOn(api, 'apiFetchResult')
       .mockResolvedValueOnce(emptyResult())
       .mockResolvedValueOnce(dataResult({ ok: true }))
-    const gateway = new Q10StudentGateway()
-    await expect(gateway.register(newStudent())).resolves.toBeUndefined()
-    await expect(gateway.register(newStudent())).resolves.toBeUndefined()
+    await expect(registerQ10Student(newStudent())).resolves.toBeUndefined()
+    await expect(registerQ10Student(newStudent())).resolves.toBeUndefined()
     expect(postSafe).toHaveBeenCalledTimes(2)
   })
 
   it('rejects malformed and external Q10 responses', async () => {
-    vi.spyOn(resourceApiRepository, 'postSafe')
+    vi.spyOn(api, 'apiFetchResult')
       .mockResolvedValueOnce(dataResult('invalid'))
       .mockResolvedValueOnce(errorResult(new AppError({ code: 'NETWORK', message: 'Sin red' })))
-    const gateway = new Q10StudentGateway()
-    await expect(gateway.register(newStudent())).rejects.toMatchObject({ code: 'EXTERNAL_SERVICE' })
-    await expect(gateway.register(newStudent())).rejects.toMatchObject({ code: 'NETWORK' })
+    await expect(registerQ10Student(newStudent())).rejects.toMatchObject({ code: 'EXTERNAL_SERVICE' })
+    await expect(registerQ10Student(newStudent())).rejects.toMatchObject({ code: 'NETWORK' })
   })
 })
 
@@ -140,15 +141,12 @@ describe('new student registration use case', () => {
     const sendRegistration = vi.fn()
       .mockRejectedValueOnce(new Error('mail unavailable'))
       .mockResolvedValueOnce('receipt-1')
-    const useCase = new RegisterNewStudentUseCase({
-      studentGateway: { register },
-      notificationGateway: { sendRegistration },
-    })
-    await expect(useCase.execute({ student: newStudent() })).resolves.toMatchObject({
+    const dependencies = { registerStudent: register, sendNotification: sendRegistration }
+    await expect(registerStudent(newStudent(), dependencies)).resolves.toMatchObject({
       status: 'saved_notification_failed',
       documentNumber: '12345678',
     })
-    await expect(useCase.retryNotification('12345678')).resolves.toBe('receipt-1')
+    await expect(retryStudentNotification('12345678', sendRegistration)).resolves.toBe('receipt-1')
     expect(register).toHaveBeenCalledTimes(1)
     expect(sendRegistration).toHaveBeenCalledTimes(2)
   })
@@ -156,13 +154,76 @@ describe('new student registration use case', () => {
   it('does not call integrations for an invalid student', async () => {
     const register = vi.fn()
     const sendRegistration = vi.fn()
-    const useCase = new RegisterNewStudentUseCase({
-      studentGateway: { register },
-      notificationGateway: { sendRegistration },
-    })
-    await expect(useCase.execute({ student: { ...newStudent(), phone: '123' } })).rejects.toMatchObject({ code: 'VALIDATION' })
+    const dependencies = { registerStudent: register, sendNotification: sendRegistration }
+    await expect(registerStudent({ ...newStudent(), phone: '123' }, dependencies)).rejects.toMatchObject({ code: 'VALIDATION' })
     expect(register).not.toHaveBeenCalled()
     expect(sendRegistration).not.toHaveBeenCalled()
+  })
+})
+
+describe('new student pragmatic operations', () => {
+  it('builds only complete drafts without parsing on render', () => {
+    expect(toCompleteNewStudent({ email: '', basicData: null })).toBeNull()
+    expect(toCompleteNewStudent({ email: 'user@example.com', basicData: null })).toBeNull()
+    expect(toCompleteNewStudent({ email: '', basicData: basicData() })).toBeNull()
+    expect(toCompleteNewStudent({ email: 'user@example.com', basicData: basicData() })).toEqual(newStudent())
+  })
+
+  it('normalizes once on registration and notifies after Q10 confirms', async () => {
+    const calls: string[] = []
+    const student: NewStudent = { ...newStudent(), email: 'USER@EXAMPLE.COM', document: { type: 'CE', number: 'abc123456' } }
+    const result = await registerStudent(student, {
+      registerStudent: async (data) => {
+        expect(data.email).toBe('user@example.com')
+        expect(data.document.number).toBe('ABC123456')
+        calls.push('q10')
+      },
+      sendNotification: async (reference) => {
+        expect(reference).toBe('ABC123456')
+        calls.push('mail')
+        return 'receipt-1'
+      },
+    })
+    expect(calls).toEqual(['q10', 'mail'])
+    expect(result).toEqual({ status: 'completed', documentNumber: 'ABC123456', notificationReceiptId: 'receipt-1' })
+  })
+
+  it.each(['', '123', '../12345678'])('rejects invalid retry reference %s before the notification', (reference) => {
+    const send = vi.fn()
+    expect(() => retryStudentNotification(reference, send)).toThrowError(AppError)
+    expect(send).not.toHaveBeenCalled()
+  })
+
+  it.each(['VALIDATION', 'AUTHENTICATION', 'AUTHORIZATION', 'NETWORK', 'EXTERNAL_SERVICE'] as const)(
+    'preserves %s notification metadata in partial success', async (code) => {
+      const error = new AppError({ code, status: 403, message: 'Mensaje seguro', correlationId: 'new-student-test', retryable: false })
+      const send = vi.spyOn(mailApiRepository, 'send').mockRejectedValue(error)
+      const register = vi.fn().mockResolvedValue(undefined)
+      const result = await registerStudent(newStudent(), { registerStudent: register, sendNotification: sendNewStudentNotification })
+      expect(result.status).toBe('saved_notification_failed')
+      if (result.status !== 'saved_notification_failed') throw new Error('Expected partial success')
+      expect(result.documentNumber).toBe('12345678')
+      expect(result.error).toBe(error)
+      expect(result.error).toMatchObject({ code, status: 403, correlationId: 'new-student-test', retryable: false })
+      expect(register).toHaveBeenCalledTimes(1)
+      expect(send).toHaveBeenCalledExactlyOnceWith({ type: 'REGISTER', reference: '12345678' })
+    },
+  )
+
+  it('does not expose an unexpected provider error', async () => {
+    vi.spyOn(mailApiRepository, 'send').mockRejectedValue(new Error('private provider detail'))
+    await expect(sendNewStudentNotification('12345678')).rejects.toMatchObject({
+      code: 'UNEXPECTED', message: 'El estudiante se guardo, pero el correo no pudo enviarse.',
+    })
+  })
+
+  it('keeps a failed Q10 write separate from notification failure', async () => {
+    const error = new AppError({ code: 'NETWORK', message: 'Sin conexion', correlationId: 'q10-failed', retryable: true })
+    vi.spyOn(api, 'apiFetchResult').mockResolvedValue(errorResult(error))
+    const send = vi.fn()
+    await expect(registerStudent(newStudent(), { registerStudent: registerQ10Student, sendNotification: send }))
+      .rejects.toBe(error)
+    expect(send).not.toHaveBeenCalled()
   })
 })
 

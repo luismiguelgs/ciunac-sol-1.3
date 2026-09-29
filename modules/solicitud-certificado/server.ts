@@ -4,5 +4,5 @@ export {
   getCertificateCatalogs,
   getCertificateTexts,
   getCertificateTypes,
-} from '@/modules/solicitud-certificado/infrastructure/server/certificate-catalog.repository'
-export { validateCertificateRequestPrice } from '@/modules/solicitud-certificado/infrastructure/server/certificate-price-validation'
+} from './infrastructure/server/certificate-catalog.repository'
+export { validateCertificateRequest } from './infrastructure/server/certificate-price-validation'

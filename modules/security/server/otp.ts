@@ -4,11 +4,11 @@ import { SecurityError } from '@/modules/security/server/security-error';
 
 export const OTP_EXPIRATION_SECONDS = 5 * 60;
 export const OTP_EXPIRATION_MS = OTP_EXPIRATION_SECONDS * 1000;
-export const OTP_MAX_ATTEMPTS = 5;
+const OTP_MAX_ATTEMPTS = 5;
 export const OTP_RESEND_DELAY_SECONDS = 3 * 60;
 export const OTP_RESEND_DELAY_MS = OTP_RESEND_DELAY_SECONDS * 1000;
-export const OTP_RATE_WINDOW_MS = 15 * 60 * 1000;
-export const OTP_MAX_SENDS_PER_WINDOW = 5;
+const OTP_RATE_WINDOW_MS = 15 * 60 * 1000;
+const OTP_MAX_SENDS_PER_WINDOW = 5;
 
 export type OtpChallenge = {
   challengeId: string;

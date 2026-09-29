@@ -265,6 +265,55 @@ test('no expone resultados de ubicacion pertenecientes a otro documento', async 
   await expect(page.getByText('88/100')).toHaveCount(0)
 })
 
+for (const kind of ['Certificado', 'Constancia'] as const) {
+  test(`bloquea la descarga de ${kind} ante fallo de aceptacion y permite reintentar`, async ({ page, request }) => {
+    await setMockScenario(request, kind === 'Certificado'
+      ? { readyDigitalCertificate: true }
+      : { readyDigitalConstancia: true, pendingDigitalConstancia: true })
+    const collection = kind === 'Certificado' ? 'certificados' : 'constancias'
+    const id = kind === 'Certificado' ? 'CERT-E2E' : 'CONST-E2E'
+    let attempts = 0
+    let downloads = 0
+    page.on('download', () => { downloads += 1 })
+    await page.route(`**/api/ciunac/${collection}/${id}`, async (route) => {
+      if (route.request().method() !== 'PATCH') return route.continue()
+      attempts += 1
+      if (attempts === 1) {
+        return route.fulfill({
+          status: 503,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: { message: 'No se pudo confirmar la descarga.' } }),
+        })
+      }
+      return route.continue()
+    })
+
+    await page.goto('/consulta-solicitud')
+    await page.locator('input[name="documento"]').fill('12345678')
+    await page.getByRole('button', { name: 'Buscar' }).click()
+    await page.getByRole('button', { name: `Descargar ${kind}`, exact: true }).click()
+    await page.getByLabel(/Declaro haber leido y aceptar/i).check()
+    const initialCalls = await getMockRequests(request)
+    const initialReads = initialCalls.filter((item) => (
+      item.method === 'GET' && item.path.startsWith(`/${collection}/solicitud/`)
+    )).length
+    expect(initialReads).toBeGreaterThan(0)
+    await page.getByRole('button', { name: 'Aceptar y descargar' }).click()
+    await expect(page.getByText('No se pudo continuar', { exact: true })).toBeVisible()
+    expect(downloads).toBe(0)
+    expect(attempts).toBe(1)
+
+    const download = page.waitForEvent('download')
+    await page.getByRole('button', { name: 'Aceptar y descargar' }).click()
+    await download
+    expect(downloads).toBe(1)
+    expect(attempts).toBe(2)
+    const calls = await getMockRequests(request)
+    expect(calls.filter((item) => item.method === 'GET' && item.path.startsWith(`/${collection}/solicitud/`))).toHaveLength(initialReads)
+    expect(calls.filter((item) => item.method === 'PATCH' && item.path === `/${collection}/${id}`)).toHaveLength(1)
+  })
+}
+
 async function openLocationConsultation(page: Page) {
   await page.goto('/consulta-ubicacion')
   await page.locator('input[name="documento"]').fill('12345678')

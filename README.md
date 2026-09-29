@@ -33,22 +33,23 @@ npm run security:bundle-check
 - `app/`: rutas y layouts de Next.js.
 - `modules/`: features de negocio.
 - `components/`: componentes UI compartidos.
-- `services/`: integraciones legacy con la API.
-- `stores/`: estado transversal que conserva consumidores reales.
+- `services/storage.service.ts`: carga de archivos y normalizacion de su respuesta.
+- `modules/<feature>/store.ts`: estado tipado entre pasos, cuando es necesario.
 - `tests/unit/`: reglas, schemas, mappers y casos de uso aislados.
 - `tests/integration/`: fronteras HTTP y pipelines con adapters reales y `fetch` simulado.
 - `tests/e2e/`: smoke, regresion y accesibilidad automatizada con Playwright.
 - `docs/architecture/`: documentacion arquitectonica y SDD.
 
 ## Direccion arquitectonica
-El repositorio esta migrando a una arquitectura modular por feature con cuatro capas internas:
+La arquitectura es modular por feature y pragmatica: UI, reglas puras,
+orquestacion e integracion se separan sin exigir carpetas, clases o puertos vacios.
+Los registros usan `components/`, `model.ts`, `schemas.ts`, `operations.ts`,
+`store.ts` e `infrastructure/` por necesidad, no como plantilla obligatoria.
 
-```text
-presentation -> application -> domain -> infrastructure
-```
-
-Los features principales de solicitud y consulta ya exponen entradas publicas y
-capas internas. Las excepciones y deuda restante se documentan en el SDD y los ADRs.
+Las rutas consumen `index.ts` y `server.ts`; la composicion del navegador vive en
+`client.ts`. Las credenciales y validaciones autoritativas permanecen en el BFF.
+No hay imports internos entre features ni cache global de datos personales.
+Ver [ADR-031](./docs/architecture/adr/031-pragmatic-feature-architecture.md).
 
 ## Integracion continua
 
@@ -59,10 +60,17 @@ completa se ejecuta despues de integrar, manualmente y en horario programado.
 La proteccion de `main` debe configurarse manualmente para exigir:
 `static-quality`, `unit-integration`, `build-security` y `browser-smoke-a11y`.
 
+Al cierre documental del 2026-09-28, la auditoria de dependencias sigue bloqueada
+por hallazgos critical/high y excepciones vencidas. No se presenta el refactor
+como aprobacion de despliegue. Ver [auditoria vigente](./docs/quality/dependency-audit.md).
+
 ## Documentacion
 - [Arquitectura completa](./docs/architecture/complete-architecture.md)
+- [Flujo de codigo: consulta-certificado](./docs/architecture/walkthroughs/consulta-certificado.md)
+- [Flujo de codigo: consulta-solicitud](./docs/architecture/walkthroughs/consulta-solicitud.md)
 - [Overview](./docs/architecture/overview.md)
-- [SDD v1](./docs/architecture/sdd.md)
+- [SDD vigente](./docs/architecture/sdd.md)
+- [Cierre de simplificacion](./docs/quality/pragmatic-simplification-baseline.md#paso-8-cierre-documental-y-limpieza)
 - [Analisis de requisitos](./docs/requirements/srs.md)
 - [Historias de usuario](./docs/requirements/user-stories.md)
 - [Casos de uso](./docs/requirements/use-cases)

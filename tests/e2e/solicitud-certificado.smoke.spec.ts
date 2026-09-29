@@ -136,6 +136,10 @@ test('@smoke registra una solicitud de certificado de extremo a extremo', async 
   expect(download.suggestedFilename()).toBe('CERTIFICADO-12345678-1001.pdf')
 
   const requests = await getMockRequests(request)
+  expect(requests
+    .filter((item) => item.method === 'POST' && ['/upload/vouchers', '/estudiantes', '/solicitudes'].includes(item.path))
+    .map((item) => item.path))
+    .toEqual(['/upload/vouchers', '/estudiantes', '/solicitudes'])
   expect(requests).toEqual(
     expect.arrayContaining([
       expect.objectContaining({ method: 'POST', path: '/upload/vouchers' }),
@@ -170,6 +174,8 @@ test('reintenta solo el correo cuando la solicitud ya fue guardada', async ({ pa
 
   const afterRetry = await getMockRequests(request)
   expect(afterRetry.filter((item) => item.path === '/solicitudes')).toHaveLength(1)
+  expect(afterRetry.filter((item) => item.path === '/estudiantes' && item.method === 'POST')).toHaveLength(1)
+  expect(afterRetry.filter((item) => item.path === '/upload/vouchers' && item.method === 'POST')).toHaveLength(1)
   expect(afterRetry.filter((item) => item.path === '/mailer' && (item.body as { type?: string })?.type === 'CERTIFICADO')).toHaveLength(2)
 })
 
